@@ -1,8 +1,7 @@
-
 export interface Category {
   id: string;
   name: string;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   color: string;
   icon: string;
 }
@@ -14,12 +13,14 @@ export interface Transaction {
   discount?: number;
   categoryId: string;
   date: Date;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   category?: Category;
   createdAt: Date;
 }
 
 export interface FinancialSummary {
+  totalExpenses: number;
+  totalIncome: number;
   income: number;
   expense: number;
   balance: number;
