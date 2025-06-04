@@ -110,3 +110,37 @@ npm run dev
 # yarn dev
 # ou
 # pnpm dev
+
+📂 Estrutura do Projeto
+Uma visão geral da organização dos diretórios e arquivos importantes:
+
+Financeiro/
+├── public/               # Arquivos estáticos
+├── src/                  # Código fonte da aplicação
+│   ├── assets/           # Imagens, fontes, etc.
+│   ├── components/       # Componentes React reutilizáveis
+│   │   ├── ui/           # Componentes shadcn/ui
+│   │   └── ...           # Componentes específicos da aplicação
+│   ├── contexts/         # Contextos React (se houver)
+│   ├── hooks/            # Hooks customizados
+│   ├── lib/              # Utilitários, helpers
+│   ├── pages/            # (Ou estrutura de rotas dentro de components/)
+│   ├── services/         # Lógica de API (se houver)
+│   ├── styles/           # Estilos globais (se não usar apenas Tailwind)
+│   ├── types/            # Definições de tipos TypeScript
+│   ├── utils/            # Funções utilitárias gerais
+│   ├── App.tsx           # Componente principal da aplicação
+│   └── main.tsx          # Ponto de entrada da aplicação
+├── .eslintrc.cjs         # Configuração do ESLint
+├── .gitignore            # Arquivos ignorados pelo Git
+├── index.html            # Template HTML principal
+├── package.json          # Metadados do projeto e dependências
+├── postcss.config.js     # Configuração do PostCSS
+├── README.md             # Este arquivo!
+├── tailwind.config.js    # Configuração do Tailwind CSS
+└── tsconfig.json         # Configuração do TypeScript
+└── tsconfig.node.json    # Configuração do TypeScript para Node
+└── vite.config.ts        # Configuração do Vite
+
+
+
