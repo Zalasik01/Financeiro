@@ -302,12 +302,19 @@ export const StoreManager = ({
                   className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-center gap-3">
-                    <img
-                      src={store.icon}
-                      alt={store.name}
-                      className="w-8 h-8 rounded-full"
-                    />{" "}
-                    {/* Exibir como imagem */}
+                    {store.icon &&
+                    (store.icon.startsWith("data:image") ||
+                      store.icon.startsWith("http")) ? (
+                      <img
+                        src={store.icon}
+                        alt={store.name}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
+                        {store.icon || "🏪"}
+                      </span>
+                    )}
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-medium">{store.name}</p>
