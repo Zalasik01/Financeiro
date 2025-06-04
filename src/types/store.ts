@@ -1,18 +1,17 @@
-
 export interface Store {
   id: string;
   name: string;
   cnpj: string;
   nickname?: string;
   code?: string;
-  icon?: string; // URL da imagem ou emoji
+  icon?: string; // Agora espera a URL da imagem
   createdAt: Date;
 }
 
 export interface PaymentMethod {
   id: string;
   name: string;
-  type: 'cash' | 'card' | 'pix' | 'transfer' | 'other';
+  type: "cash" | "card" | "pix" | "transfer" | "other";
   color: string;
   icon: string;
   createdAt: Date;
@@ -21,7 +20,7 @@ export interface PaymentMethod {
 export interface MovementType {
   id: string;
   name: string;
-  category: 'entrada' | 'saida' | 'outros';
+  category: "entrada" | "saida" | "outros";
   color: string;
   icon: string;
   createdAt: Date;

@@ -1,33 +1,37 @@
-
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Store } from '@/types/store';
-import { useToast } from '@/hooks/use-toast';
-import { ImageUpload } from './ImageUpload';
-import { maskCNPJ, onlyNumbers } from '@/utils/formatters';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Store } from "@/types/store";
+import { useToast } from "@/hooks/use-toast";
+import { ImageUpload } from "./ImageUpload";
+import { maskCNPJ, onlyNumbers } from "@/utils/formatters";
 
 interface StoreManagerProps {
   stores: Store[];
-  onAddStore: (store: Omit<Store, 'id' | 'createdAt'>) => void;
+  onAddStore: (store: Omit<Store, "id" | "createdAt">) => void;
   onUpdateStore: (id: string, store: Partial<Store>) => void;
   onDeleteStore: (id: string) => void;
 }
 
-export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore }: StoreManagerProps) => {
+export const StoreManager = ({
+  stores,
+  onAddStore,
+  onUpdateStore,
+  onDeleteStore,
+}: StoreManagerProps) => {
   const [newStore, setNewStore] = useState({
-    name: '',
-    cnpj: '',
-    nickname: '',
-    code: '',
-    icon: '🏪',
+    name: "",
+    cnpj: "",
+    nickname: "",
+    code: "",
+    icon: "", // Remover valor padrão
   });
 
   const [editingStore, setEditingStore] = useState<Store | null>(null);
-  const [displayCNPJ, setDisplayCNPJ] = useState('');
+  const [displayCNPJ, setDisplayCNPJ] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -44,7 +48,7 @@ export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newStore.name.trim() || !newStore.cnpj.trim()) {
       toast({
         title: "Erro",
@@ -59,17 +63,17 @@ export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore 
       cnpj: onlyNumbers(newStore.cnpj),
       nickname: newStore.nickname || undefined,
       code: newStore.code || undefined,
-      icon: newStore.icon,
+      icon: newStore.icon, // Enviar o ícone (string ou URL)
     });
 
     setNewStore({
-      name: '',
-      cnpj: '',
-      nickname: '',
-      code: '',
-      icon: '🏪',
+      name: "",
+      cnpj: "",
+      nickname: "",
+      code: "",
+      icon: "", // Resetar para string vazia
     });
-    setDisplayCNPJ('');
+    setDisplayCNPJ("");
 
     toast({
       title: "Sucesso",
@@ -79,7 +83,7 @@ export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore 
 
   const handleUpdate = () => {
     if (!editingStore) return;
-    
+
     if (!editingStore.name.trim()) {
       toast({
         title: "Erro",
@@ -97,7 +101,7 @@ export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore 
     });
 
     setEditingStore(null);
-    
+
     toast({
       title: "Sucesso",
       description: "Loja atualizada com sucesso!",
@@ -114,7 +118,7 @@ export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore 
 
   const handleCNPJChange = (value: string) => {
     const cleanCNPJ = onlyNumbers(value);
-    setNewStore(prev => ({ ...prev, cnpj: cleanCNPJ }));
+    setNewStore((prev) => ({ ...prev, cnpj: cleanCNPJ }));
     setDisplayCNPJ(maskCNPJ(cleanCNPJ));
   };
 
@@ -128,19 +132,24 @@ export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore 
       <CardContent className="space-y-6">
         {/* Form to add new store */}
         {!editingStore ? (
-          <form onSubmit={handleSubmit} className="space-y-4 p-4 bg-gray-50 rounded-lg">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4 p-4 bg-gray-50 rounded-lg"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="name">Nome da Loja *</Label>
                 <Input
                   id="name"
                   value={newStore.name}
-                  onChange={(e) => setNewStore(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) =>
+                    setNewStore((prev) => ({ ...prev, name: e.target.value }))
+                  }
                   placeholder="Ex: Loja Centro"
                   required
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="cnpj">CNPJ *</Label>
                 <Input
@@ -160,7 +169,12 @@ export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore 
                 <Input
                   id="nickname"
                   value={newStore.nickname}
-                  onChange={(e) => setNewStore(prev => ({ ...prev, nickname: e.target.value }))}
+                  onChange={(e) =>
+                    setNewStore((prev) => ({
+                      ...prev,
+                      nickname: e.target.value,
+                    }))
+                  }
                   placeholder="Ex: Centro"
                 />
               </div>
@@ -170,15 +184,19 @@ export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore 
                 <Input
                   id="code"
                   value={newStore.code}
-                  onChange={(e) => setNewStore(prev => ({ ...prev, code: e.target.value }))}
+                  onChange={(e) =>
+                    setNewStore((prev) => ({ ...prev, code: e.target.value }))
+                  }
                   placeholder="Ex: 001"
                 />
               </div>
             </div>
 
-            <ImageUpload 
-              currentIcon={newStore.icon}
-              onIconChange={(icon) => setNewStore(prev => ({ ...prev, icon }))}
+            <ImageUpload
+              currentIcon={newStore.icon} // Passar o ícone atual (string ou URL)
+              onIconChange={(icon) =>
+                setNewStore((prev) => ({ ...prev, icon }))
+              }
               placeholder="Ícone da Loja"
             />
 
@@ -188,7 +206,10 @@ export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore 
           </form>
         ) : (
           <form
-            onSubmit={(e) => { e.preventDefault(); handleUpdate(); }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleUpdate();
+            }}
             className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200"
           >
             <div className="flex justify-between items-center mb-2">
@@ -202,26 +223,24 @@ export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore 
                 Cancelar
               </Button>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-name">Nome da Loja *</Label>
                 <Input
                   id="edit-name"
                   value={editingStore.name}
-                  onChange={(e) => setEditingStore({ ...editingStore, name: e.target.value })}
+                  onChange={(e) =>
+                    setEditingStore({ ...editingStore, name: e.target.value })
+                  }
                   placeholder="Ex: Loja Centro"
                   required
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="edit-cnpj">CNPJ (não editável)</Label>
-                <Input
-                  id="edit-cnpj"
-                  value={displayCNPJ}
-                  disabled
-                />
+                <Input id="edit-cnpj" value={displayCNPJ} disabled />
               </div>
             </div>
 
@@ -230,8 +249,13 @@ export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore 
                 <Label htmlFor="edit-nickname">Apelido</Label>
                 <Input
                   id="edit-nickname"
-                  value={editingStore.nickname || ''}
-                  onChange={(e) => setEditingStore({ ...editingStore, nickname: e.target.value })}
+                  value={editingStore.nickname || ""}
+                  onChange={(e) =>
+                    setEditingStore({
+                      ...editingStore,
+                      nickname: e.target.value,
+                    })
+                  }
                   placeholder="Ex: Centro"
                 />
               </div>
@@ -240,16 +264,20 @@ export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore 
                 <Label htmlFor="edit-code">Código da Loja</Label>
                 <Input
                   id="edit-code"
-                  value={editingStore.code || ''}
-                  onChange={(e) => setEditingStore({ ...editingStore, code: e.target.value })}
+                  value={editingStore.code || ""}
+                  onChange={(e) =>
+                    setEditingStore({ ...editingStore, code: e.target.value })
+                  }
                   placeholder="Ex: 001"
                 />
               </div>
             </div>
 
-            <ImageUpload 
-              currentIcon={editingStore.icon}
-              onIconChange={(icon) => setEditingStore({ ...editingStore, icon })}
+            <ImageUpload
+              currentIcon={editingStore.icon} // Passar o ícone atual (string ou URL)
+              onIconChange={(icon) =>
+                setEditingStore({ ...editingStore, icon })
+              }
               placeholder="Ícone da Loja"
             />
 
@@ -264,7 +292,9 @@ export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore 
           <h4 className="font-medium text-gray-700">Lojas Cadastradas</h4>
           <div className="space-y-3">
             {stores.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">Nenhuma loja cadastrada</p>
+              <p className="text-gray-500 text-center py-4">
+                Nenhuma loja cadastrada
+              </p>
             ) : (
               stores.map((store) => (
                 <div
@@ -272,7 +302,12 @@ export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore 
                   className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{store.icon || '🏪'}</span>
+                    <img
+                      src={store.icon}
+                      alt={store.name}
+                      className="w-8 h-8 rounded-full"
+                    />{" "}
+                    {/* Exibir como imagem */}
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-medium">{store.name}</p>
@@ -287,7 +322,9 @@ export const StoreManager = ({ stores, onAddStore, onUpdateStore, onDeleteStore 
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-gray-500">{maskCNPJ(store.cnpj)}</p>
+                      <p className="text-sm text-gray-500">
+                        {maskCNPJ(store.cnpj)}
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-2">
