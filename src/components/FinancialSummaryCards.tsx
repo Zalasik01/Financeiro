@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FinancialSummary } from "@/types/finance";
+import { formatCurrency } from "@/utils/formatters";
 
 interface FinancialSummaryCardsProps {
   summary: FinancialSummary;
@@ -8,13 +9,6 @@ interface FinancialSummaryCardsProps {
 export const FinancialSummaryCards = ({
   summary,
 }: FinancialSummaryCardsProps) => {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(amount);
-  };
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 cursor-pointer">
       <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-lg transition-all duration-300 animate-fade-in">
