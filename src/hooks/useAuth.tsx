@@ -10,7 +10,6 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/firebase';
 import { useToast } from './use-toast';
-
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
@@ -58,31 +57,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const login = async (email: string, password: string) => {
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      toast({ title: 'Login realizado!', description: 'Bem-vindo(a) de volta!' });
-      return userCredential.user;
-    } catch (error: any) {
-      console.error("Erro no login:", error);
-      toast({
-        title: 'Erro no login',
-        description: error.message || 'E-mail ou senha inválidos.',
-        variant: 'destructive'
-      });
-      return null;
-    }
-  };
-
   const logout = async () => {
     try {
       await signOut(auth);
       toast({ title: 'Logout realizado', description: 'Até breve!' });
     } catch (error: any) {
+      const errorMessage = error.message || 'Não foi possível fazer logout.';
       console.error("Erro no logout:", error);
       toast({
         title: 'Erro no logout',
-        description: error.message || 'Não foi possível fazer logout.',
+        description: errorMessage,
         variant: 'destructive'
       });
     }
@@ -93,10 +77,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       await sendPasswordResetEmail(auth, email);
       toast({ title: 'E-mail enviado', description: 'Verifique sua caixa de entrada para redefinir a senha.' });
     } catch (error: any) {
+      const errorMessage = error.message || 'Não foi possível enviar o e-mail.';
       console.error("Erro ao enviar e-mail de redefinição de senha:", error);
       toast({
         title: 'Erro',
-        description: error.message || 'Não foi possível enviar o e-mail.',
+        description: errorMessage,
         variant: 'destructive'
       });
     }

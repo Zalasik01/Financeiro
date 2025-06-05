@@ -6,7 +6,7 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 4000 // 4 segundos
 
 type ToasterToast = ToastProps & {
   id: string
@@ -158,6 +158,18 @@ function toast({ ...props }: Toast) {
       onOpenChange: (open) => {
         if (!open) dismiss()
       },
+      onClick: () => {
+        if (props.description && typeof props.description === 'string') {
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(props.description).catch(err => {
+              // Ignorar erro de cópia, logar no console opcionalmente
+              console.warn("Tentativa de cópia da descrição do toast falhou (ignorado):", err);
+            });
+          } else {
+            console.warn("API de Clipboard não disponível para copiar descrição do toast.");
+          }
+        }
+      }
     },
   })
 
