@@ -15,7 +15,13 @@ import {
   updateProfile,
   AuthError,
 } from "firebase/auth";
-import { auth } from "@/firebase";
+import { auth, storage } from "@/firebase"; // Importar storage
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage"; // Importar funções do storage
 import { useToast } from "./use-toast";
 interface AuthContextType {
   currentUser: User | null;
@@ -32,7 +38,10 @@ interface AuthContextType {
   updateUserProfileData: (updates: {
     displayName?: string;
     photoURL?: string;
+    // Adicionar as novas funções ao tipo
   }) => Promise<void>;
+  uploadProfilePhotoAndUpdateURL: (file: File) => Promise<void>;
+  removeProfilePhoto: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -192,9 +201,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setError(null); // Limpa erros anteriores
       await updateProfile(auth.currentUser, updates);
       // Atualiza o estado local do currentUser para refletir as mudanças imediatamente
-      if (auth.currentUser) {
-        setCurrentUser({ ...auth.currentUser }); // Cria uma nova referência para o objeto do usuário
-      }
+      // Usar 'updates' garante que o estado reflita o que foi enviado para atualização.
+      setCurrentUser((prevUser) =>
+        prevUser ? { ...prevUser, ...updates } : null
+      );
       const descriptionSuccess = "Perfil atualizado.";
       toast({
         title: "Sucesso!",
@@ -213,6 +223,102 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       throw authError; // Re-lança o erro para que o chamador possa lidar com ele se necessário
     }
   };
+
+  const uploadProfilePhotoAndUpdateURL = async (file: File) => {
+    if (!auth.currentUser) {
+      const errMessage = "Usuário não autenticado para upload de foto.";
+      setError(errMessage);
+      toast({ title: "Erro", description: errMessage, variant: "destructive" });
+      throw new Error(errMessage);
+    }
+    try {
+      setError(null);
+      // 1. Remover foto antiga do Storage se existir (opcional, mas bom para limpeza)
+      if (auth.currentUser.photoURL) {
+        try {
+          const oldPhotoRef = ref(storage, auth.currentUser.photoURL);
+          await deleteObject(oldPhotoRef);
+        } catch (deleteError: any) {
+          // Não bloquear o upload se a remoção da antiga falhar, mas logar
+          console.warn("Falha ao remover foto antiga do storage:", deleteError);
+        }
+      }
+
+      // 2. Fazer upload da nova foto
+      const filePath = `profilePictures/${auth.currentUser.uid}/${file.name}`;
+      const storageRef = ref(storage, filePath);
+      await uploadBytes(storageRef, file);
+      const newPhotoURL = await getDownloadURL(storageRef);
+
+      // 3. Atualizar photoURL no Firebase Auth
+      await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
+
+      // 4. Atualizar currentUser no estado do hook
+      setCurrentUser((prevUser) =>
+        prevUser ? { ...prevUser, photoURL: newPhotoURL } : null
+      );
+
+      toast({
+        title: "Foto atualizada!",
+        description: "Sua nova foto de perfil foi salva.",
+      });
+    } catch (error: any) {
+      const errMessage =
+        error.message || "Não foi possível atualizar a foto de perfil.";
+      setError(errMessage);
+      toast({
+        title: "Erro no Upload",
+        description: errMessage,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const removeProfilePhoto = async () => {
+    if (!auth.currentUser) {
+      const errMessage = "Usuário não autenticado para remover foto.";
+      setError(errMessage);
+      toast({ title: "Erro", description: errMessage, variant: "destructive" });
+      throw new Error(errMessage);
+    }
+    try {
+      setError(null);
+      // 1. Remover foto do Storage se existir
+      if (auth.currentUser.photoURL) {
+        try {
+          const photoRef = ref(storage, auth.currentUser.photoURL);
+          await deleteObject(photoRef);
+        } catch (deleteError: any) {
+          console.warn(
+            "Falha ao remover foto do storage durante a remoção do perfil:",
+            deleteError
+          );
+        }
+      }
+      // 2. Atualizar photoURL para null no Firebase Auth
+      await updateProfile(auth.currentUser, { photoURL: null });
+      // 3. Atualizar currentUser no estado do hook
+      setCurrentUser((prevUser) =>
+        prevUser ? { ...prevUser, photoURL: null } : null
+      );
+      toast({
+        title: "Foto removida!",
+        description: "Sua foto de perfil foi removida.",
+      });
+    } catch (error: any) {
+      const errMessage =
+        error.message || "Não foi possível remover a foto de perfil.";
+      setError(errMessage);
+      toast({
+        title: "Erro ao Remover Foto",
+        description: errMessage,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
@@ -230,6 +336,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     logout,
     resetPassword,
     updateUserProfileData,
+    uploadProfilePhotoAndUpdateURL, // Adicionar ao contexto
+    removeProfilePhoto, // Adicionar ao contexto
   };
 
   return (

@@ -19,6 +19,8 @@ const EditarPerfilPage: React.FC = () => {
     currentUser,
     updateUserProfileData,
     updateUserPasswordData,
+    uploadProfilePhotoAndUpdateURL, // Assumindo que esta função existe e atualiza currentUser no useAuth
+    removeProfilePhoto, // Assumindo que esta função existe e atualiza currentUser no useAuth
     loadingAuth,
   } = useAuth();
   const { toast } = useToast();
@@ -93,41 +95,40 @@ const EditarPerfilPage: React.FC = () => {
     e.preventDefault();
     if (!currentUser) return;
     setIsUpdatingProfile(true);
+    let profileDataChanged = false;
 
     try {
-      let photoURLUpdate: string | null | undefined = undefined;
-
+      // Etapa 1: Lidar com a atualização da foto de perfil
       if (isPhotoRemovalRequested) {
-        // Lógica para remover a foto (a ser implementada no useAuth)
-        // await removeProfilePhoto(); // Esta função definiria photoURL para null no Firebase Auth
-        photoURLUpdate = null; // Indica que a photoURL deve ser removida/setada para null
-        console.log("Solicitação para remover foto de perfil.");
+        if (removeProfilePhoto) {
+          // Verifica se a função foi fornecida pelo hook
+          await removeProfilePhoto();
+        }
+        profileDataChanged = true;
       } else if (photoFile) {
-        // Lógica para upload da foto (a ser implementada no useAuth)
-        // const newPhotoURL = await uploadProfilePhotoAndUpdateURL(photoFile);
-        // photoURLUpdate = newPhotoURL; // A URL retornada pelo upload
-        console.log("Simulando upload de nova foto de perfil:", photoFile.name);
-        // Por enquanto, vamos apenas simular que o updateUserProfileData lida com isso
-        // ou que o photoURL já foi atualizado no currentUser pelo hook.
-        // Se o hook `uploadProfilePhotoAndUpdateURL` já atualiza o `currentUser.photoURL`
-        // e o `updateUserProfileData` só precisa do `displayName`, então `photoURLUpdate` pode ser `undefined`.
-        // Se `updateUserProfileData` precisa da nova URL, você passaria aqui.
+        if (uploadProfilePhotoAndUpdateURL) {
+          // Verifica se a função foi fornecida pelo hook
+          await uploadProfilePhotoAndUpdateURL(photoFile);
+        }
+        profileDataChanged = true;
+      }
+      // Etapa 2: Lidar com a atualização do nome de exibição
+      if (currentUser.displayName !== displayName) {
+        await updateUserProfileData({ displayName }); // Esta função também deve atualizar o currentUser no useAuth.
+        profileDataChanged = true;
       }
 
-      // Atualiza o displayName e, condicionalmente, a photoURL
-      const updates: { displayName: string; photoURL?: string | null } = {
-        displayName,
-      };
-      if (photoURLUpdate !== undefined) {
-        // Se houve upload ou remoção
-        updates.photoURL = photoURLUpdate;
+      if (profileDataChanged) {
+        toast({
+          title: "Perfil atualizado!",
+          description: "Suas informações de perfil foram salvas.",
+        });
+      } else {
+        toast({
+          title: "Nenhuma alteração",
+          description: "Nenhuma informação do perfil foi modificada.",
+        });
       }
-      await updateUserProfileData(updates);
-
-      toast({
-        title: "Perfil atualizado!",
-        description: "Suas informações de perfil foram salvas.",
-      });
       setIsPhotoRemovalRequested(false); // Reseta o estado de remoção
       setPhotoFile(null); // Limpa o arquivo selecionado após o "upload"
     } catch (error: any) {
