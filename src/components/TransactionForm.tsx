@@ -1,34 +1,45 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Transaction, Category } from '@/types/finance';
-import { useToast } from '@/hooks/use-toast';
-import { CurrencyInput } from './CurrencyInput';
-import { useStores } from '@/hooks/useStores'; // Importar o hook de lojas
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Transaction, Category } from "@/types/finance";
+import { useToast } from "@/hooks/use-toast";
+import { CurrencyInput } from "./CurrencyInput";
+import { useStores } from "@/hooks/useStores"; // Importar o hook de lojas
 
 interface TransactionFormProps {
   categories: Category[];
-  onAddTransaction: (transaction: Omit<Transaction, 'id' | 'createdAt'>) => void;
+  onAddTransaction: (
+    transaction: Omit<Transaction, "id" | "createdAt">
+  ) => void;
   // Ajustar para aceitar null para cancelamento
-  onUpdateTransaction?: (id: string, transaction: Partial<Transaction> | null) => void;
+  onUpdateTransaction?: (
+    id: string,
+    transaction: Partial<Transaction> | null
+  ) => void;
   editingTransaction?: Transaction | null;
 }
 
-export const TransactionForm = ({ 
-  categories, 
-  onAddTransaction, 
-  onUpdateTransaction, 
-  editingTransaction 
+export const TransactionForm = ({
+  categories,
+  onAddTransaction,
+  onUpdateTransaction,
+  editingTransaction,
 }: TransactionFormProps) => {
   const [newTransaction, setNewTransaction] = useState({
-    description: '',
+    description: "",
     amount: 0,
     discount: 0,
-    categoryId: '',
-    date: new Date().toISOString().split('T')[0],
-    type: 'expense' as 'income' | 'expense',
+    categoryId: "",
+    date: new Date().toISOString().split("T")[0],
+    type: "expense" as "income" | "expense",
     storeId: undefined as string | undefined, // Adicionar storeId ao estado
   });
   const { toast } = useToast();
@@ -41,9 +52,9 @@ export const TransactionForm = ({
         // Se o valor for negativo (despesa), guardamos como positivo para exibição
         amount: Math.abs(editingTransaction.amount),
         discount: editingTransaction.discount || 0,
-        categoryId: editingTransaction.categoryId, 
+        categoryId: editingTransaction.categoryId,
         // Garante que a data no formulário seja a string YYYY-MM-DD correta
-        date: new Date(editingTransaction.date).toISOString().split('T')[0],
+        date: new Date(editingTransaction.date).toISOString().split("T")[0],
         type: editingTransaction.type,
         storeId: editingTransaction.storeId, // Carregar storeId se estiver editando
       });
@@ -52,11 +63,17 @@ export const TransactionForm = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!newTransaction.description.trim() || newTransaction.amount <= 0 || !newTransaction.categoryId || !newTransaction.storeId) {
+
+    if (
+      !newTransaction.description.trim() ||
+      newTransaction.amount <= 0 ||
+      !newTransaction.categoryId ||
+      !newTransaction.storeId
+    ) {
       toast({
         title: "Erro",
-        description: "Todos os campos marcados com * são obrigatórios e o valor deve ser positivo.",
+        description:
+          "Todos os campos marcados com * são obrigatórios e o valor deve ser positivo.",
         variant: "destructive",
       });
       return;
@@ -64,25 +81,29 @@ export const TransactionForm = ({
 
     // Calcula o valor final com desconto
     const finalAmount = newTransaction.amount - newTransaction.discount;
-    
+
     // Verifica se o desconto não é maior que o valor
-    if (finalAmount <= 0 && newTransaction.discount > 0) { // Apenas erro se houver desconto e ele zerar ou negativar o valor
+    if (finalAmount <= 0 && newTransaction.discount > 0) {
+      // Apenas erro se houver desconto e ele zerar ou negativar o valor
       toast({
         title: "Erro",
-        description: "O desconto não pode ser maior ou igual ao valor da transação",
+        description:
+          "O desconto não pode ser maior ou igual ao valor da transação",
         variant: "destructive",
       });
       return;
     }
 
     // Ajuste para garantir que a data seja interpretada corretamente no fuso horário local
-    const [year, month, day] = newTransaction.date.split('-').map(Number);
+    const [year, month, day] = newTransaction.date.split("-").map(Number);
     const transactionDateObj = new Date(year, month - 1, day); // Mês é 0-indexado
 
     const transactionData = {
       description: newTransaction.description,
-      amount: newTransaction.type === 'expense' ? -finalAmount : finalAmount,
-      discount: newTransaction.discount > 0 ? newTransaction.discount : undefined,
+      amount: newTransaction.type === "expense" ? -finalAmount : finalAmount,
+      // Se o desconto for 0 ou não definido, passamos null.
+      // O hook useFinance tratará se deve incluir o campo ou não.
+      discount: newTransaction.discount > 0 ? newTransaction.discount : null,
       categoryId: newTransaction.categoryId,
       date: transactionDateObj,
       type: newTransaction.type,
@@ -104,23 +125,28 @@ export const TransactionForm = ({
     }
 
     setNewTransaction({
-      description: '',
+      description: "",
       amount: 0,
       discount: 0,
-      categoryId: '',
-      date: new Date().toISOString().split('T')[0],
-      type: 'expense',
+      categoryId: "",
+      date: new Date().toISOString().split("T")[0],
+      type: "expense",
       storeId: undefined,
     });
   };
 
-  const filteredCategories = categories.filter(cat => cat.type === newTransaction.type);
+  const filteredCategories = categories.filter(
+    (cat) => cat.type === newTransaction.type
+  );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 p-4 bg-gray-50 rounded-lg">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 p-4 bg-gray-50 rounded-lg"
+    >
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium text-gray-700">
-          {editingTransaction ? 'Editar Transação' : 'Nova Transação'}
+          {editingTransaction ? "Editar Transação" : "Nova Transação"}
         </h3>
         {editingTransaction && onUpdateTransaction && (
           <Button
@@ -129,12 +155,12 @@ export const TransactionForm = ({
             size="sm"
             onClick={() => {
               setNewTransaction({
-                description: '',
+                description: "",
                 amount: 0,
                 discount: 0,
-                categoryId: '',
-                date: new Date().toISOString().split('T')[0],
-                type: 'expense',
+                categoryId: "",
+                date: new Date().toISOString().split("T")[0],
+                type: "expense",
                 storeId: undefined,
               });
               // Chamamos onUpdateTransaction com o mesmo id mas passando null como dado
@@ -153,17 +179,24 @@ export const TransactionForm = ({
           <Input
             id="description"
             value={newTransaction.description}
-            onChange={(e) => setNewTransaction(prev => ({ ...prev, description: e.target.value }))}
+            onChange={(e) =>
+              setNewTransaction((prev) => ({
+                ...prev,
+                description: e.target.value,
+              }))
+            }
             placeholder="Ex: Supermercado"
           />
         </div>
-        
+
         <div>
           <CurrencyInput
             label="Valor (R$)"
             id="amount"
             value={newTransaction.amount}
-            onChange={(value) => setNewTransaction(prev => ({ ...prev, amount: value }))}
+            onChange={(value) =>
+              setNewTransaction((prev) => ({ ...prev, amount: value }))
+            }
             placeholder="R$ 0,00"
           />
         </div>
@@ -175,7 +208,9 @@ export const TransactionForm = ({
             label="Desconto (R$)"
             id="discount"
             value={newTransaction.discount}
-            onChange={(value) => setNewTransaction(prev => ({ ...prev, discount: value }))}
+            onChange={(value) =>
+              setNewTransaction((prev) => ({ ...prev, discount: value }))
+            }
             placeholder="R$ 0,00"
           />
         </div>
@@ -184,8 +219,12 @@ export const TransactionForm = ({
           <Label htmlFor="type">Tipo</Label>
           <Select
             value={newTransaction.type}
-            onValueChange={(value: 'income' | 'expense') => 
-              setNewTransaction(prev => ({ ...prev, type: value, categoryId: '' }))
+            onValueChange={(value: "income" | "expense") =>
+              setNewTransaction((prev) => ({
+                ...prev,
+                type: value,
+                categoryId: "",
+              }))
             }
           >
             <SelectTrigger>
@@ -202,7 +241,9 @@ export const TransactionForm = ({
           <Label htmlFor="category">Categoria</Label>
           <Select
             value={newTransaction.categoryId}
-            onValueChange={(value) => setNewTransaction(prev => ({ ...prev, categoryId: value }))}
+            onValueChange={(value) =>
+              setNewTransaction((prev) => ({ ...prev, categoryId: value }))
+            }
           >
             <SelectTrigger>
               <SelectValue placeholder="Selecione..." />
@@ -225,7 +266,9 @@ export const TransactionForm = ({
             id="date"
             type="date"
             value={newTransaction.date}
-            onChange={(e) => setNewTransaction(prev => ({ ...prev, date: e.target.value }))}
+            onChange={(e) =>
+              setNewTransaction((prev) => ({ ...prev, date: e.target.value }))
+            }
           />
         </div>
 
@@ -255,23 +298,25 @@ export const TransactionForm = ({
         </div>
 
         {/* Conditional rendering for discount display */}
-        {newTransaction.amount > 0 && newTransaction.discount > 0 && newTransaction.discount < newTransaction.amount && (
-          <div className="flex items-end">
-            <div className="text-sm text-gray-600">
-              <span className="block">Valor com desconto:</span>
-              <span className="font-bold text-green-600">
-                {new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                }).format(newTransaction.amount - newTransaction.discount)}
-              </span>
+        {newTransaction.amount > 0 &&
+          newTransaction.discount > 0 &&
+          newTransaction.discount < newTransaction.amount && (
+            <div className="flex items-end">
+              <div className="text-sm text-gray-600">
+                <span className="block">Valor com desconto:</span>
+                <span className="font-bold text-green-600">
+                  {new Intl.NumberFormat("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  }).format(newTransaction.amount - newTransaction.discount)}
+                </span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </div>
 
       <Button type="submit" className="w-full">
-        {editingTransaction ? 'Atualizar Transação' : 'Adicionar Transação'}
+        {editingTransaction ? "Atualizar Transação" : "Adicionar Transação"}
       </Button>
     </form>
   );

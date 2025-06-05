@@ -61,8 +61,8 @@ export const StoreManager = ({
     onAddStore({
       name: newStore.name,
       cnpj: onlyNumbers(newStore.cnpj),
-      nickname: newStore.nickname || undefined,
-      code: newStore.code || undefined,
+      nickname: newStore.nickname || null, // Alterado para null
+      code: newStore.code || null, // Alterado para null
       icon: newStore.icon, // Enviar o ícone (string ou URL)
     });
 
@@ -76,7 +76,7 @@ export const StoreManager = ({
     setDisplayCNPJ("");
 
     toast({
-      title: "Sucesso",
+      title: "Sucesso!",
       description: "Loja cadastrada com sucesso!",
     });
   };
@@ -95,8 +95,8 @@ export const StoreManager = ({
 
     onUpdateStore(editingStore.id, {
       name: editingStore.name,
-      nickname: editingStore.nickname || undefined,
-      code: editingStore.code || undefined,
+      nickname: editingStore.nickname || null, // Alterado para null
+      code: editingStore.code || null, // Alterado para null
       icon: editingStore.icon,
     });
 

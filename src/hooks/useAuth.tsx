@@ -68,13 +68,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // displayName é agora obrigatório
         await updateProfile(userCredential.user, { displayName });
       }
-      toast({ title: "Cadastro realizado!", description: "Bem-vindo(a)!" });
+      const description = "Bem-vindo(a)!";
+      toast({
+        title: "Cadastro realizado!",
+        description,
+      });
       return userCredential.user;
     } catch (error: AuthError) {
       console.error("Erro no cadastro:", error);
+      let errorMessage = "Não foi possível criar a conta.";
+      if (error.code === "auth/email-already-in-use") {
+        errorMessage =
+          "Este e-mail já está cadastrado. Tente fazer login ou use um e-mail diferente.";
+      } else if (error.code === "auth/weak-password") {
+        errorMessage = "A senha é muito fraca. Use pelo menos 6 caracteres.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      const description = errorMessage;
       toast({
         title: "Erro no cadastro",
-        description: error.message || "Não foi possível criar a conta.",
+        description,
         variant: "destructive",
       });
       return null;
@@ -88,9 +103,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         email,
         password
       );
+      const description = "Bem-vindo(a) de volta!";
       toast({
         title: "Login realizado!",
-        description: "Bem-vindo(a) de volta!",
+        description,
       });
       return userCredential.user;
     } catch (error: AuthError) {
@@ -99,9 +115,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         error.code === "auth/invalid-credential"
           ? "Credenciais inválidas. Verifique seu e-mail e senha."
           : error.message || "Não foi possível fazer login.";
+      const description = errorMessage;
       toast({
         title: "Erro no login",
-        description: errorMessage,
+        description,
         variant: "destructive",
       });
       return null;
@@ -110,13 +127,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = async () => {
     try {
       await signOut(auth);
-      toast({ title: "Logout realizado", description: "Até breve!" });
+      const description = "Usuário deslogado com sucesso!";
+      toast({
+        title: "Logout realizado",
+        description,
+      });
     } catch (error: AuthError) {
       const errorMessage = error.message || "Não foi possível fazer logout.";
       console.error("Erro no logout:", error);
+      const description = errorMessage;
       toast({
         title: "Erro no logout",
-        description: errorMessage,
+        description,
         variant: "destructive",
       });
     }
@@ -125,16 +147,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const resetPassword = async (email: string) => {
     try {
       await sendPasswordResetEmail(auth, email);
+      const description =
+        "Verifique sua caixa de entrada para redefinir a senha.";
       toast({
         title: "E-mail enviado",
-        description: "Verifique sua caixa de entrada para redefinir a senha.",
+        description,
       });
     } catch (error: AuthError) {
       const errorMessage = error.message || "Não foi possível enviar o e-mail.";
       console.error("Erro ao enviar e-mail de redefinição de senha:", error);
+      const description = errorMessage;
       toast({
         title: "Erro",
-        description: errorMessage,
+        description,
         variant: "destructive",
       });
     }
@@ -145,9 +170,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     photoURL?: string;
   }) => {
     if (!auth.currentUser) {
+      const description = "Usuário não autenticado para atualizar o perfil.";
       toast({
         title: "Erro",
-        description: "Usuário não autenticado para atualizar o perfil.",
+        description,
         variant: "destructive",
       });
       // Lançar um erro ou retornar pode ser apropriado dependendo de como você quer lidar com isso na UI
@@ -159,14 +185,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (auth.currentUser) {
         setCurrentUser({ ...auth.currentUser }); // Cria uma nova referência para o objeto do usuário
       }
-      toast({ title: "Sucesso!", description: "Perfil atualizado." });
+      const descriptionSuccess = "Perfil atualizado.";
+      toast({
+        title: "Sucesso!",
+        description: descriptionSuccess,
+      });
     } catch (error) {
       const authError = error as AuthError;
       console.error("Erro ao atualizar perfil:", authError);
+      const descriptionError =
+        authError.message || "Não foi possível atualizar os dados do perfil.";
       toast({
         title: "Erro ao atualizar perfil",
-        description:
-          authError.message || "Não foi possível atualizar os dados do perfil.",
+        description: descriptionError,
         variant: "destructive",
       });
       throw authError; // Re-lança o erro para que o chamador possa lidar com ele se necessário

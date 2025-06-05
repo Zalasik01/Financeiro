@@ -58,8 +58,8 @@ export const StoreClosingManager = ({
   onAddClosing,
   onUpdateClosing,
   onDeleteClosing,
-  // transactions, // Adicionar transactions se for passado como prop
-}: StoreClosingManagerProps) => {
+}: // transactions, // Adicionar transactions se for passado como prop
+StoreClosingManagerProps) => {
   const [newClosing, setNewClosing] = useState({
     storeId: "",
     closingDate: new Date().toISOString().split("T")[0],
@@ -67,8 +67,11 @@ export const StoreClosingManager = ({
     finalBalance: 0,
     movements: [] as MovementItem[],
   });
-  
-  const { transactions: personalTransactions, removeTransactionsByDateAndStore } = useFinance();
+
+  const {
+    transactions: personalTransactions,
+    removeTransactionsByDateAndStore,
+  } = useFinance();
 
   const [editingMovement, setEditingMovement] = useState<{
     index: number;
@@ -97,19 +100,31 @@ export const StoreClosingManager = ({
     }
 
     // Ajuste para garantir que a data seja interpretada corretamente no fuso horário local
-    const [year, month, day] = newClosing.closingDate.split('-').map(Number);
+    const [year, month, day] = newClosing.closingDate.split("-").map(Number);
     // O mês no construtor Date é 0-indexado (0 para Janeiro, 11 para Dezembro)
     const closingDateObj = new Date(year, month - 1, day);
 
     console.log("[StoreClosingManager] handleSubmit - Dados para filtro:");
     // Usar JSON.parse(JSON.stringify(...)) para loggar um snapshot do array, evitando que o console mostre o valor atualizado ao vivo.
-    console.log("[StoreClosingManager] Todas as Transações Pessoais (do useFinance):", JSON.parse(JSON.stringify(personalTransactions)));
-    console.log("[StoreClosingManager] Loja Selecionada para Fechamento (newClosing.storeId):", newClosing.storeId);
-    console.log("[StoreClosingManager] Data Selecionada para Fechamento (closingDateObj):", closingDateObj.toISOString().split('T')[0]);
-    console.log("[StoreClosingManager] Data Selecionada (string original do input - newClosing.closingDate):", newClosing.closingDate);
+    console.log(
+      "[StoreClosingManager] Todas as Transações Pessoais (do useFinance):",
+      JSON.parse(JSON.stringify(personalTransactions))
+    );
+    console.log(
+      "[StoreClosingManager] Loja Selecionada para Fechamento (newClosing.storeId):",
+      newClosing.storeId
+    );
+    console.log(
+      "[StoreClosingManager] Data Selecionada para Fechamento (closingDateObj):",
+      closingDateObj.toISOString().split("T")[0]
+    );
+    console.log(
+      "[StoreClosingManager] Data Selecionada (string original do input - newClosing.closingDate):",
+      newClosing.closingDate
+    );
 
     // 1. Filtrar transações pessoais pela data e loja do fechamento
-    const relevantPersonalTransactions = personalTransactions.filter(t => {
+    const relevantPersonalTransactions = personalTransactions.filter((t) => {
       const transactionDate = new Date(t.date);
       return (
         t.storeId === newClosing.storeId &&
@@ -118,47 +133,63 @@ export const StoreClosingManager = ({
         transactionDate.getDate() === closingDateObj.getDate()
       );
     });
-    console.log("StoreClosingManager - Transações Pessoais Relevantes (APÓS FILTRO):", JSON.parse(JSON.stringify(relevantPersonalTransactions)));
+    console.log(
+      "StoreClosingManager - Transações Pessoais Relevantes (APÓS FILTRO):",
+      JSON.parse(JSON.stringify(relevantPersonalTransactions))
+    );
 
     // 2. Mapear Transaction para MovementItem
-    const movementsFromPersonalTransactions: MovementItem[] = relevantPersonalTransactions.map(t => {
-      const targetMovementTypeName = t.type === 'income' ? "Receita (Transferida)" : "Despesa (Transferida)";
-      let movementTypeForTransfer = movementTypes.find(mt => mt.name === targetMovementTypeName);
+    const movementsFromPersonalTransactions: MovementItem[] =
+      relevantPersonalTransactions
+        .map((t) => {
+          const targetMovementTypeName =
+            t.type === "income"
+              ? "Receita (Transferida)"
+              : "Despesa (Transferida)";
+          let movementTypeForTransfer = movementTypes.find(
+            (mt) => mt.name === targetMovementTypeName
+          );
 
-      if (!movementTypeForTransfer) {
-        console.warn(`MovementType "${targetMovementTypeName}" não encontrado. Tentando fallback para tipo genérico de ${t.type === 'income' ? 'entrada' : 'saida'}.`);
-        movementTypeForTransfer = movementTypes.find(mt => mt.category === (t.type === 'income' ? 'entrada' : 'saida'));
-        
-        if (!movementTypeForTransfer && movementTypes.length > 0) {
-          movementTypeForTransfer = movementTypes[0];
-          console.warn(`Nenhum tipo de ${t.type === 'income' ? 'entrada' : 'saida'} encontrado. Usando o primeiro tipo de movimento disponível: ${movementTypeForTransfer.name}`);
-        }
-      }
+          if (!movementTypeForTransfer) {
+            console.warn(
+              `MovementType "${targetMovementTypeName}" não encontrado. Tentando fallback para tipo genérico de ${
+                t.type === "income" ? "entrada" : "saida"
+              }.`
+            );
+            movementTypeForTransfer = movementTypes.find(
+              (mt) =>
+                mt.category === (t.type === "income" ? "entrada" : "saida")
+            );
+          }
 
-      if (!movementTypeForTransfer) {
-        toast({
-          title: "Erro de Configuração",
-          description: `Tipos de movimento não configurados adequadamente para transferir transações pessoais. Por favor, cadastre tipos de movimento (ex: "Receita (Transferida)", "Despesa (Transferida)") ou tipos genéricos de entrada/saída.`,
-          variant: "destructive",
-          duration: 7000,
-        });
-        // Retornar null para esta transação, será filtrado depois.
-        // Isso evita que o processo de fechamento pare completamente.
-        return null;
-      }
+          if (!movementTypeForTransfer) {
+            toast({
+              title: "Erro de Configuração",
+              description: `Tipos de movimento não configurados adequadamente para transferir transações pessoais. Por favor, cadastre tipos de movimento (ex: "Receita (Transferida)", "Despesa (Transferida)") ou tipos genéricos de entrada/saída.`,
+              variant: "destructive",
+              duration: 7000,
+            });
+            // Retornar null para esta transação, será filtrado depois.
+            // Isso evita que o processo de fechamento pare completamente.
+            return null;
+          }
 
-      return {
-        id: `mov-from-trans-${t.id}`,
-        description: `(Pessoal) ${t.description}`,
-        amount: Math.abs(t.amount),
-        discount: t.discount || 0,
-        movementTypeId: movementTypeForTransfer.id, // ID de um MovementType existente
-        paymentMethodId: 'N/A', // Ou um método padrão
-        storeClosingId: '', // Será preenchido por addStoreClosing
-        // Não embutir o objeto movementType aqui; será populado por getClosingsWithDetails
-      };
-    }).filter(Boolean) as MovementItem[]; // Filtra quaisquer transações que não puderam ser mapeadas
-    console.log("StoreClosingManager - Movimentos de Transações Pessoais (APÓS MAPEAMENTO):", JSON.parse(JSON.stringify(movementsFromPersonalTransactions)));
+          return {
+            id: `mov-from-trans-${t.id}`,
+            description: `(Pessoal) ${t.description}`,
+            amount: Math.abs(t.amount),
+            discount: t.discount || 0,
+            movementTypeId: movementTypeForTransfer.id, // ID de um MovementType existente
+            paymentMethodId: "N/A", // Ou um método padrão
+            storeClosingId: "", // Será preenchido por addStoreClosing
+            // Não embutir o objeto movementType aqui; será populado por getClosingsWithDetails
+          };
+        })
+        .filter(Boolean) as MovementItem[]; // Filtra quaisquer transações que não puderam ser mapeadas
+    console.log(
+      "StoreClosingManager - Movimentos de Transações Pessoais (APÓS MAPEAMENTO):",
+      JSON.parse(JSON.stringify(movementsFromPersonalTransactions))
+    );
 
     // Se alguma transação não pôde ser mapeada devido à falta de MovementType,
     // e movementsFromPersonalTransactions ficou vazio enquanto relevantPersonalTransactions não estava,
@@ -169,7 +200,10 @@ export const StoreClosingManager = ({
       closingDate: closingDateObj,
       initialBalance: newClosing.initialBalance,
       finalBalance: newClosing.finalBalance,
-      movements: [...newClosing.movements, ...movementsFromPersonalTransactions], // Combina movimentos manuais com os de transações
+      movements: [
+        ...newClosing.movements,
+        ...movementsFromPersonalTransactions,
+      ], // Combina movimentos manuais com os de transações
     });
 
     setNewClosing({
@@ -181,7 +215,11 @@ export const StoreClosingManager = ({
     });
 
     // 3. Remover as transações pessoais que foram movidas
-    console.log(`[StoreClosingManager] Chamando removeTransactionsByDateAndStore com data: ${closingDateObj.toISOString().split('T')[0]} e loja ID: ${newClosing.storeId}`);
+    console.log(
+      `[StoreClosingManager] Chamando removeTransactionsByDateAndStore com data: ${
+        closingDateObj.toISOString().split("T")[0]
+      } e loja ID: ${newClosing.storeId}`
+    );
     removeTransactionsByDateAndStore(closingDateObj, newClosing.storeId);
 
     toast({
@@ -328,10 +366,12 @@ export const StoreClosingManager = ({
                           </span>
                           <div>
                             <p className="font-medium">{closing.store?.name}</p>
-                            <p className="text-sm text-gray-500"> 
-                              <span className="font-semibold">Data do fechamento:</span> {new Date(
-                                closing.closingDate
-                              ).toLocaleDateString("pt-BR"
+                            <p className="text-sm text-gray-500">
+                              <span className="font-semibold">
+                                Data do fechamento:
+                              </span>{" "}
+                              {new Date(closing.closingDate).toLocaleDateString(
+                                "pt-BR"
                               )}
                             </p>
                           </div>
@@ -436,7 +476,10 @@ export const StoreClosingManager = ({
                                     </Badge>
                                   )}
                                   {method && (
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
                                       {method.icon} {method.name}
                                     </Badge>
                                   )}
@@ -445,12 +488,13 @@ export const StoreClosingManager = ({
                                   <span className="font-medium">
                                     {formatCurrency(movement.amount)}
                                   </span>
-                                  {movement.discount && movement.discount > 0 && (
-                                    <span className="text-xs text-red-500 block">
-                                      Desconto:{" "}
-                                      {formatCurrency(movement.discount)}
-                                    </span>
-                                  )}
+                                  {movement.discount &&
+                                    movement.discount > 0 && (
+                                      <span className="text-xs text-red-500 block">
+                                        Desconto:{" "}
+                                        {formatCurrency(movement.discount)}
+                                      </span>
+                                    )}
                                 </div>
                               </div>
                             );
