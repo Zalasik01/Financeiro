@@ -110,21 +110,6 @@ const Index = () => {
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-white border-t mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="text-center text-gray-600">
-            <p>
-              💰 Sistema completo de gestão financeira pessoal e empresarial
-            </p>
-            <p className="text-sm mt-2">
-              {summary.transactionCount} transações pessoais • {stores.length}{" "}
-              lojas • {closings.length} fechamentos
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

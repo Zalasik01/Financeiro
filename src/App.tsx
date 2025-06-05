@@ -20,6 +20,7 @@ import GerenciarFormaPagamentoPage from "./pages/GerenciarFormaPagamentoPage";
 import GerenciarUsuarioPage from "./pages/GerenciarUsuarioPage";
 import GerenciarTipoMovimentacaoPage from "./pages/GerenciarTipoMovimentacaoPage";
 import Navbar from "./components/Navbar"; // Importar o Navbar
+import Footer from "./components/Footer"; // 1. Importar o Footer
 
 const queryClient = new QueryClient();
 
@@ -27,7 +28,11 @@ const queryClient = new QueryClient();
 const ProtectedPagesLayout = () => (
   <>
     <Navbar />
-    <Outlet /> {/* O conteúdo da rota filha será renderizado aqui */}
+    <main className="flex-grow">
+      {" "}
+      {/* 2. Adicionar flex-grow para o conteúdo principal */}
+      <Outlet /> {/* O conteúdo da rota filha será renderizado aqui */}
+    </main>
   </>
 );
 const App = () => (
@@ -77,6 +82,8 @@ const App = () => (
               <Route path="/signup" element={<SignupPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <Footer />{" "}
+            {/* 3. Adicionar o Footer aqui, fora das Routes mas dentro do layout principal */}
           </div>
         </BrowserRouter>
       </TooltipProvider>
