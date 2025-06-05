@@ -104,25 +104,6 @@ StoreClosingManagerProps) => {
     // O mês no construtor Date é 0-indexado (0 para Janeiro, 11 para Dezembro)
     const closingDateObj = new Date(year, month - 1, day);
 
-    console.log("[StoreClosingManager] handleSubmit - Dados para filtro:");
-    // Usar JSON.parse(JSON.stringify(...)) para loggar um snapshot do array, evitando que o console mostre o valor atualizado ao vivo.
-    console.log(
-      "[StoreClosingManager] Todas as Transações Pessoais (do useFinance):",
-      JSON.parse(JSON.stringify(personalTransactions))
-    );
-    console.log(
-      "[StoreClosingManager] Loja Selecionada para Fechamento (newClosing.storeId):",
-      newClosing.storeId
-    );
-    console.log(
-      "[StoreClosingManager] Data Selecionada para Fechamento (closingDateObj):",
-      closingDateObj.toISOString().split("T")[0]
-    );
-    console.log(
-      "[StoreClosingManager] Data Selecionada (string original do input - newClosing.closingDate):",
-      newClosing.closingDate
-    );
-
     // 1. Filtrar transações pessoais pela data e loja do fechamento
     const relevantPersonalTransactions = personalTransactions.filter((t) => {
       const transactionDate = new Date(t.date);
@@ -133,50 +114,36 @@ StoreClosingManagerProps) => {
         transactionDate.getDate() === closingDateObj.getDate()
       );
     });
-    console.log(
-      "StoreClosingManager - Transações Pessoais Relevantes (APÓS FILTRO):",
-      JSON.parse(JSON.stringify(relevantPersonalTransactions))
-    );
 
     // 2. Mapear Transaction para MovementItem
     const movementsFromPersonalTransactions: MovementItem[] =
       relevantPersonalTransactions
         .map((t) => {
-          const targetMovementTypeName =
-            t.type === "income"
-              ? "Receita (Transferida)"
-              : "Despesa (Transferida)";
-          let movementTypeForTransfer = movementTypes.find(
-            (mt) => mt.name === targetMovementTypeName
+          // Encontra um tipo de movimento pela categoria correspondente (entrada/saida)
+          const movementTypeForTransfer = movementTypes.find(
+            (mt) => mt.category === (t.type === "income" ? "entrada" : "saida")
           );
 
           if (!movementTypeForTransfer) {
             console.warn(
-              `MovementType "${targetMovementTypeName}" não encontrado. Tentando fallback para tipo genérico de ${
+              `Nenhum tipo de movimento com categoria "${
                 t.type === "income" ? "entrada" : "saida"
-              }.`
+              }" encontrado para transferir transação pessoal.`
             );
-            movementTypeForTransfer = movementTypes.find(
-              (mt) =>
-                mt.category === (t.type === "income" ? "entrada" : "saida")
-            );
-          }
-
-          if (!movementTypeForTransfer) {
             toast({
               title: "Erro de Configuração",
-              description: `Tipos de movimento não configurados adequadamente para transferir transações pessoais. Por favor, cadastre tipos de movimento (ex: "Receita (Transferida)", "Despesa (Transferida)") ou tipos genéricos de entrada/saída.`,
+              description: `Nenhum tipo de movimento com categoria "${
+                t.type === "income" ? "entrada" : "saida"
+              }" foi encontrado. Cadastre um tipo de movimento com esta categoria para prosseguir.`,
               variant: "destructive",
               duration: 7000,
             });
-            // Retornar null para esta transação, será filtrado depois.
-            // Isso evita que o processo de fechamento pare completamente.
-            return null;
+            return null; // Retorna null para esta transação, será filtrado depois.
           }
 
           return {
             id: `mov-from-trans-${t.id}`,
-            description: `(Pessoal) ${t.description}`,
+            description: `${t.description}`,
             amount: Math.abs(t.amount),
             discount: t.discount || 0,
             movementTypeId: movementTypeForTransfer.id, // ID de um MovementType existente
@@ -186,14 +153,6 @@ StoreClosingManagerProps) => {
           };
         })
         .filter(Boolean) as MovementItem[]; // Filtra quaisquer transações que não puderam ser mapeadas
-    console.log(
-      "StoreClosingManager - Movimentos de Transações Pessoais (APÓS MAPEAMENTO):",
-      JSON.parse(JSON.stringify(movementsFromPersonalTransactions))
-    );
-
-    // Se alguma transação não pôde ser mapeada devido à falta de MovementType,
-    // e movementsFromPersonalTransactions ficou vazio enquanto relevantPersonalTransactions não estava,
-    // pode ser útil alertar o usuário ou parar, mas o toast acima já informa.
 
     onAddClosing({
       storeId: newClosing.storeId,
@@ -215,11 +174,6 @@ StoreClosingManagerProps) => {
     });
 
     // 3. Remover as transações pessoais que foram movidas
-    console.log(
-      `[StoreClosingManager] Chamando removeTransactionsByDateAndStore com data: ${
-        closingDateObj.toISOString().split("T")[0]
-      } e loja ID: ${newClosing.storeId}`
-    );
     removeTransactionsByDateAndStore(closingDateObj, newClosing.storeId);
 
     toast({
@@ -466,6 +420,23 @@ StoreClosingManagerProps) => {
                                   <span>{type?.icon || "📝"}</span>
                                   <span className="text-sm">
                                     {movement.description}
+                                    {type && (
+                                      <span
+                                        className={`text-xs ml-1 ${
+                                          type.category === "saida"
+                                            ? "text-red-500"
+                                            : "text-green-500"
+                                        }`}
+                                      >
+                                        (
+                                        {type.category === "saida"
+                                          ? "Despesa"
+                                          : type.category === "entrada"
+                                          ? "Receita"
+                                          : "Outro"}
+                                        )
+                                      </span>
+                                    )}
                                   </span>
                                   {type && (
                                     <Badge
@@ -488,13 +459,12 @@ StoreClosingManagerProps) => {
                                   <span className="font-medium">
                                     {formatCurrency(movement.amount)}
                                   </span>
-                                  {movement.discount &&
-                                    movement.discount > 0 && (
-                                      <span className="text-xs text-red-500 block">
-                                        Desconto:{" "}
-                                        {formatCurrency(movement.discount)}
-                                      </span>
-                                    )}
+                                  {movement.discount > 0 && (
+                                    <span className="text-xs text-red-500 block">
+                                      Desconto:{" "}
+                                      {formatCurrency(movement.discount)}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             );

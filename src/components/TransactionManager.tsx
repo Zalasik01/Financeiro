@@ -1,16 +1,20 @@
-
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Transaction, Category } from '@/types/finance';
-import { TransactionForm } from './TransactionForm';
-import { TransactionList } from './TransactionList';
-import { useStores } from '@/hooks/useStores'; // Importar useStores
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Transaction, Category } from "@/types/finance";
+import { TransactionForm } from "./TransactionForm";
+import { TransactionList } from "./TransactionList";
+import { useStores } from "@/hooks/useStores"; // Importar useStores
 
 interface TransactionManagerProps {
   transactions: Transaction[];
   categories: Category[];
-  onAddTransaction: (transaction: Omit<Transaction, 'id' | 'createdAt'>) => void;
-  onUpdateTransaction: (id: string, transaction: Partial<Transaction> | null) => void;
+  onAddTransaction: (
+    transaction: Omit<Transaction, "id" | "createdAt">
+  ) => void;
+  onUpdateTransaction: (
+    id: string,
+    transaction: Partial<Transaction> | null
+  ) => void;
   onDeleteTransaction: (id: string) => void;
 }
 
@@ -19,12 +23,16 @@ export const TransactionManager = ({
   categories,
   onAddTransaction,
   onUpdateTransaction,
-  onDeleteTransaction
+  onDeleteTransaction,
 }: TransactionManagerProps) => {
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
   const { stores } = useStores(); // Obter a lista de lojas
 
-  const handleUpdateTransaction = (id: string, transaction: Partial<Transaction> | null) => {
+  const handleUpdateTransaction = (
+    id: string,
+    transaction: Partial<Transaction> | null
+  ) => {
     onUpdateTransaction(id, transaction);
     setEditingTransaction(null);
   };
@@ -37,8 +45,8 @@ export const TransactionManager = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <TransactionForm 
-          categories={categories} 
+        <TransactionForm
+          categories={categories}
           onAddTransaction={onAddTransaction}
           onUpdateTransaction={handleUpdateTransaction}
           editingTransaction={editingTransaction}

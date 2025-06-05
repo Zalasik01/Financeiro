@@ -1,7 +1,17 @@
-
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Transaction } from '@/types/finance';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import { Transaction } from "@/types/finance";
 
 interface FinancialChartsProps {
   transactions: Transaction[];
@@ -10,21 +20,21 @@ interface FinancialChartsProps {
 export const FinancialCharts = ({ transactions }: FinancialChartsProps) => {
   // Prepare data for monthly chart
   const monthlyData = transactions.reduce((acc, transaction) => {
-    const month = new Date(transaction.date).toLocaleDateString('pt-BR', { 
-      month: 'short',
-      year: 'numeric'
+    const month = new Date(transaction.date).toLocaleDateString("pt-BR", {
+      month: "short",
+      year: "numeric",
     });
-    
+
     if (!acc[month]) {
       acc[month] = { month, income: 0, expenses: 0 };
     }
-    
-    if (transaction.type === 'income') {
+
+    if (transaction.type === "income") {
       acc[month].income += transaction.amount;
     } else {
       acc[month].expenses += Math.abs(transaction.amount);
     }
-    
+
     return acc;
   }, {} as Record<string, { month: string; income: number; expenses: number }>);
 
@@ -32,7 +42,7 @@ export const FinancialCharts = ({ transactions }: FinancialChartsProps) => {
 
   // Prepare data for category pie chart
   const categoryData = transactions.reduce((acc, transaction) => {
-    if (transaction.type === 'expense' && transaction.category) {
+    if (transaction.type === "expense" && transaction.category) {
       const categoryName = transaction.category.name;
       if (!acc[categoryName]) {
         acc[categoryName] = {
@@ -63,13 +73,13 @@ export const FinancialCharts = ({ transactions }: FinancialChartsProps) => {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
-              <Tooltip 
+              <Tooltip
                 formatter={(value: number) => [
-                  new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
+                  new Intl.NumberFormat("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
                   }).format(value),
-                  value === chartData[0]?.income ? 'Receitas' : 'Despesas'
+                  value === chartData[0]?.income ? "Receitas" : "Despesas",
                 ]}
               />
               <Bar dataKey="income" fill="#10B981" name="Receitas" />
@@ -94,7 +104,9 @@ export const FinancialCharts = ({ transactions }: FinancialChartsProps) => {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                label={({ name, percent }) =>
+                  `${name} ${(percent * 100).toFixed(0)}%`
+                }
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
@@ -103,13 +115,13 @@ export const FinancialCharts = ({ transactions }: FinancialChartsProps) => {
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip 
+              <Tooltip
                 formatter={(value: number) => [
-                  new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
+                  new Intl.NumberFormat("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
                   }).format(value),
-                  'Valor'
+                  "Valor",
                 ]}
               />
             </PieChart>

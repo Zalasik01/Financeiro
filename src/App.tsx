@@ -8,12 +8,15 @@ import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage"; // Importar LoginPage
 import SignupPage from "./pages/SignupPage"; // Importar SignupPage
 import ProtectedRoute from "./components/ProtectedRoute"; // Importar ProtectedRoute
+import SettingsPage from "./pages/SettingsPage"; // Exemplo: Importar a nova página de Configurações
 import { AuthProvider } from "./hooks/useAuth"; // Importar AuthProvider
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <AuthProvider> {/* Envolver com AuthProvider */}
+  <AuthProvider>
+    {" "}
+    {/* Envolver com AuthProvider */}
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
@@ -22,6 +25,8 @@ const App = () => (
           <Routes>
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Index />} />
+              <Route path="/settings" element={<SettingsPage />} />{" "}
+              {/* Exemplo: Rota para Configurações */}
               {/* Outras rotas que você queira proteger podem ser adicionadas aqui */}
             </Route>
             <Route path="/login" element={<LoginPage />} />

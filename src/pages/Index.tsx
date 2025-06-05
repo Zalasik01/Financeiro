@@ -80,7 +80,11 @@ const Index = () => {
         <FinancialSummaryCards summary={summary} />
 
         {/* Tabs for different sections */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs
+          defaultValue="overview"
+          className="space-y-6"
+          // onValueChange={handleTabChange} // Removido ou comente se não precisar do log
+        >
           <TabsList className="grid w-full grid-cols-1 md:grid-cols-8">
             <TabsTrigger
               value="overview"

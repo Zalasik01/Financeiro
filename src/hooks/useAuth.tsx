@@ -20,6 +20,7 @@ import { useToast } from "./use-toast";
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
+  error: string | null; // Adicionar estado de erro
   signup: (
     email: string,
     password: string,
@@ -51,6 +52,7 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null); // Estado para armazenar mensagens de erro
   const { toast } = useToast();
 
   const signup = async (
@@ -59,6 +61,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     displayName: string
   ) => {
     try {
+      setError(null); // Limpa erros anteriores
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -74,8 +77,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         description,
       });
       return userCredential.user;
-    } catch (error: AuthError) {
-      console.error("Erro no cadastro:", error);
+    } catch (err) {
+      const error = err as AuthError;
       let errorMessage = "Não foi possível criar a conta.";
       if (error.code === "auth/email-already-in-use") {
         errorMessage =
@@ -85,6 +88,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       } else if (error.message) {
         errorMessage = error.message;
       }
+      setError(errorMessage); // Define o erro
 
       const description = errorMessage;
       toast({
@@ -98,6 +102,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (email: string, password: string) => {
     try {
+      setError(null); // Limpa erros anteriores
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
@@ -109,12 +114,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         description,
       });
       return userCredential.user;
-    } catch (error: AuthError) {
-      console.error("Erro no login:", error);
+    } catch (err) {
+      const error = err as AuthError;
       const errorMessage =
         error.code === "auth/invalid-credential"
           ? "Credenciais inválidas. Verifique seu e-mail e senha."
           : error.message || "Não foi possível fazer login.";
+      setError(errorMessage); // Define o erro
       const description = errorMessage;
       toast({
         title: "Erro no login",
@@ -126,6 +132,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
   const logout = async () => {
     try {
+      setError(null); // Limpa erros anteriores
       await signOut(auth);
       const description = "Usuário deslogado com sucesso!";
       toast({
@@ -133,9 +140,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         description,
       });
     } catch (error: AuthError) {
+      // Não costuma dar erro, mas se der:
       const errorMessage = error.message || "Não foi possível fazer logout.";
-      console.error("Erro no logout:", error);
-      const description = errorMessage;
+      setError(errorMessage);
       toast({
         title: "Erro no logout",
         description,
@@ -146,6 +153,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const resetPassword = async (email: string) => {
     try {
+      setError(null); // Limpa erros anteriores
       await sendPasswordResetEmail(auth, email);
       const description =
         "Verifique sua caixa de entrada para redefinir a senha.";
@@ -154,9 +162,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         description,
       });
     } catch (error: AuthError) {
+      setError(error.message || "Não foi possível enviar o e-mail.");
       const errorMessage = error.message || "Não foi possível enviar o e-mail.";
-      console.error("Erro ao enviar e-mail de redefinição de senha:", error);
-      const description = errorMessage;
+      const description = errorMessage; // Mantém para o toast
       toast({
         title: "Erro",
         description,
@@ -170,6 +178,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     photoURL?: string;
   }) => {
     if (!auth.currentUser) {
+      setError("Usuário não autenticado para atualizar o perfil.");
       const description = "Usuário não autenticado para atualizar o perfil.";
       toast({
         title: "Erro",
@@ -180,6 +189,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       throw new Error("Usuário não autenticado.");
     }
     try {
+      setError(null); // Limpa erros anteriores
       await updateProfile(auth.currentUser, updates);
       // Atualiza o estado local do currentUser para refletir as mudanças imediatamente
       if (auth.currentUser) {
@@ -192,9 +202,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
     } catch (error) {
       const authError = error as AuthError;
-      console.error("Erro ao atualizar perfil:", authError);
       const descriptionError =
         authError.message || "Não foi possível atualizar os dados do perfil.";
+      setError(descriptionError);
       toast({
         title: "Erro ao atualizar perfil",
         description: descriptionError,
@@ -214,6 +224,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const value = {
     currentUser,
     loading,
+    error, // Expõe o erro
     signup,
     login,
     logout,

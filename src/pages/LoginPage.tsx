@@ -1,14 +1,21 @@
-import { useState } from 'react';
-import { useNavigate, Link, useLocation, Location } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from "react";
+import { useNavigate, Link, useLocation, Location } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -21,7 +28,7 @@ export default function LoginPage() {
       const user = await login(email, password);
       if (user) {
         const state = location.state as { from?: Location };
-        const from = state?.from?.pathname || '/';
+        const from = state?.from?.pathname || "/";
         navigate(from, { replace: true }); // Redireciona para a página anterior ou para a inicial
       }
     } catch (error) {
@@ -48,7 +55,9 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="m@example.com"
+                placeholder="Informe seu email"
+                autoComplete="email"
+                autoFocus
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -62,6 +71,8 @@ export default function LoginPage() {
                 type="password"
                 required
                 value={password}
+                placeholder="Informe sua senha"
+                autoComplete="current-password"
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
               />
@@ -69,10 +80,10 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Entrando...' : 'Entrar'}
+              {isLoading ? "Entrando..." : "Entrar"}
             </Button>
             <div className="text-center text-sm">
-              Não tem uma conta?{' '}
+              Não tem uma conta?{" "}
               <Link to="/signup" className="underline">
                 Cadastre-se
               </Link>
