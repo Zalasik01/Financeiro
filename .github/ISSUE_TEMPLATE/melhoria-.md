@@ -1,7 +1,7 @@
 ---
 name: 'Melhoria:'
-about: Melhoria
-title: Feature
+about: 'Melhoria:'
+title: 'Feature:'
 labels: ''
 assignees: ''
 
