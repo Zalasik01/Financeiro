@@ -1,6 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { db } from "@/firebase"; // Importar a instância do Realtime Database
-import { ref, onValue } from "firebase/database";
+import React from "react";
 
 // Definir uma interface para os dados do usuário que esperamos
 interface UserData {
@@ -12,43 +10,17 @@ interface UserData {
   // Adicione outros campos que você armazena para cada usuário
 }
 
-const UserAccessMatrix: React.FC = () => {
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+interface UserAccessMatrixProps {
+  users: UserData[];
+  loading: boolean;
+  error: string | null;
+}
 
-  useEffect(() => {
-    const usersRef = ref(db, "users"); // Assumindo que seus usuários estão em '/users'
-    const unsubscribe = onValue(
-      usersRef,
-      (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          const loadedUsers: UserData[] = Object.keys(data).map((key) => ({
-            id: key,
-            ...data[key],
-          }));
-          setUsers(loadedUsers);
-        } else {
-          setUsers([]);
-        }
-        setLoading(false);
-        setError(null); // Limpar erro anterior em caso de sucesso
-      },
-      (errorCallback) => {
-        // Renomeado o parâmetro para clareza, ou use 'error' consistentemente
-        setError("Falha ao carregar dados dos usuários.");
-        setLoading(false);
-        setUsers([]); // Limpar usuários em caso de erro
-      }
-    );
-
-    // Cleanup: Desinscrever do listener quando o componente desmontar
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
+const UserAccessMatrix: React.FC<UserAccessMatrixProps> = ({
+  users,
+  loading,
+  error,
+}) => {
   if (loading) return <p className="text-yellow-600">Carregando usuários...</p>;
   if (error)
     return <p className="text-red-600">Erro ao carregar usuários: {error}</p>;

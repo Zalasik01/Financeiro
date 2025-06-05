@@ -13,6 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Store, StoreMeta, StoreClosing } from "@/types/store";
 import { CurrencyInput } from "./CurrencyInput";
 import { formatCurrency } from "@/utils/formatters";
+import { Label } from "@/components/ui/label"; // 1. Importar o Label
 import { useToast } from "@/hooks/use-toast";
 
 interface StoreGoalsProps {
@@ -134,14 +135,16 @@ export const StoreGoals = ({
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
+              <Label htmlFor="store-select">Selecione a loja</Label>{" "}
+              {/* 2. Adicionar o Label aqui */}
               <Select
-                // Opcional: se o componente Select precisar do id para associação interna,
-                // você pode manter um id aqui também, mas para o Label, o id no Trigger é comum.
                 value={newGoal.storeId}
                 onValueChange={(value) =>
                   setNewGoal((prev) => ({ ...prev, storeId: value }))
                 }
               >
+                {" "}
+                {/* 3. Remover o 'label' prop do Select */}
                 <SelectTrigger id="store-select">
                   {" "}
                   {/* 2. Adicione um 'id' ao SelectTrigger */}

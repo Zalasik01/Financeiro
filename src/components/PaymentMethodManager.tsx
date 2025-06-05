@@ -20,12 +20,6 @@ interface PaymentMethodManagerProps {
   onDeletePaymentMethod: (id: string) => void;
 }
 
-const categoryIcons = {
-  entrada: "📈",
-  saida: "📉",
-  outros: "🔄",
-};
-
 export const PaymentMethodManager = ({
   paymentMethods,
   onAddPaymentMethod,
@@ -75,7 +69,7 @@ export const PaymentMethodManager = ({
       <Card className="animate-fade-in">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            💳 Formas de Pagamento
+            💳 Cadastrar formas de Pagamento
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -107,7 +101,6 @@ export const PaymentMethodManager = ({
                     setNewPaymentMethod((prev) => ({
                       ...prev,
                       type: value,
-                      // Mantendo a lógica de ícones, caso ainda seja relevante para PaymentMethod
                       icon:
                         value === "cash"
                           ? "💵"
