@@ -1,4 +1,5 @@
 import React from "react";
+import { Link, useNavigate } from "react-router-dom"; // Importar Link e useNavigate
 import { useAuth } from "@/hooks/useAuth";
 import {
   DropdownMenu,
@@ -8,47 +9,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Importar Avatar
 import { Button } from "@/components/ui/button";
-import { User as UserIcon, LogOut, Edit3 } from "lucide-react";
+import { LogOut, Edit3 } from "lucide-react"; // Manter Edit3 e LogOut
 
 export const UserMenu = () => {
-  const { currentUser, logout, updateUserProfileData } = useAuth();
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate(); // Adicionar useNavigate
 
-  // Se o estado de loading do useAuth for true, ou se não houver currentUser,
-  // você pode optar por não renderizar nada ou um placeholder.
-  // A lógica de !loading já está no AuthProvider, então currentUser deve estar
-  // definido (ou null) quando UserMenu for renderizado.
   if (!currentUser) {
-    // Idealmente, se não há usuário, este componente não deveria ser renderizado
-    // ou deveria haver um redirecionamento para a página de login.
-    // Retornar null aqui é uma opção se a lógica de roteamento cuida disso.
     return null;
   }
 
-  const handleEditProfile = () => {
-    // Exemplo simples de edição de nome usando prompt.
-    // Para uma melhor UX, use um modal/dialog com um formulário.
-    const newName = prompt(
-      "Digite seu novo nome:",
-      currentUser.displayName || ""
-    );
-    if (
-      newName &&
-      newName.trim() !== "" &&
-      newName !== currentUser.displayName
-    ) {
-      updateUserProfileData({ displayName: newName })
-        .then(() => {
-          // O toast de sucesso já é mostrado pela função updateUserProfileData
-          console.log("Perfil atualizado com sucesso na UI!");
-        })
-        .catch((error) => {
-          // O toast de erro já é mostrado pela função updateUserProfileData
-          console.error("Falha ao atualizar perfil na UI:", error);
-        });
-    } else if (newName === "") {
-      alert("O nome não pode ser vazio.");
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
+
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return "U";
+    const names = name.split(" ");
+    if (names.length > 1) {
+      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
     }
+    return name.substring(0, 2).toUpperCase();
   };
 
   return (
@@ -56,12 +40,17 @@ export const UserMenu = () => {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="relative h-10 w-auto px-3 flex items-center space-x-2"
+          className="relative h-10 w-10 rounded-full" // Ajustado para Avatar
         >
-          {/* Você pode adicionar um Avatar aqui se tiver photoURL */}
-          {/* Exemplo: <Avatar><AvatarImage src={currentUser.photoURL} /><AvatarFallback>{currentUser.displayName?.charAt(0)}</AvatarFallback></Avatar> */}
-          <UserIcon className="h-5 w-5" />
-          <span>{currentUser.displayName || "Usuário"}</span>
+          <Avatar className="h-10 w-10">
+            <AvatarImage
+              src={currentUser.photoURL || undefined}
+              alt={currentUser.displayName || "User"}
+            />
+            <AvatarFallback>
+              {getInitials(currentUser.displayName)}
+            </AvatarFallback>
+          </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -78,12 +67,20 @@ export const UserMenu = () => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleEditProfile}>
-          <Edit3 className="mr-2 h-4 w-4" />
-          <span>Editar Perfil</span>
+        <DropdownMenuItem asChild>
+          <Link
+            to="/editar-perfil"
+            className="flex items-center cursor-pointer w-full"
+          >
+            <Edit3 className="mr-2 h-4 w-4" />
+            <span>Editar Perfil</span>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={logout}>
+        <DropdownMenuItem
+          onClick={handleLogout}
+          className="text-red-600 cursor-pointer flex items-center"
+        >
           <LogOut className="mr-2 h-4 w-4" />
           <span>Sair</span>
         </DropdownMenuItem>

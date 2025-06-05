@@ -21,6 +21,7 @@ import GerenciarUsuarioPage from "./pages/GerenciarUsuarioPage";
 import GerenciarTipoMovimentacaoPage from "./pages/GerenciarTipoMovimentacaoPage";
 import Navbar from "./components/Navbar"; // Importar o Navbar
 import Footer from "./components/Footer"; // 1. Importar o Footer
+import EditarPerfilPage from "./pages/EditarPerfilPage"; // Importar a nova página
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,7 @@ const App = () => (
                     path="/gerenciar-tipo-movimentacao"
                     element={<GerenciarTipoMovimentacaoPage />}
                   />
+                  <Route path="/editar-perfil" element={<EditarPerfilPage />} />
                 </Route>
               </Route>
               <Route path="/login" element={<LoginPage />} />
