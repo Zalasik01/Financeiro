@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Store,
   StoreClosing,
@@ -10,6 +10,7 @@ import {
   StoreRanking,
 } from "@/types/store";
 import * as defaultDataModule from "@/data/defaultData"; // Importar o módulo como um objeto
+
 
 export const useStores = () => {
   // Acessar as exportações de forma segura, usando um array vazio como fallback
@@ -28,7 +29,7 @@ export const useStores = () => {
   const addStore = (store: Omit<Store, "id" | "createdAt">) => {
     const newStore: Store = {
       ...store,
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date(),
     };
     setStores((prev) => [...prev, newStore]);
@@ -54,7 +55,7 @@ export const useStores = () => {
   ) => {
     const newMethod: PaymentMethod = {
       ...method,
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date(),
     };
     setPaymentMethods((prev) => [...prev, newMethod]);
@@ -79,7 +80,7 @@ export const useStores = () => {
   const addMovementType = (type: Omit<MovementType, "id" | "createdAt">) => {
     const newType: MovementType = {
       ...type,
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date(),
     };
     setMovementTypes((prev) => [...prev, newType]);
@@ -100,23 +101,25 @@ export const useStores = () => {
   };
 
   const calculateTotals = (movements: MovementItem[]) => {
+    const movementTypeMap = new Map(movementTypes.map(type => [type.id, type]));
+
     const totalEntradas = movements
       .filter((m) => {
-        const type = movementTypes.find((t) => t.id === m.movementTypeId);
+        const type = movementTypeMap.get(m.movementTypeId);
         return type?.category === "entrada";
       })
       .reduce((sum, m) => sum + m.amount - (m.discount || 0), 0);
 
     const totalSaidas = movements
       .filter((m) => {
-        const type = movementTypes.find((t) => t.id === m.movementTypeId);
+        const type = movementTypeMap.get(m.movementTypeId);
         return type?.category === "saida";
       })
       .reduce((sum, m) => sum + m.amount, 0);
 
     const totalOutros = movements
       .filter((m) => {
-        const type = movementTypes.find((t) => t.id === m.movementTypeId);
+        const type = movementTypeMap.get(m.movementTypeId);
         return type?.category === "outros";
       })
       .reduce((sum, m) => sum + m.amount, 0);
@@ -133,15 +136,19 @@ export const useStores = () => {
       | "totalSaidas"
       | "totalOutros"
       | "netResult"
-    >
+    > & { movements: MovementItem[] } // movements agora é obrigatório e vem pronto
   ) => {
     const { totalEntradas, totalSaidas, totalOutros } = calculateTotals(
-      closing.movements
+      closing.movements // Usa os movements fornecidos
     );
+
+    const newClosingId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     const newClosing: StoreClosing = {
       ...closing,
-      id: Date.now().toString(),
+      id: newClosingId,
+      // Garante que cada movimento tenha o storeClosingId correto
+      movements: closing.movements.map(m => ({ ...m, storeClosingId: newClosingId })),
       totalEntradas,
       totalSaidas,
       totalOutros,
@@ -193,21 +200,22 @@ export const useStores = () => {
     setClosings((prev) => prev.filter((closing) => closing.id !== id));
   };
 
-  const getClosingsWithDetails = () => {
-    return closings.map((closing) => ({
-      ...closing,
-      store: stores.find((store) => store.id === closing.storeId),
-      movements: closing.movements.map((movement) => ({
-        ...movement,
-        movementType: movementTypes.find(
-          (type) => type.id === movement.movementTypeId
-        ),
-        paymentMethod: paymentMethods.find(
-          (method) => method.id === movement.paymentMethodId
-        ),
-      })),
-    }));
-  };
+const getClosingsWithDetails = () => {
+  return closings.map((closing) => ({
+    ...closing,
+    store: stores.find((store) => store.id === closing.storeId),
+    movements: (closing.movements || []).map((movement) => ({ // Garante que movements seja um array
+      ...movement,
+      movementType: movementTypes.find( // Esta linha popula o movementType
+        (type) => type.id === movement.movementTypeId
+      ),
+      paymentMethod: paymentMethods.find( // Esta linha popula o paymentMethod
+        (method) => method.id === movement.paymentMethodId
+      ),
+    })),
+  }));
+};
+
 
   const generateDRE = (
     startDate: Date,
@@ -275,7 +283,7 @@ export const useStores = () => {
   const addGoal = (goal: Omit<StoreMeta, "id" | "createdAt">) => {
     const newGoal: StoreMeta = {
       ...goal,
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date(),
     };
     setGoals((prev) => [...prev, newGoal]);
@@ -292,7 +300,7 @@ export const useStores = () => {
     setGoals((prev) => prev.filter((goal) => goal.id !== id));
   };
 
-  const getStoreRankings = (): StoreRanking[] => {
+  const storeRankings = useMemo((): StoreRanking[] => {
     return stores.map((store) => {
       const storeClosings = closings.filter((c) => c.storeId === store.id);
       const totalClosings = storeClosings.length;
@@ -335,7 +343,7 @@ export const useStores = () => {
             : undefined,
       };
     });
-  };
+  }, [stores, closings]);
 
   return {
     stores,
@@ -359,6 +367,6 @@ export const useStores = () => {
     addGoal,
     updateGoal,
     deleteGoal,
-    getStoreRankings,
+    storeRankings, // Retornar o valor memoizado
   };
 };

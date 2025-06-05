@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Transaction, Category } from '@/types/finance';
 import { TransactionForm } from './TransactionForm';
 import { TransactionList } from './TransactionList';
+import { useStores } from '@/hooks/useStores'; // Importar useStores
 
 interface TransactionManagerProps {
   transactions: Transaction[];
@@ -21,6 +22,7 @@ export const TransactionManager = ({
   onDeleteTransaction
 }: TransactionManagerProps) => {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const { stores } = useStores(); // Obter a lista de lojas
 
   const handleUpdateTransaction = (id: string, transaction: Partial<Transaction> | null) => {
     onUpdateTransaction(id, transaction);
@@ -46,6 +48,7 @@ export const TransactionManager = ({
           transactions={transactions}
           onDeleteTransaction={onDeleteTransaction}
           onEditTransaction={setEditingTransaction}
+          stores={stores} // Passar a lista de lojas
         />
       </CardContent>
     </Card>

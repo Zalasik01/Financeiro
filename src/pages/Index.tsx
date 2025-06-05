@@ -54,11 +54,10 @@ const Index = () => {
     addGoal,
     updateGoal,
     deleteGoal,
-    getStoreRankings,
+    storeRankings, // Usar diretamente o valor memoizado
   } = useStores();
   
   const { toast } = useToast();
-  const storeRankings = getStoreRankings();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">

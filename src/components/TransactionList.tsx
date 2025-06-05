@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Transaction } from '@/types/finance';
+import { Store } from '@/types/store'; // Importar o tipo Store
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/utils/formatters';
 
@@ -9,9 +10,10 @@ interface TransactionListProps {
   transactions: Transaction[];
   onDeleteTransaction: (id: string) => void;
   onEditTransaction: (transaction: Transaction) => void;
+  stores: Store[]; // Adicionar stores às props
 }
 
-export const TransactionList = ({ transactions, onDeleteTransaction, onEditTransaction }: TransactionListProps) => {
+export const TransactionList = ({ transactions, onDeleteTransaction, onEditTransaction, stores }: TransactionListProps) => {
   const { toast } = useToast();
 
   const handleDelete = (id: string, description: string) => {
@@ -36,10 +38,15 @@ export const TransactionList = ({ transactions, onDeleteTransaction, onEditTrans
                 key={transaction.id}
                 className="flex items-center justify-between p-3 border rounded-lg hover:shadow-md transition-shadow"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-grow min-w-0"> {/* Adicionado flex-grow e min-w-0 */}
                   <span className="text-lg">{transaction.category?.icon}</span>
-                  <div>
-                    <p className="font-medium">{transaction.description}</p>
+                  <div className="min-w-0"> {/* Adicionado min-w-0 para truncamento */}
+                    <p className="font-medium truncate"> {/* Adicionado truncate */}
+                      {transaction.description}
+                      {transaction.storeId && stores.find(s => s.id === transaction.storeId) && (
+                        <span className="text-xs text-blue-600 ml-1">| {stores.find(s => s.id === transaction.storeId)?.icon || '🏢'} {stores.find(s => s.id === transaction.storeId)?.name}</span>
+                      )}
+                    </p>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge
                         variant={transaction.type === 'income' ? 'default' : 'destructive'}

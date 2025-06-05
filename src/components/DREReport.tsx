@@ -241,7 +241,6 @@ export const DREReport = ({ onGenerateDRE, stores }: DREReportProps) => {
                 <SelectValue placeholder="Todas as lojas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as lojas</SelectItem>
                 {stores.map((store) => (
                   <SelectItem key={store.id} value={store.id}>
                     {store.icon || "🏪"} {store.name}{" "}

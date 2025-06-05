@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,11 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Transaction, Category } from '@/types/finance';
 import { useToast } from '@/hooks/use-toast';
 import { CurrencyInput } from './CurrencyInput';
+import { useStores } from '@/hooks/useStores'; // Importar o hook de lojas
 
 interface TransactionFormProps {
   categories: Category[];
   onAddTransaction: (transaction: Omit<Transaction, 'id' | 'createdAt'>) => void;
-  onUpdateTransaction?: (id: string, transaction: Partial<Transaction>) => void;
+  // Ajustar para aceitar null para cancelamento
+  onUpdateTransaction?: (id: string, transaction: Partial<Transaction> | null) => void;
   editingTransaction?: Transaction | null;
 }
 
@@ -28,8 +29,10 @@ export const TransactionForm = ({
     categoryId: '',
     date: new Date().toISOString().split('T')[0],
     type: 'expense' as 'income' | 'expense',
+    storeId: undefined as string | undefined, // Adicionar storeId ao estado
   });
   const { toast } = useToast();
+  const { stores } = useStores(); // Obter a lista de lojas
 
   useEffect(() => {
     if (editingTransaction) {
@@ -38,9 +41,11 @@ export const TransactionForm = ({
         // Se o valor for negativo (despesa), guardamos como positivo para exibição
         amount: Math.abs(editingTransaction.amount),
         discount: editingTransaction.discount || 0,
-        categoryId: editingTransaction.categoryId,
+        categoryId: editingTransaction.categoryId, 
+        // Garante que a data no formulário seja a string YYYY-MM-DD correta
         date: new Date(editingTransaction.date).toISOString().split('T')[0],
         type: editingTransaction.type,
+        storeId: editingTransaction.storeId, // Carregar storeId se estiver editando
       });
     }
   }, [editingTransaction]);
@@ -48,10 +53,10 @@ export const TransactionForm = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newTransaction.description.trim() || newTransaction.amount <= 0 || !newTransaction.categoryId) {
+    if (!newTransaction.description.trim() || newTransaction.amount <= 0 || !newTransaction.categoryId || !newTransaction.storeId) {
       toast({
         title: "Erro",
-        description: "Todos os campos são obrigatórios e valor deve ser positivo",
+        description: "Todos os campos marcados com * são obrigatórios e o valor deve ser positivo.",
         variant: "destructive",
       });
       return;
@@ -61,22 +66,27 @@ export const TransactionForm = ({
     const finalAmount = newTransaction.amount - newTransaction.discount;
     
     // Verifica se o desconto não é maior que o valor
-    if (finalAmount <= 0) {
+    if (finalAmount <= 0 && newTransaction.discount > 0) { // Apenas erro se houver desconto e ele zerar ou negativar o valor
       toast({
         title: "Erro",
-        description: "O desconto não pode ser maior ou igual ao valor",
+        description: "O desconto não pode ser maior ou igual ao valor da transação",
         variant: "destructive",
       });
       return;
     }
+
+    // Ajuste para garantir que a data seja interpretada corretamente no fuso horário local
+    const [year, month, day] = newTransaction.date.split('-').map(Number);
+    const transactionDateObj = new Date(year, month - 1, day); // Mês é 0-indexado
 
     const transactionData = {
       description: newTransaction.description,
       amount: newTransaction.type === 'expense' ? -finalAmount : finalAmount,
       discount: newTransaction.discount > 0 ? newTransaction.discount : undefined,
       categoryId: newTransaction.categoryId,
-      date: new Date(newTransaction.date),
+      date: transactionDateObj,
       type: newTransaction.type,
+      storeId: newTransaction.storeId, // Incluir storeId nos dados da transação
     };
 
     if (editingTransaction && onUpdateTransaction) {
@@ -100,6 +110,7 @@ export const TransactionForm = ({
       categoryId: '',
       date: new Date().toISOString().split('T')[0],
       type: 'expense',
+      storeId: undefined,
     });
   };
 
@@ -124,6 +135,7 @@ export const TransactionForm = ({
                 categoryId: '',
                 date: new Date().toISOString().split('T')[0],
                 type: 'expense',
+                storeId: undefined,
               });
               // Chamamos onUpdateTransaction com o mesmo id mas passando null como dado
               // A implementação então irá cancelar a edição
@@ -217,7 +229,33 @@ export const TransactionForm = ({
           />
         </div>
 
-        {newTransaction.amount > 0 && newTransaction.discount > 0 && (
+        <div>
+          <Label htmlFor="transaction-store">Loja *</Label>
+          <Select
+            value={newTransaction.storeId || ""}
+            onValueChange={(value) =>
+              setNewTransaction((prev) => ({
+                ...prev,
+                storeId: value, // O valor será o ID da loja ou string vazia se nada for selecionado (placeholder)
+              }))
+            }
+          >
+            <SelectTrigger id="transaction-store">
+              <SelectValue placeholder="Selecione a loja..." />
+            </SelectTrigger>
+            <SelectContent>
+              {/* <SelectItem value="">- Não selecionado</SelectItem>  Removido para corrigir o erro do Radix UI */}
+              {stores.map((store) => (
+                <SelectItem key={store.id} value={store.id}>
+                  {store.icon || "🏪"} {store.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Conditional rendering for discount display */}
+        {newTransaction.amount > 0 && newTransaction.discount > 0 && newTransaction.discount < newTransaction.amount && (
           <div className="flex items-end">
             <div className="text-sm text-gray-600">
               <span className="block">Valor com desconto:</span>

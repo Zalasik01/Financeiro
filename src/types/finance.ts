@@ -15,14 +15,13 @@ export interface Transaction {
   date: Date;
   type: "income" | "expense";
   category?: Category;
+  storeId?: string;
   createdAt: Date;
 }
 
 export interface FinancialSummary {
   totalExpenses: number;
   totalIncome: number;
-  income: number;
-  expense: number;
   balance: number;
   transactionCount: number;
   startDate: Date | null;
