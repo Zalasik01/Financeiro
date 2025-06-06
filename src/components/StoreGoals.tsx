@@ -135,7 +135,7 @@ export const StoreGoals = ({
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="store-select">Selecione a loja</Label>{" "}
+              <Label htmlFor="store-select">Selecione a loja *</Label>{" "}
               {/* 2. Adicionar o Label aqui */}
               <Select
                 value={newGoal.storeId}
@@ -174,6 +174,7 @@ export const StoreGoals = ({
                   setNewGoal((prev) => ({ ...prev, targetRevenue: value }))
                 }
                 placeholder="R$ 0,00"
+                required
               />
             </div>
           </div>

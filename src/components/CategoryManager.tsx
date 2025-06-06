@@ -108,7 +108,7 @@ export const CategoryManager = ({
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name">Nome da Categoria</Label>
+              <Label htmlFor="name">Nome da Categoria *</Label>
               <Input
                 id="name"
                 value={newCategory.name}
@@ -116,6 +116,7 @@ export const CategoryManager = ({
                   setNewCategory((prev) => ({ ...prev, name: e.target.value }))
                 }
                 placeholder="Ex: Alimentação"
+                required
               />
             </div>
 

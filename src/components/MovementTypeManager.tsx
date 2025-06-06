@@ -87,7 +87,7 @@ export const MovementTypeManager: React.FC<MovementTypeManagerProps> = ({
           className="space-y-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
         >
           <div>
-            <Label htmlFor="movementTypeName">Nome</Label>
+            <Label htmlFor="movementTypeName">Nome *</Label>
             <Input
               id="movementTypeName"
               value={newMovementType.name}
@@ -98,6 +98,7 @@ export const MovementTypeManager: React.FC<MovementTypeManagerProps> = ({
                 }))
               }
               placeholder="Ex: Venda, Sangria, Despesa"
+              required
             />
           </div>
           <div>

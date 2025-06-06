@@ -177,7 +177,7 @@ export const TransactionForm = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="description">Descrição</Label>
+          <Label htmlFor="description">Descrição *</Label>
           <Input
             id="description"
             value={newTransaction.description}
@@ -188,6 +188,9 @@ export const TransactionForm = ({
               }))
             }
             placeholder="Ex: Supermercado"
+            autoComplete="on"
+            autoFocus
+            required
           />
         </div>
 
@@ -200,6 +203,7 @@ export const TransactionForm = ({
               setNewTransaction((prev) => ({ ...prev, amount: value }))
             }
             placeholder="R$ 0,00"
+            required
           />
         </div>
       </div>
@@ -218,9 +222,10 @@ export const TransactionForm = ({
         </div>
 
         <div>
-          <Label htmlFor="type">Tipo</Label>
+          <Label htmlFor="type">Tipo *</Label>
           <Select
             value={newTransaction.type}
+            required
             onValueChange={(value: "income" | "expense") =>
               setNewTransaction((prev) => ({
                 ...prev,
@@ -240,7 +245,7 @@ export const TransactionForm = ({
         </div>
 
         <div>
-          <Label htmlFor="category">Categoria</Label>
+          <Label htmlFor="category">Categoria *</Label>
           <Select
             value={newTransaction.categoryId}
             onValueChange={(value) =>
@@ -263,7 +268,7 @@ export const TransactionForm = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="date">Data</Label>
+          <Label htmlFor="date">Data *</Label>
           <Input
             id="date"
             type="date"

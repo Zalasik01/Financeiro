@@ -69,7 +69,7 @@ export const SignUpForm = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="displayName">Nome</Label>
+              <Label htmlFor="displayName">Nome *</Label>
               <Input
                 id="displayName"
                 type="text"
@@ -80,7 +80,7 @@ export const SignUpForm = () => {
               />
             </div>
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 type="email"
@@ -91,7 +91,7 @@ export const SignUpForm = () => {
               />
             </div>
             <div>
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password">Senha *</Label>
               <Input
                 id="password"
                 type="password"
@@ -102,7 +102,7 @@ export const SignUpForm = () => {
               />
             </div>
             <div>
-              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+              <Label htmlFor="confirmPassword">Confirmar Senha *</Label>
               <Input
                 id="confirmPassword"
                 type="password"

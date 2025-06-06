@@ -248,7 +248,7 @@ StoreClosingManagerProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <CurrencyInput
-                label="Saldo Inicial (R$) *"
+                label="Saldo Inicial (R$)"
                 id="initialBalance"
                 value={newClosing.initialBalance}
                 onChange={(value) =>
@@ -261,7 +261,7 @@ StoreClosingManagerProps) => {
 
             <div>
               <CurrencyInput
-                label="Saldo Final (R$) *"
+                label="Saldo Final (R$)"
                 id="finalBalance"
                 value={newClosing.finalBalance}
                 onChange={(value) =>

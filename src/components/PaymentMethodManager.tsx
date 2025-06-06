@@ -79,7 +79,7 @@ export const PaymentMethodManager = ({
             className="space-y-4 p-4 bg-gray-50 rounded-lg"
           >
             <div>
-              <Label htmlFor="paymentName">Nome</Label>
+              <Label htmlFor="paymentName">Nome *</Label>
               <Input
                 id="paymentName"
                 value={newPaymentMethod.name}
@@ -90,6 +90,7 @@ export const PaymentMethodManager = ({
                   }))
                 }
                 placeholder="Ex: Cartão Visa"
+                required
               />
             </div>
 

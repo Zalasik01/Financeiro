@@ -1,5 +1,5 @@
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useEffect } from "react"; // Adicionado useEffect
+import { Link, useLocation, useNavigate } from "react-router-dom"; // Adicionado useNavigate
 import { cn } from "@/lib/utils"; // Para classes condicionais (opcional, mas útil)
 
 const navItems = [
@@ -10,12 +10,31 @@ const navItems = [
   { href: "/fechamento", label: "📊 Fechamentos" },
   { href: "/dre", label: "📋 DRE" },
   { href: "/meta", label: "🎯 Metas" },
-  { href: "/forma-pagamento", label: "⚙️ Formas de Pagamento" },
+  { href: "/forma-pagamento", label: "💳 Formas de Pagamento" },
 ];
 
 const Navbar: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate(); // Inicializa o hook useNavigate
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Verifica se CTRL + Space foram pressionados
+      if (event.ctrlKey && event.code === "Space") {
+        // Impede o comportamento padrão do navegador para CTRL + Space (se houver)
+        event.preventDefault();
+        // Redireciona para /transacao usando o navigate do React Router
+        navigate("/transacao");
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    // Função de limpeza para remover o event listener quando o componente for desmontado
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [navigate]); // Adiciona navigate como dependência do useEffect
   return (
     <nav className="bg-gray-800 text-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
