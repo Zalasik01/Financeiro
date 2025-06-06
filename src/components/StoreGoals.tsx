@@ -42,6 +42,22 @@ export const StoreGoals = ({
   });
   const { toast } = useToast();
 
+  useEffect(() => {
+    const defaultStore = stores.find((s) => s.isDefault);
+    if (defaultStore && !newGoal.storeId) {
+      setNewGoal((prev) => ({ ...prev, storeId: defaultStore.id }));
+    } else if (stores.length === 1 && !newGoal.storeId) {
+      setNewGoal((prev) => ({ ...prev, storeId: stores[0].id }));
+    } else if (
+      !defaultStore &&
+      stores.length > 1 &&
+      newGoal.storeId &&
+      !stores.find((s) => s.id === newGoal.storeId)
+    ) {
+      setNewGoal((prev) => ({ ...prev, storeId: "" }));
+    }
+  }, [stores, newGoal.storeId]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 

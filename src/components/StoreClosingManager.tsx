@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"; // Adicionado useMemo
+import { useState, useMemo, useEffect } from "react"; // Adicionado useEffect
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,6 +106,22 @@ StoreClosingManagerProps) => {
     },
   ];
   const { toast } = useToast();
+
+  useEffect(() => {
+    const defaultStore = stores.find((s) => s.isDefault);
+    if (defaultStore && !newClosing.storeId) {
+      setNewClosing((prev) => ({ ...prev, storeId: defaultStore.id }));
+    } else if (stores.length === 1 && !newClosing.storeId) {
+      setNewClosing((prev) => ({ ...prev, storeId: stores[0].id }));
+    } else if (
+      !defaultStore &&
+      stores.length > 1 &&
+      newClosing.storeId &&
+      !stores.find((s) => s.id === newClosing.storeId)
+    ) {
+      setNewClosing((prev) => ({ ...prev, storeId: "" }));
+    }
+  }, [stores, newClosing.storeId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

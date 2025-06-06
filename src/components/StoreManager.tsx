@@ -8,6 +8,7 @@ import { Store } from "@/types/store";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "./ImageUpload";
 import { maskCNPJ, onlyNumbers } from "@/utils/formatters";
+import { Star } from "lucide-react"; // Ícone de estrela
 
 interface StoreManagerProps {
   stores: Store[];
@@ -28,6 +29,7 @@ export const StoreManager = ({
     nickname: "",
     code: "",
     icon: "", // Remover valor padrão
+    isDefault: false,
   });
 
   const [editingStore, setEditingStore] = useState<Store | null>(null);
@@ -64,6 +66,7 @@ export const StoreManager = ({
       nickname: newStore.nickname || null, // Alterado para null
       code: newStore.code || null, // Alterado para null
       icon: newStore.icon, // Enviar o ícone (string ou URL)
+      isDefault: newStore.isDefault,
     });
 
     setNewStore({
@@ -72,6 +75,7 @@ export const StoreManager = ({
       nickname: "",
       code: "",
       icon: "", // Resetar para string vazia
+      isDefault: false,
     });
     setDisplayCNPJ("");
 
@@ -99,6 +103,7 @@ export const StoreManager = ({
       nickname: editingStore.nickname || null, // Alterado para null
       code: editingStore.code || null, // Alterado para null
       icon: editingStore.icon,
+      isDefault: editingStore.isDefault,
     });
 
     setEditingStore(null);
@@ -123,6 +128,28 @@ export const StoreManager = ({
     const cleanCNPJ = onlyNumbers(value);
     setNewStore((prev) => ({ ...prev, cnpj: cleanCNPJ }));
     setDisplayCNPJ(maskCNPJ(cleanCNPJ));
+  };
+
+  const handleToggleDefault = (storeId: string) => {
+    const currentStore = stores.find((s) => s.id === storeId);
+    if (!currentStore) return;
+
+    const newIsDefault = !currentStore.isDefault;
+
+    // Se está marcando como padrão, desmarca qualquer outra que seja padrão
+    if (newIsDefault) {
+      stores.forEach((s) => {
+        if (s.isDefault && s.id !== storeId) {
+          onUpdateStore(s.id, { ...s, isDefault: false });
+        }
+      });
+    }
+    onUpdateStore(storeId, { ...currentStore, isDefault: newIsDefault });
+    toast({
+      title: newIsDefault
+        ? "Loja definida como padrão"
+        : "Loja não é mais padrão",
+    });
   };
 
   return (
@@ -281,6 +308,7 @@ export const StoreManager = ({
               onIconChange={(icon) =>
                 setEditingStore({ ...editingStore, icon })
               }
+              currentIsDefault={editingStore.isDefault} // Passar o estado de isDefault
               placeholder="Ícone da Loja"
             />
 
@@ -337,7 +365,27 @@ export const StoreManager = ({
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleToggleDefault(store.id)}
+                      className={`p-1 h-8 w-8 transition-all duration-200 ease-in-out transform hover:scale-125 ${
+                        store.isDefault
+                          ? "text-yellow-400"
+                          : "text-gray-400 hover:text-yellow-300"
+                      }`}
+                      title={
+                        store.isDefault
+                          ? "Remover como padrão"
+                          : "Marcar como padrão"
+                      }
+                    >
+                      <Star
+                        fill={store.isDefault ? "currentColor" : "none"}
+                        className={store.isDefault ? "animate-pulse-star" : ""}
+                      />
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"

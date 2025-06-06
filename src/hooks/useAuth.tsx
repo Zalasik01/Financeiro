@@ -23,6 +23,7 @@ import {
   deleteObject,
 } from "firebase/storage"; // Importar funções do storage
 import { useToast } from "./use-toast";
+import { userInfo } from "os";
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
@@ -80,10 +81,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // displayName é agora obrigatório
         await updateProfile(userCredential.user, { displayName });
       }
-      const description = "Bem-vindo(a)!";
+      const description = "Bem-vindo(a)! " + displayName;
       toast({
-        title: "Cadastro realizado!",
+        title: "Bem vindo(a)!",
         description,
+        variant: "success",
       });
       return userCredential.user;
     } catch (err) {
@@ -94,6 +96,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           "Este e-mail já está cadastrado. Tente fazer login ou use um e-mail diferente.";
       } else if (error.code === "auth/weak-password") {
         errorMessage = "A senha é muito fraca. Use pelo menos 6 caracteres.";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "O formato do e-mail fornecido é inválido.";
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -121,6 +125,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       toast({
         title: "Login realizado!",
         description,
+        variant: "success",
       });
       return userCredential.user;
     } catch (err) {
@@ -128,6 +133,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const errorMessage =
         error.code === "auth/invalid-credential"
           ? "Credenciais inválidas. Verifique seu e-mail e senha."
+          : error.code === "auth/invalid-email"
+          ? "O formato do e-mail fornecido é inválido."
           : error.message || "Não foi possível fazer login.";
       setError(errorMessage); // Define o erro
       const description = errorMessage;
@@ -147,6 +154,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       toast({
         title: "Logout realizado",
         description,
+        variant: "success",
       });
     } catch (error: AuthError) {
       // Não costuma dar erro, mas se der:

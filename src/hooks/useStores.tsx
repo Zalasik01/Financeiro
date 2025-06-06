@@ -50,18 +50,22 @@ export const useStores = () => {
       if (data) {
         const list: Store[] = Object.keys(data).map((key) => {
           const storeEntry = data[key];
-          let createdAtDate = new Date(); // Padrão para agora se a análise falhar ou não for um número
+          let createdAtDate: Date;
+          // Verifica se createdAt existe e é um número (timestamp) ou uma string (ISO date)
           if (
             storeEntry.createdAt &&
-            typeof storeEntry.createdAt === "number"
+            (typeof storeEntry.createdAt === "number" ||
+              typeof storeEntry.createdAt === "string")
           ) {
             createdAtDate = new Date(storeEntry.createdAt);
-          } else if (storeEntry.createdAt) {
-            // Log se createdAt estiver presente mas não for um número (ex: placeholder do servidor)
+          } else {
+            // Fallback se createdAt for inválido ou ausente
             console.warn(
-              `[useStores] Loja ${key} createdAt não é um número:`,
-              storeEntry.createdAt
+              `[useStores] Loja ${key} createdAt tem formato inválido ou está ausente:`,
+              storeEntry.createdAt,
+              ". Usando data atual como fallback."
             );
+            createdAtDate = new Date();
           }
           return {
             id: key,

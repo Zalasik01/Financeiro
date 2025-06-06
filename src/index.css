@@ -99,3 +99,20 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Em src/index.css ou seu arquivo CSS global */
+@keyframes pulse-star-animation {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-star {
+  animation: pulse-star-animation 1s ease-in-out;
+}

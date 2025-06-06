@@ -2,10 +2,11 @@ export interface Store {
   id: string;
   name: string;
   cnpj: string;
-  nickname?: string;
-  code?: string;
-  icon?: string; // Agora espera a URL da imagem
-  createdAt: Date;
+  nickname: string | null;
+  code: string | null;
+  icon: string;
+  createdAt: Date; // Ou string, dependendo de como você armazena
+  isDefault?: boolean;
 }
 
 export interface PaymentMethod {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react"; // Adicionado useRef
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +45,16 @@ export const TransactionForm = ({
   const { toast } = useToast();
   const { stores } = useStores(); // Obter a lista de lojas
 
+  // Refs para os campos do formulário
+  const descriptionRef = useRef<HTMLInputElement>(null);
+  const amountInputRef = useRef<HTMLInputElement>(null); // Ref para o input dentro de CurrencyInput
+  const discountInputRef = useRef<HTMLInputElement>(null); // Ref para o input dentro de CurrencyInput
+  const typeSelectRef = useRef<HTMLButtonElement>(null); // SelectTrigger é um botão
+  const categorySelectRef = useRef<HTMLButtonElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const storeSelectRef = useRef<HTMLButtonElement>(null);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     if (editingTransaction) {
       setNewTransaction({
@@ -60,6 +70,29 @@ export const TransactionForm = ({
       });
     }
   }, [editingTransaction]);
+
+  useEffect(() => {
+    const defaultStore = stores.find((s) => s.isDefault);
+    if (defaultStore && !newTransaction.storeId && !editingTransaction) {
+      setNewTransaction((prev) => ({ ...prev, storeId: defaultStore.id }));
+    } else if (
+      stores.length === 1 &&
+      !newTransaction.storeId &&
+      !editingTransaction
+    ) {
+      // Mantém a lógica de pré-selecionar se houver apenas uma loja e nenhuma padrão
+      setNewTransaction((prev) => ({ ...prev, storeId: stores[0].id }));
+    } else if (
+      !defaultStore &&
+      stores.length > 1 &&
+      !editingTransaction &&
+      newTransaction.storeId &&
+      !stores.find((s) => s.id === newTransaction.storeId)
+    ) {
+      // Se a loja selecionada não existe mais e não há padrão, limpa a seleção
+      setNewTransaction((prev) => ({ ...prev, storeId: undefined }));
+    }
+  }, [stores, newTransaction.storeId, editingTransaction]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,6 +174,37 @@ export const TransactionForm = ({
     (cat) => cat.type === newTransaction.type
   );
 
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement | HTMLButtonElement>,
+    nextFieldRef?: React.RefObject<HTMLElement>
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (nextFieldRef && nextFieldRef.current) {
+        nextFieldRef.current.focus();
+        // Para Select, precisamos também simular um clique para abrir o dropdown se for um SelectTrigger
+        if (nextFieldRef.current.getAttribute("role") === "combobox") {
+          (nextFieldRef.current as HTMLButtonElement).click();
+        }
+      } else if (submitButtonRef.current) {
+        // Se não houver próximo campo, foca e clica no botão de submit
+        submitButtonRef.current.focus();
+        submitButtonRef.current.click();
+      }
+    }
+  };
+
+  // Efeito para focar no primeiro campo ao montar ou ao limpar após edição
+  useEffect(() => {
+    if (!editingTransaction && descriptionRef.current) {
+      descriptionRef.current.focus();
+    }
+    // Se estiver editando, o foco pode ser gerenciado de outra forma ou não alterado
+    // Se você quiser focar no primeiro campo ao cancelar a edição:
+    // if (editingTransaction === null && descriptionRef.current) {
+    //   descriptionRef.current.focus();
+    // }
+  }, [editingTransaction]);
   return (
     <form
       onSubmit={handleSubmit}
@@ -179,6 +243,7 @@ export const TransactionForm = ({
         <div>
           <Label htmlFor="description">Descrição *</Label>
           <Input
+            ref={descriptionRef}
             id="description"
             value={newTransaction.description}
             onChange={(e) =>
@@ -191,6 +256,7 @@ export const TransactionForm = ({
             autoComplete="on"
             autoFocus
             required
+            onKeyDown={(e) => handleKeyDown(e, amountInputRef)}
           />
         </div>
 
@@ -198,12 +264,14 @@ export const TransactionForm = ({
           <CurrencyInput
             label="Valor (R$)"
             id="amount"
+            ref={amountInputRef} // Adicionar ref
             value={newTransaction.amount}
             onChange={(value) =>
               setNewTransaction((prev) => ({ ...prev, amount: value }))
             }
             placeholder="R$ 0,00"
             required
+            onKeyDown={(e) => handleKeyDown(e, discountInputRef)} // Adicionar onKeyDown
           />
         </div>
       </div>
@@ -213,11 +281,13 @@ export const TransactionForm = ({
           <CurrencyInput
             label="Desconto (R$)"
             id="discount"
+            ref={discountInputRef} // Adicionar ref
             value={newTransaction.discount}
             onChange={(value) =>
               setNewTransaction((prev) => ({ ...prev, discount: value }))
             }
             placeholder="R$ 0,00"
+            onKeyDown={(e) => handleKeyDown(e, typeSelectRef)} // Adicionar onKeyDown
           />
         </div>
 
@@ -234,7 +304,10 @@ export const TransactionForm = ({
               }))
             }
           >
-            <SelectTrigger>
+            <SelectTrigger
+              ref={typeSelectRef}
+              onKeyDown={(e) => handleKeyDown(e, categorySelectRef)}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -252,7 +325,10 @@ export const TransactionForm = ({
               setNewTransaction((prev) => ({ ...prev, categoryId: value }))
             }
           >
-            <SelectTrigger>
+            <SelectTrigger
+              ref={categorySelectRef}
+              onKeyDown={(e) => handleKeyDown(e, dateInputRef)}
+            >
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
             <SelectContent>
@@ -270,12 +346,14 @@ export const TransactionForm = ({
         <div>
           <Label htmlFor="date">Data *</Label>
           <Input
+            ref={dateInputRef}
             id="date"
             type="date"
             value={newTransaction.date}
             onChange={(e) =>
               setNewTransaction((prev) => ({ ...prev, date: e.target.value }))
             }
+            onKeyDown={(e) => handleKeyDown(e, storeSelectRef)}
           />
         </div>
 
@@ -290,7 +368,11 @@ export const TransactionForm = ({
               }))
             }
           >
-            <SelectTrigger id="transaction-store">
+            <SelectTrigger
+              id="transaction-store"
+              ref={storeSelectRef}
+              onKeyDown={(e) => handleKeyDown(e, submitButtonRef)}
+            >
               <SelectValue placeholder="Selecione a loja..." />
             </SelectTrigger>
             <SelectContent>
@@ -322,7 +404,7 @@ export const TransactionForm = ({
           )}
       </div>
 
-      <Button type="submit" className="w-full">
+      <Button ref={submitButtonRef} type="submit" className="w-full">
         {editingTransaction ? "Atualizar Transação" : "Adicionar Transação"}
       </Button>
     </form>

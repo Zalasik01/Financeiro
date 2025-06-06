@@ -144,6 +144,22 @@ export const DREReport = ({ onGenerateDRE, stores }: DREReportProps) => {
     setPrevMonthYear({ month: prevMonth, year: prevYear });
   }, [monthYear]);
 
+  useEffect(() => {
+    const defaultStore = stores.find((s) => s.isDefault);
+    if (defaultStore && !selectedStoreId) {
+      setSelectedStoreId(defaultStore.id);
+    } else if (stores.length === 1 && !selectedStoreId) {
+      setSelectedStoreId(stores[0].id);
+    } else if (
+      !defaultStore &&
+      stores.length > 1 &&
+      selectedStoreId &&
+      !stores.find((s) => s.id === selectedStoreId)
+    ) {
+      setSelectedStoreId(""); // Limpa se a selecionada não existe e não há padrão
+    }
+  }, [stores, selectedStoreId]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",

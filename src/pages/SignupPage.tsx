@@ -72,8 +72,7 @@ export default function SignupPage() {
     try {
       const user = await signup(email, password, displayName);
       if (user) {
-        // Sugestão: Redirecionar para o dashboard após cadastro bem-sucedido
-        navigate("/dashboard");
+        navigate("/login", { replace: true });
       }
     } catch (error) {
       console.error("Falha no cadastro:", error);

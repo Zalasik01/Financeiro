@@ -33,7 +33,7 @@ export default function LoginPage() {
       // e não lançar um erro, que seria pego pelo bloco catch.
       if (user) {
         const state = location.state as { from?: Location };
-        const from = state?.from?.pathname || "/dashboard"; // Sugestão: redirecionar para /dashboard como padrão
+        const from = state?.from?.pathname || "/";
         navigate(from, { replace: true });
       }
     } catch (error) {

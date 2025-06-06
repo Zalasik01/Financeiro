@@ -107,10 +107,6 @@ const AppContent = () => {
                     element={<GerenciarFormaPagamentoPage />}
                   />
                   <Route
-                    path="/gerenciar-forma-pagamento"
-                    element={<GerenciarFormaPagamentoPage />}
-                  />
-                  <Route
                     path="/gerenciar-usuario"
                     element={<GerenciarUsuarioPage />}
                   />
