@@ -3,9 +3,10 @@ import { Link, useLocation, useNavigate } from "react-router-dom"; // Adicionado
 import { cn } from "@/lib/utils"; // Para classes condicionais (opcional, mas útil)
 import { Button } from "@/components/ui/button"; // Importar Button
 import { HelpModal } from "./HelpModal"; // Importar o HelpModal
-import { Menu, X } from "lucide-react"; // Ícones para o menu hambúrguer
+import { Menu, X, Database } from "lucide-react"; // Ícones para o menu hambúrguer e Database
 import { InstallPWAButton } from "./InstallPWAButton"; // Importar o botão de instalação
 import { UserMenu } from "./UserMenu"; // Importar o UserMenu
+import { useAuth } from "@/hooks/useAuth"; // Importar useAuth
 
 const navItems = [
   { href: "/", label: "Visão Geral" },
@@ -20,6 +21,7 @@ const navItems = [
 
 const Navbar: React.FC = () => {
   const location = useLocation();
+  const { currentUser } = useAuth(); // Obter currentUser do hook useAuth
   const navigate = useNavigate(); // Inicializa o hook useNavigate
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -83,6 +85,15 @@ const Navbar: React.FC = () => {
                   Ajuda
                 </Button>
                 <InstallPWAButton />
+                {currentUser && currentUser.numberId && currentUser.name && (
+              <div className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-300">
+                <Database size={18} className="mr-2 text-gray-400 flex-shrink-0" />
+                <span>{currentUser.name} ({currentUser.numberId})</span>
+              </div>
+            )}
+            {/* UserMenu no menu mobile */}
+            <div className="px-1 py-2 border-t border-gray-700 mt-2">
+              <UserMenu />
               </div>
               {/* UserMenu posicionado à direita */}
               <div className="ml-4">
