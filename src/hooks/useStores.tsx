@@ -1,10 +1,12 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import {
+  Base, // Importar o novo tipo Base
   Store,
   StoreClosing,
   PaymentMethod,
   MovementType,
   MovementItem,
+  ClientBase, // Importar ClientBase
   DREData,
   StoreMeta,
   StoreRanking,
@@ -27,31 +29,96 @@ import {
 } from "firebase/database"; // Adicionado get e equalTo
 
 export const useStores = () => {
+  const [bases, setBases] = useState<Base[]>([]); // Estado para Bases
   const [stores, setStores] = useState<Store[]>([]);
   const [closings, setClosings] = useState<StoreClosing[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [movementTypes, setMovementTypes] = useState<MovementType[]>([]);
   const [goals, setGoals] = useState<StoreMeta[]>([]);
-  const { currentUser } = useAuth(); // Obter o usuário atual
+  const { currentUser, selectedBaseId } = useAuth(); // Obter o usuário atual e o selectedBaseId
   const { toast } = useToast(); // Inicializar o hook de toast
 
-  // Carregar Lojas
+  // Carregar Bases (appBases para o usuário logado ou clientBases filtradas para não-admins)
   useEffect(() => {
     if (!currentUser) {
+      setBases([]);
+      return;
+    }
+
+    // Todos os usuários (admin e não admin) buscarão do nó /clientBases.
+    // O filtro será aplicado para não-admins.
+    const clientBasesRef = ref(db, "clientBases");
+    const unsubscribeBases = onValue(clientBasesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const allClientBases: ClientBase[] = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+
+        let accessibleClientBases: ClientBase[];
+
+        if (currentUser.isAdmin) {
+          // Admin vê todas as clientBases
+          accessibleClientBases = allClientBases;
+        } else {
+          // Usuário não-admin filtra clientBases às quais tem acesso
+          accessibleClientBases = allClientBases.filter(
+            (cb) =>
+              cb.authorizedUIDs && // Alterado de authorizedEmails para authorizedUIDs
+              currentUser.uid && // Garante que currentUser.uid exista
+              (cb.authorizedUIDs as any)[currentUser.uid] === true
+          );
+        }
+        // Mapear ClientBase para Base para o modal
+        setBases(
+          accessibleClientBases.map(
+            (
+              cb: ClientBase // Adicionar tipo para cb para clareza
+            ) =>
+              ({
+                id: cb.id, // UUID
+                name: cb.name,
+                createdAt: cb.createdAt,
+                numberId: cb.numberId, // Mapear o numberId
+              } as Base) // Assegure-se que o tipo Base em @/types/store.ts inclua numberId: number;
+          )
+        );
+      } else {
+        setBases([]);
+      }
+    });
+
+    return () => unsubscribeBases();
+  }, [currentUser]);
+
+  // Carregar Lojas (agora associadas a bases)
+  useEffect(() => {
+    if (!currentUser || !selectedBaseId) {
+      // Precisa de um selectedBaseId
       setStores([]);
       return;
     }
-    const storesPath = `users/${currentUser.uid}/appStores`;
+    console.log(
+      "[useStores] Configurando listener para lojas. selectedBaseId:",
+      selectedBaseId
+    ); // DEBUG
+    const storesPath = `clientBases/${selectedBaseId}/appStores`; // Caminho atualizado
     const storesNodeRef = ref(db, storesPath);
     const storesQuery = query(storesNodeRef, orderByChild("name"));
     const unsubscribe = onValue(storesQuery, (snapshot) => {
-      console.log("[useStores] Snapshot recebido para lojas:", snapshot.val());
+      console.log(
+        "[useStores] Snapshot de lojas recebido. Caminho:",
+        storesPath,
+        "Valor:",
+        snapshot.val()
+      ); // DEBUG
+      // console.log("[useStores] Snapshot recebido para lojas:", snapshot.val());
       const data = snapshot.val();
       if (data) {
         const list: Store[] = Object.keys(data).map((key) => {
           const storeEntry = data[key];
           let createdAtDate: Date;
-          // Verifica se createdAt existe e é um número (timestamp) ou uma string (ISO date)
           if (
             storeEntry.createdAt &&
             (typeof storeEntry.createdAt === "number" ||
@@ -59,37 +126,44 @@ export const useStores = () => {
           ) {
             createdAtDate = new Date(storeEntry.createdAt);
           } else {
-            // Fallback se createdAt for inválido ou ausente
-            console.warn(
-              `[useStores] Loja ${key} createdAt tem formato inválido ou está ausente:`,
-              storeEntry.createdAt,
-              ". Usando data atual como fallback."
-            );
+            // console.warn(
+            //   `[useStores] Loja ${key} createdAt tem formato inválido ou está ausente:`,
+            //   storeEntry.createdAt,
+            //   ". Usando data atual como fallback."
+            // );
             createdAtDate = new Date();
           }
           return {
             id: key,
             ...storeEntry,
-            createdAt: createdAtDate,
+            // Manter createdAt como número (timestamp) para consistência com serverTimestamp
+            // A conversão para Date pode ser feita na UI ou em useMemo se necessário
+            createdAt: storeEntry.createdAt, // Assumindo que já é um timestamp ou será
+            baseId: storeEntry.baseId, // Garantir que baseId seja carregado
           };
         });
-        console.log("[useStores] Lista de lojas processada:", list);
+        console.log("[useStores] Nova lista de lojas para o estado:", list); // DEBUG: Verifique se a nova loja aparece aqui
+        // console.log("[useStores] Lista de lojas processada:", list);
         setStores(list);
       } else {
-        console.log("[useStores] Nenhum dado de loja encontrado no Firebase.");
+        console.log(
+          "[useStores] Nenhum dado de loja encontrado no Firebase para o selectedBaseId:",
+          selectedBaseId
+        ); // DEBUG
         setStores([]);
       }
     });
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, selectedBaseId]);
 
   // Carregar Métodos de Pagamento
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
+      // Precisa de um selectedBaseId
       setPaymentMethods([]);
       return;
     }
-    const methodsPath = `users/${currentUser.uid}/appPaymentMethods`;
+    const methodsPath = `clientBases/${selectedBaseId}/appPaymentMethods`; // Caminho atualizado
     const methodsNodeRef = ref(db, methodsPath);
     const methodsQuery = query(methodsNodeRef, orderByChild("name"));
     const unsubscribe = onValue(methodsQuery, (snapshot) => {
@@ -106,15 +180,16 @@ export const useStores = () => {
       }
     });
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, selectedBaseId]);
 
   // Carregar Tipos de Movimento
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
+      // Precisa de um selectedBaseId
       setMovementTypes([]);
       return;
     }
-    const typesPath = `users/${currentUser.uid}/appMovementTypes`;
+    const typesPath = `clientBases/${selectedBaseId}/appMovementTypes`; // Caminho atualizado
     const typesNodeRef = ref(db, typesPath);
     const typesQuery = query(typesNodeRef, orderByChild("name"));
     const unsubscribe = onValue(typesQuery, (snapshot) => {
@@ -131,15 +206,16 @@ export const useStores = () => {
       }
     });
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, selectedBaseId]);
 
   // Carregar Fechamentos (Closings)
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
+      // Precisa de um selectedBaseId
       setClosings([]);
       return;
     }
-    const closingsPath = `users/${currentUser.uid}/appClosings`;
+    const closingsPath = `clientBases/${selectedBaseId}/appClosings`; // Caminho atualizado
     // Ordenar por data de fechamento, por exemplo
     const closingsNodeRef = ref(db, closingsPath);
     const closingsQuery = query(closingsNodeRef, orderByChild("closingDate"));
@@ -162,15 +238,16 @@ export const useStores = () => {
       }
     });
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, selectedBaseId]);
 
   // Carregar Metas (Goals)
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
+      // Precisa de um selectedBaseId
       setGoals([]);
       return;
     }
-    const goalsPath = `users/${currentUser.uid}/appGoals`;
+    const goalsPath = `clientBases/${selectedBaseId}/appGoals`; // Caminho atualizado
     const goalsNodeRef = ref(db, goalsPath);
     const goalsQuery = query(goalsNodeRef, orderByChild("targetDate")); // Exemplo de ordenação
     const unsubscribe = onValue(goalsQuery, (snapshot) => {
@@ -190,22 +267,25 @@ export const useStores = () => {
       }
     });
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, selectedBaseId]);
 
-  const addStore = async (storeData: Omit<Store, "id" | "createdAt">) => {
-    if (!currentUser) {
+  // Modificar addStore para aceitar baseId
+  const addStore = async (
+    storeData: Omit<Store, "id" | "createdAt" | "baseId">
+  ) => {
+    if (!currentUser || !selectedBaseId) {
+      // Usar selectedBaseId do hook
       toast({
         title: "Erro!",
-        description: "Você precisa estar logado para adicionar uma loja.",
+        description:
+          "Usuário não autenticado ou base não selecionada para adicionar loja.",
         variant: "destructive",
       });
       return null;
     }
-    console.log("[useStores] Tentando adicionar loja. Dados:", storeData);
     try {
-      const storesNodeRef = ref(db, `users/${currentUser.uid}/appStores`);
+      const storesNodeRef = ref(db, `clientBases/${selectedBaseId}/appStores`); // Usar selectedBaseId
       const newStoreRef = push(storesNodeRef);
-      // Garante que campos opcionais sejam null se vazios, em vez de undefined
       const preparedStoreData = {
         ...storeData,
         nickname: storeData.nickname || null,
@@ -213,28 +293,23 @@ export const useStores = () => {
       };
       const storeToSave = {
         ...preparedStoreData,
+        baseId: selectedBaseId, // Adicionar selectedBaseId como baseId da loja
         createdAt: serverTimestamp(),
       };
-      console.log(
-        "[useStores] Dados para salvar no Firebase:",
-        storeToSave,
-        "para ref:",
-        newStoreRef.toString()
-      );
 
       await set(newStoreRef, storeToSave);
-      console.log(
-        "[useStores] Promessa da operação set do Firebase resolvida para o ID da loja:",
-        newStoreRef.key
-      );
-      return { ...storeData, id: newStoreRef.key!, createdAt: new Date() };
+      // Retornar a loja com o ID gerado e createdAt como número (timestamp) ou objeto Date
+      // Para consistência com serverTimestamp, o ideal seria buscar o valor após salvar,
+      // mas para simplificar, retornamos uma aproximação ou o objeto que o Firebase usa.
+      return {
+        ...storeData,
+        id: newStoreRef.key!,
+        baseId: selectedBaseId,
+        // createdAt será preenchido pelo serverTimestamp, new Date() é uma aproximação local
+        createdAt: Date.now(), // Ou deixe como undefined e confie no listener para atualizar
+      } as Store;
     } catch (error) {
       const firebaseError = error as Error;
-      console.error(
-        "[useStores] Erro ao adicionar loja ao Firebase:",
-        firebaseError
-      );
-      // É útil registrar o código se for um AuthError do Firebase ou similar
       if ((firebaseError as any).code) {
         console.error(
           "[useStores] Código de erro do Firebase:",
@@ -252,21 +327,30 @@ export const useStores = () => {
     }
   };
 
+  // Funções updateBase e deleteBase precisariam ser implementadas similarmente
+  // ...
+
   const updateStore = async (
     id: string,
     storeUpdates: Partial<Omit<Store, "id" | "createdAt">>
   ) => {
-    if (!currentUser) {
+    const storeToUpdate = stores.find((s) => s.id === id);
+    if (!currentUser || !storeToUpdate || !storeToUpdate.baseId) {
       toast({
         title: "Erro!",
-        description: "Você precisa estar logado para atualizar uma loja.",
+        description:
+          "Usuário não autenticado, loja não encontrada ou ID da base da loja ausente.",
         variant: "destructive",
       });
       return;
     }
+    const clientBaseId = storeToUpdate.baseId; // Este é o clientBaseId
+
     try {
-      const storeRef = ref(db, `users/${currentUser.uid}/appStores/${id}`);
+      const storeRef = ref(db, `clientBases/${clientBaseId}/appStores/${id}`); // Caminho atualizado
       await update(storeRef, storeUpdates);
+      // Opcional: toast de sucesso
+      toast({ title: "Sucesso!", description: "Loja atualizada." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível atualizar a loja.";
@@ -280,21 +364,25 @@ export const useStores = () => {
   };
 
   const deleteStore = async (id: string) => {
-    if (!currentUser) {
+    const storeToDelete = stores.find((s) => s.id === id);
+    if (!currentUser || !storeToDelete || !storeToDelete.baseId) {
       toast({
         title: "Erro!",
-        description: "Você precisa estar logado para deletar uma loja.",
+        description:
+          "Usuário não autenticado, loja não encontrada ou ID da base da loja ausente.",
         variant: "destructive",
       });
       return;
     }
+    const clientBaseId = storeToDelete.baseId; // Este é o clientBaseId
+
     try {
-      const storeRef = ref(db, `users/${currentUser.uid}/appStores/${id}`);
+      const storeRef = ref(db, `clientBases/${clientBaseId}/appStores/${id}`); // Caminho atualizado
       await remove(storeRef);
 
       // Remover fechamentos e metas associados
       const closingsQuery = query(
-        ref(db, `users/${currentUser.uid}/appClosings`),
+        ref(db, `clientBases/${clientBaseId}/appClosings`), // Caminho atualizado
         orderByChild("storeId"),
         equalTo(id)
       );
@@ -309,7 +397,7 @@ export const useStores = () => {
       );
 
       const goalsQuery = query(
-        ref(db, `users/${currentUser.uid}/appGoals`),
+        ref(db, `clientBases/${clientBaseId}/appGoals`), // Caminho atualizado
         orderByChild("storeId"),
         equalTo(id)
       );
@@ -322,6 +410,11 @@ export const useStores = () => {
         },
         { onlyOnce: true }
       );
+      // Opcional: toast de sucesso
+      toast({
+        title: "Sucesso!",
+        description: "Loja e dados associados deletados.",
+      });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível deletar a loja.";
@@ -338,11 +431,10 @@ export const useStores = () => {
   const addPaymentMethod = async (
     methodData: Omit<PaymentMethod, "id" | "createdAt">
   ) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description:
-          "Você precisa estar logado para adicionar um método de pagamento.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return null;
@@ -350,8 +442,8 @@ export const useStores = () => {
     try {
       const methodsNodeRef = ref(
         db,
-        `users/${currentUser.uid}/appPaymentMethods`
-      );
+        `clientBases/${selectedBaseId}/appPaymentMethods`
+      ); // Caminho atualizado
       const newMethodRef = push(methodsNodeRef);
       const methodToSave = { ...methodData, createdAt: serverTimestamp() };
       await set(newMethodRef, methodToSave);
@@ -378,11 +470,10 @@ export const useStores = () => {
     id: string,
     methodUpdates: Partial<Omit<PaymentMethod, "id" | "createdAt">>
   ) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description:
-          "Você precisa estar logado para atualizar um método de pagamento.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return;
@@ -390,8 +481,8 @@ export const useStores = () => {
     try {
       const methodRef = ref(
         db,
-        `users/${currentUser.uid}/appPaymentMethods/${id}`
-      );
+        `clientBases/${selectedBaseId}/appPaymentMethods/${id}`
+      ); // Caminho atualizado
       await update(methodRef, methodUpdates);
       toast({
         title: "Sucesso!",
@@ -411,11 +502,10 @@ export const useStores = () => {
   };
 
   const deletePaymentMethod = async (id: string) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description:
-          "Você precisa estar logado para deletar um método de pagamento.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return;
@@ -423,8 +513,8 @@ export const useStores = () => {
     try {
       const methodRef = ref(
         db,
-        `users/${currentUser.uid}/appPaymentMethods/${id}`
-      );
+        `clientBases/${selectedBaseId}/appPaymentMethods/${id}`
+      ); // Caminho atualizado
       await remove(methodRef);
       toast({
         title: "Sucesso!",
@@ -446,17 +536,19 @@ export const useStores = () => {
   const addMovementType = async (
     typeData: Omit<MovementType, "id" | "createdAt">
   ) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description:
-          "Você precisa estar logado para adicionar um tipo de movimento.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return null;
     }
     try {
-      const typesNodeRef = ref(db, `users/${currentUser.uid}/appMovementTypes`);
+      const typesNodeRef = ref(
+        db,
+        `clientBases/${selectedBaseId}/appMovementTypes`
+      ); // Caminho atualizado
       const newTypeRef = push(typesNodeRef);
       const typeToSave = { ...typeData, createdAt: serverTimestamp() };
       await set(newTypeRef, typeToSave);
@@ -483,11 +575,10 @@ export const useStores = () => {
     id: string,
     typeUpdates: Partial<Omit<MovementType, "id" | "createdAt">>
   ) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description:
-          "Você precisa estar logado para atualizar um tipo de movimento.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return;
@@ -495,8 +586,8 @@ export const useStores = () => {
     try {
       const typeRef = ref(
         db,
-        `users/${currentUser.uid}/appMovementTypes/${id}`
-      );
+        `clientBases/${selectedBaseId}/appMovementTypes/${id}`
+      ); // Caminho atualizado
       await update(typeRef, typeUpdates);
       toast({
         title: "Sucesso!",
@@ -516,11 +607,10 @@ export const useStores = () => {
   };
 
   const deleteMovementType = async (id: string) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description:
-          "Você precisa estar logado para deletar um tipo de movimento.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return;
@@ -528,9 +618,10 @@ export const useStores = () => {
     try {
       const typeRef = ref(
         db,
-        `users/${currentUser.uid}/appMovementTypes/${id}`
-      );
+        `clientBases/${selectedBaseId}/appMovementTypes/${id}`
+      ); // Caminho atualizado
       await remove(typeRef);
+      toast({ title: "Sucesso!", description: "Tipo de movimento deletado." });
     } catch (error) {
       const errorMessage =
         (error as Error).message ||
@@ -588,16 +679,19 @@ export const useStores = () => {
       | "netResult"
     >
   ) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description: "Você precisa estar logado para adicionar um fechamento.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return null;
     }
     try {
-      const closingsNodeRef = ref(db, `users/${currentUser.uid}/appClosings`);
+      const closingsNodeRef = ref(
+        db,
+        `clientBases/${selectedBaseId}/appClosings`
+      ); // Caminho atualizado
       const newClosingRef = push(closingsNodeRef);
 
       const { totalEntradas, totalSaidas, totalOutros } = calculateTotals(
@@ -661,16 +755,19 @@ export const useStores = () => {
     id: string,
     closingUpdates: Partial<Omit<StoreClosing, "id" | "createdAt">>
   ) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description: "Você precisa estar logado para atualizar um fechamento.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return;
     }
     try {
-      const closingRef = ref(db, `users/${currentUser.uid}/appClosings/${id}`);
+      const closingRef = ref(
+        db,
+        `clientBases/${selectedBaseId}/appClosings/${id}`
+      ); // Caminho atualizado
       const updatesToSave: Partial<StoreClosing> = { ...closingUpdates }; // Tipagem mais específica
 
       if (closingUpdates.closingDate) {
@@ -708,6 +805,7 @@ export const useStores = () => {
       }
 
       await update(closingRef, updatesToSave);
+      toast({ title: "Sucesso!", description: "Fechamento atualizado." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível atualizar o fechamento.";
@@ -721,7 +819,7 @@ export const useStores = () => {
   };
 
   const deleteClosing = async (id: string) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
         description: "Você precisa estar logado para deletar um fechamento.",
@@ -730,8 +828,12 @@ export const useStores = () => {
       return;
     }
     try {
-      const closingRef = ref(db, `users/${currentUser.uid}/appClosings/${id}`);
+      const closingRef = ref(
+        db,
+        `clientBases/${selectedBaseId}/appClosings/${id}`
+      ); // Caminho atualizado
       await remove(closingRef);
+      toast({ title: "Sucesso!", description: "Fechamento deletado." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível deletar o fechamento.";
@@ -828,16 +930,16 @@ export const useStores = () => {
   };
 
   const addGoal = async (goalData: Omit<StoreMeta, "id" | "createdAt">) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description: "Você precisa estar logado para adicionar uma meta.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return null;
     }
     try {
-      const goalsNodeRef = ref(db, `users/${currentUser.uid}/appGoals`);
+      const goalsNodeRef = ref(db, `clientBases/${selectedBaseId}/appGoals`); // Caminho atualizado
       const newGoalRef = push(goalsNodeRef);
       const goalToSave = {
         ...goalData,
@@ -847,6 +949,7 @@ export const useStores = () => {
           : null,
       };
       await set(newGoalRef, goalToSave);
+      toast({ title: "Sucesso!", description: "Meta adicionada." });
       return { ...goalData, id: newGoalRef.key!, createdAt: new Date() };
     } catch (error) {
       const errorMessage =
@@ -865,21 +968,22 @@ export const useStores = () => {
     id: string,
     goalUpdates: Partial<Omit<StoreMeta, "id" | "createdAt">>
   ) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description: "Você precisa estar logado para atualizar uma meta.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return;
     }
     try {
-      const goalRef = ref(db, `users/${currentUser.uid}/appGoals/${id}`);
+      const goalRef = ref(db, `clientBases/${selectedBaseId}/appGoals/${id}`); // Caminho atualizado
       const updatesToSave = { ...goalUpdates } as any;
       if (goalUpdates.targetDate) {
         updatesToSave.targetDate = goalUpdates.targetDate.toISOString();
       }
       await update(goalRef, updatesToSave);
+      toast({ title: "Sucesso!", description: "Meta atualizada." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível atualizar a meta.";
@@ -893,17 +997,18 @@ export const useStores = () => {
   };
 
   const deleteGoal = async (id: string) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description: "Você precisa estar logado para deletar uma meta.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return;
     }
     try {
-      const goalRef = ref(db, `users/${currentUser.uid}/appGoals/${id}`);
+      const goalRef = ref(db, `clientBases/${selectedBaseId}/appGoals/${id}`); // Caminho atualizado
       await remove(goalRef);
+      toast({ title: "Sucesso!", description: "Meta deletada." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível deletar a meta.";
@@ -962,6 +1067,7 @@ export const useStores = () => {
   }, [stores, closings]);
 
   return {
+    bases, // Retornar bases
     stores,
     closings: closingsWithDetails, // Usa a versão memoizada
     paymentMethods,

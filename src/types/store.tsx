@@ -1,12 +1,28 @@
+export interface ClientBase {
+  id: string; // Firebase push ID (UUID)
+  name: string;
+  numberId: number;
+  authorizedUIDs: { [uid: string]: boolean }; // Chaves são UIDs de usuários autorizados
+  createdAt: number; // Timestamp (Firebase serverTimestamp)
+  createdBy: string; // UID do admin
+}
+
+export interface Base {
+  id: string; // Será "1", "2", "3", etc.
+  name: string;
+  numberId?: number; // Adicionado para consistência com o uso no useStores e AccessSelectionModal
+  createdAt: number; // Usaremos timestamp do Firebase
+}
 export interface Store {
-  id: string;
+  id: string; // ID gerado pelo Firebase (push key)
+  baseId: string; // ID da Base à qual pertence ("1", "2", etc.)
   name: string;
   cnpj: string;
   nickname: string | null;
   code: string | null;
   icon: string;
-  createdAt: Date; // Ou string, dependendo de como você armazena
-  isDefault?: boolean;
+  isDefault?: boolean; // Se esta loja é a padrão (pode ser global ou por base, manteremos global por enquanto)
+  createdAt: number; // Usaremos timestamp do Firebase
 }
 
 export interface PaymentMethod {

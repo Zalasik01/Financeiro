@@ -22,16 +22,31 @@ import {
   getDownloadURL,
   deleteObject,
 } from "firebase/storage"; // Importar funções do storage
+import { db } from "@/firebase"; // Importar db do RTDB
+import {
+  ref as databaseRef,
+  set as databaseSet,
+  get as databaseGet,
+  serverTimestamp, // Importar serverTimestamp
+} from "firebase/database"; // Funções do RTDB
 import { useToast } from "./use-toast";
-import { userInfo } from "os";
+
+interface AppUser extends User {
+  isAdmin?: boolean;
+  clientBaseId?: number | null; // No perfil do usuário, este será o numberId da ClientBase
+}
+
 interface AuthContextType {
-  currentUser: User | null;
+  currentUser: AppUser | null; // Modificado para AppUser
   loading: boolean;
   error: string | null; // Adicionar estado de erro
   signup: (
     email: string,
     password: string,
-    displayName: string
+    displayName: string,
+    inviteToken?: string | null,
+    inviteClientBaseUUID?: string | null,
+    inviteClientBaseNumberId?: number | null
   ) => Promise<User | null>;
   login: (email: string, password: string) => Promise<User | null>;
   logout: () => Promise<void>;
@@ -43,10 +58,11 @@ interface AuthContextType {
   }) => Promise<void>;
   uploadProfilePhotoAndUpdateURL: (file: File) => Promise<void>;
   removeProfilePhoto: () => Promise<void>;
+  selectedBaseId: string | null; // Adicionar selectedBaseId
+  setSelectedBaseId: (baseId: string | null) => void; // Adicionar setter para selectedBaseId
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -60,15 +76,19 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null); // Modificado para AppUser
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null); // Estado para armazenar mensagens de erro
+  const [selectedBaseId, setSelectedBaseId] = useState<string | null>(null); // Estado para a base selecionada
   const { toast } = useToast();
 
   const signup = async (
     email: string,
     password: string,
-    displayName: string
+    displayName: string,
+    inviteToken?: string | null,
+    inviteClientBaseUUID?: string | null,
+    inviteClientBaseNumberId?: number | null
   ) => {
     try {
       setError(null); // Limpa erros anteriores
@@ -78,8 +98,50 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         password
       );
       if (userCredential.user) {
+        // Definir adminModalDismissed como true AQUI, logo após a criação do usuário no Auth,
+        // para que o useEffect no AppContent não abra o modal imediatamente.
+        sessionStorage.setItem("adminModalDismissed", "true");
+
         // displayName é agora obrigatório
         await updateProfile(userCredential.user, { displayName });
+        const newUserUID = userCredential.user.uid;
+        // Salvar dados adicionais do usuário no RTDB, incluindo a flag isAdmin
+        const userProfileRef = databaseRef(
+          db,
+          `users/${userCredential.user.uid}/profile` // Nó para perfil
+        );
+        await databaseSet(userProfileRef, {
+          email: userCredential.user.email,
+          displayName: displayName,
+          uid: newUserUID,
+          isAdmin: email === "nizalasik@gmail.com", // Define isAdmin - idealmente isso seria gerenciado de outra forma
+          clientBaseId: inviteClientBaseNumberId ?? null, // Vincula ao numberId da base do convite
+          createdAt: serverTimestamp(), // Adiciona timestamp de criação do perfil
+        });
+
+        // Se o cadastro veio de um convite válido, vincular usuário à base e atualizar convite
+        if (
+          inviteToken &&
+          inviteClientBaseUUID &&
+          inviteClientBaseNumberId !== null &&
+          inviteClientBaseNumberId !== undefined
+        ) {
+          // 1. Adicionar UID do usuário à base
+          const authorizedUIDRef = databaseRef(
+            db,
+            `clientBases/${inviteClientBaseUUID}/authorizedUIDs/${newUserUID}`
+          );
+          await databaseSet(authorizedUIDRef, true);
+
+          // 2. Marcar convite como usado
+          const inviteStatusRef = databaseRef(
+            db,
+            `invites/${inviteToken}/status`
+          );
+          await databaseSet(inviteStatusRef, "used");
+          // Opcional: Adicionar usedBy: newUserUID, usedAt: serverTimestamp() ao convite
+          // Opcional: Remover o nó do convite após o uso bem-sucedido
+        }
       }
       const description = "Bem-vindo(a)! " + displayName;
       toast({
@@ -116,6 +178,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const login = async (email: string, password: string) => {
     try {
       setError(null); // Limpa erros anteriores
+      // Limpar a flag do modal para garantir que ele seja exibido para o admin no login
+      sessionStorage.removeItem("adminModalDismissed");
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
@@ -149,6 +213,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = async () => {
     try {
       setError(null); // Limpa erros anteriores
+      sessionStorage.removeItem("adminModalDismissed"); // Limpa a flag do modal admin
+      setSelectedBaseId(null); // Limpa a base selecionada ao fazer logout
       await signOut(auth);
       const description = "Usuário deslogado com sucesso!";
       toast({
@@ -331,8 +397,56 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setLoading(false);
+      if (user) {
+        // Buscar dados adicionais do perfil do usuário (incluindo isAdmin) do RTDB
+        const userProfileRef = databaseRef(db, `users/${user.uid}/profile`);
+        databaseGet(userProfileRef)
+          .then((snapshot) => {
+            let isAdmin = false; // Define um valor padrão
+            let userClientBaseId: string | null = null;
+
+            if (snapshot.exists()) {
+              const profileData = snapshot.val();
+              console.log(
+                "[useAuth] Perfil do usuário encontrado no RTDB:",
+                profileData
+              ); // Log para ver os dados do perfil
+              isAdmin = profileData.isAdmin === true; // Garante que seja explicitamente true
+              // profileData.clientBaseId aqui é o numberId
+              userClientBaseId =
+                typeof profileData.clientBaseId === "number"
+                  ? profileData.clientBaseId
+                  : null;
+            } else {
+              console.log(
+                "[useAuth] Perfil do usuário NÃO encontrado no RTDB para UID:",
+                user.uid
+              );
+            }
+            // Armazena o numberId no currentUser.clientBaseId
+            setCurrentUser({
+              ...user,
+              isAdmin,
+              clientBaseId: userClientBaseId,
+            });
+            // selectedBaseId (UUID) será definido em AppContent
+            setSelectedBaseId(null); // Inicializa como null, AppContent resolverá
+          })
+          .catch((error) => {
+            console.error("Erro ao buscar perfil do usuário no RTDB:", error);
+            // Em caso de erro ao buscar perfil, define isAdmin como false para o usuário atual
+            setCurrentUser({ ...user, isAdmin: false });
+            setSelectedBaseId(null);
+          })
+          .finally(() => {
+            // setLoading(false) é chamado aqui, garantindo que seja após a tentativa de buscar o perfil
+            setLoading(false);
+          });
+      } else {
+        setCurrentUser(null);
+        setLoading(false);
+        setSelectedBaseId(null);
+      }
     });
     return unsubscribe;
   }, []);
@@ -348,6 +462,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     updateUserProfileData,
     uploadProfilePhotoAndUpdateURL, // Adicionar ao contexto
     removeProfilePhoto, // Adicionar ao contexto
+    selectedBaseId, // Expor selectedBaseId
+    setSelectedBaseId, // Expor setSelectedBaseId
   };
 
   return (

@@ -4,7 +4,6 @@ import { FinancialSummaryCards } from "@/components/FinancialSummaryCards";
 import { FinancialCharts } from "@/components/FinancialCharts";
 import { StoreRanking } from "@/components/StoreRanking";
 import { FinancialInsights } from "@/components/FinancialInsights";
-import { UserMenu } from "@/components/UserMenu"; // Importar o UserMenu
 
 const Index = () => {
   const { categories, transactions, summary } = useFinance();
@@ -29,7 +28,6 @@ const Index = () => {
                 Controle completo das finanças pessoais e empresariais
               </p>
             </div>
-            <UserMenu /> {/* Adicionar o UserMenu aqui */}
           </div>
         </div>
       </header>
@@ -104,7 +102,7 @@ const Index = () => {
                 {summary.balance >= 0 ? "Positivo" : "Negativo"}
               </p>
               <p className="text-sm text-gray-500">
-                {summary.transactionCount} transações pessoais
+                {summary.transactionCount} transações registradas
               </p>
             </div>
           </div>

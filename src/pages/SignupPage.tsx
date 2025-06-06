@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react"; // Adicionado useEffect
+import { useNavigate, Link, useLocation } from "react-router-dom"; // Adicionado useLocation
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,7 +60,28 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
+  // const location = useLocation(); // Descomente se for usar location.state
 
+  // Estados para armazenar dados do convite
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [inviteClientBaseUUID, setInviteClientBaseUUID] = useState<
+    string | null
+  >(null);
+  const [inviteClientBaseNumberId, setInviteClientBaseNumberId] = useState<
+    number | null
+  >(null);
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("inviteToken");
+    const baseUUID = sessionStorage.getItem("inviteClientBaseUUID");
+    const baseNumIdString = sessionStorage.getItem("inviteClientBaseNumberId");
+
+    setInviteToken(token);
+    setInviteClientBaseUUID(baseUUID);
+    setInviteClientBaseNumberId(
+      baseNumIdString ? parseInt(baseNumIdString, 10) : null
+    );
+  }, []);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordStrength.score < 50) {
@@ -70,8 +91,18 @@ export default function SignupPage() {
     }
     setIsLoading(true);
     try {
-      const user = await signup(email, password, displayName);
+      const user = await signup(
+        email,
+        password,
+        displayName,
+        inviteToken,
+        inviteClientBaseUUID,
+        inviteClientBaseNumberId
+      );
       if (user) {
+        sessionStorage.removeItem("inviteToken");
+        sessionStorage.removeItem("inviteClientBaseUUID");
+        sessionStorage.removeItem("inviteClientBaseNumberId");
         navigate("/login", { replace: true });
       }
     } catch (error) {

@@ -22,16 +22,17 @@ import {
 export const useFinance = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const { currentUser } = useAuth(); // Obter o usuário atual
+  const { currentUser, selectedBaseId } = useAuth(); // Obter o usuário atual e o selectedBaseId
   const { toast } = useToast(); // Inicializar o hook de toast
 
   // Carregar categorias do Realtime Database
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
+      // Precisa de um selectedBaseId
       setCategories([]); // Limpa as categorias se não houver usuário
       return;
     }
-    const categoriesPath = `users/${currentUser.uid}/appCategories`;
+    const categoriesPath = `clientBases/${selectedBaseId}/appCategories`; // Caminho atualizado
     const categoriesNodeRef = ref(db, categoriesPath);
     // Para ordenar por nome no RTDB, você precisará configurar .indexOn: ["name"] nas regras do Firebase
     const categoriesQuery = query(categoriesNodeRef, orderByChild("name"));
@@ -54,15 +55,16 @@ export const useFinance = () => {
     });
 
     return () => unsubscribe(); // Limpar o listener
-  }, [currentUser]); // Re-executar se o usuário mudar
+  }, [currentUser, selectedBaseId]); // Re-executar se o usuário ou a base mudar
 
   // Carregar transações do Realtime Database
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
+      // Precisa de um selectedBaseId
       setTransactions([]); // Limpa as transações se não houver usuário
       return;
     }
-    const transactionsPath = `users/${currentUser.uid}/appTransactions`;
+    const transactionsPath = `clientBases/${selectedBaseId}/appTransactions`; // Caminho atualizado
     const transactionsNodeRef = ref(db, transactionsPath);
     // Exemplo: ordenar por data (armazenada como string ISO ou timestamp)
     // Para orderByChild("date") funcionar bem, considere armazenar datas como YYYY-MM-DD ou timestamps.
@@ -86,13 +88,13 @@ export const useFinance = () => {
       }
     });
     return () => unsubscribe();
-  }, [currentUser]); // Re-executar se o usuário mudar
+  }, [currentUser, selectedBaseId]); // Re-executar se o usuário ou a base mudar
 
   // Adicionar uma nova categoria
   const addCategory = async (
     categoryData: Omit<Category, "id" | "createdAt">
   ) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
         description: "Você precisa estar logado para adicionar uma categoria.",
@@ -103,8 +105,8 @@ export const useFinance = () => {
     try {
       const categoriesNodeRef = ref(
         db,
-        `users/${currentUser.uid}/appCategories`
-      );
+        `clientBases/${selectedBaseId}/appCategories`
+      ); // Caminho atualizado
       const newCategoryRef = push(categoriesNodeRef); // Gera um ID único
       const categoryToSave = { ...categoryData, createdAt: serverTimestamp() };
       await set(newCategoryRef, categoryToSave);
@@ -131,7 +133,7 @@ export const useFinance = () => {
     id: string,
     categoryUpdates: Partial<Omit<Category, "id">>
   ) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
         description: "Você precisa estar logado para atualizar uma categoria.",
@@ -142,8 +144,8 @@ export const useFinance = () => {
     try {
       const categoryRef = ref(
         db,
-        `users/${currentUser.uid}/appCategories/${id}`
-      );
+        `clientBases/${selectedBaseId}/appCategories/${id}`
+      ); // Caminho atualizado
       // Para RTDB, se categoryUpdates não incluir createdAt, ele será removido se usarmos set.
       // `update` é mais seguro para atualizações parciais.
       await update(categoryRef, categoryUpdates);
@@ -162,10 +164,10 @@ export const useFinance = () => {
 
   // Deletar uma categoria
   const deleteCategory = async (id: string) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description: "Você precisa estar logado para deletar uma categoria.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return;
@@ -173,9 +175,10 @@ export const useFinance = () => {
     try {
       const categoryRef = ref(
         db,
-        `users/${currentUser.uid}/appCategories/${id}`
-      );
+        `clientBases/${selectedBaseId}/appCategories/${id}`
+      ); // Caminho atualizado
       await remove(categoryRef);
+      toast({ title: "Sucesso!", description: "Categoria deletada." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível deletar a categoria.";
@@ -192,10 +195,10 @@ export const useFinance = () => {
   const addTransaction = async (
     transactionData: Omit<Transaction, "id" | "createdAt" | "category">
   ) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description: "Você precisa estar logado para adicionar uma transação.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return null;
@@ -203,7 +206,7 @@ export const useFinance = () => {
     try {
       const transactionsNodeRef = ref(
         db,
-        `users/${currentUser.uid}/appTransactions`
+        `clientBases/${selectedBaseId}/appTransactions` // Caminho atualizado
       );
       const newTransactionRef = push(transactionsNodeRef);
 
@@ -251,10 +254,10 @@ export const useFinance = () => {
     id: string,
     transactionUpdates: Partial<Omit<Transaction, "id" | "category">> | null
   ) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description: "Você precisa estar logado para atualizar uma transação.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return;
@@ -265,8 +268,8 @@ export const useFinance = () => {
     try {
       const transactionRef = ref(
         db,
-        `users/${currentUser.uid}/appTransactions/${id}`
-      );
+        `clientBases/${selectedBaseId}/appTransactions/${id}`
+      ); // Caminho atualizado
       const updatesToSave: any = { ...transactionUpdates }; // Usar 'any' temporariamente
 
       if (transactionUpdates.date) {
@@ -302,10 +305,10 @@ export const useFinance = () => {
 
   // Deletar uma transação
   const deleteTransaction = async (id: string) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description: "Você precisa estar logado para deletar uma transação.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return;
@@ -313,9 +316,10 @@ export const useFinance = () => {
     try {
       const transactionRef = ref(
         db,
-        `users/${currentUser.uid}/appTransactions/${id}`
-      );
+        `clientBases/${selectedBaseId}/appTransactions/${id}`
+      ); // Caminho atualizado
       await remove(transactionRef);
+      toast({ title: "Sucesso!", description: "Transação deletada." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível deletar a transação.";
@@ -369,20 +373,21 @@ export const useFinance = () => {
     dateToRemove: Date,
     storeId: string
   ) => {
-    if (!currentUser) {
+    if (!currentUser || !selectedBaseId) {
       toast({
         title: "Erro!",
-        description: "Operação não permitida sem login.",
+        description: "Usuário não autenticado ou base não selecionada.",
         variant: "destructive",
       });
       return;
     }
-    const transactionsRef = ref(db, `users/${currentUser.uid}/appTransactions`);
     // Para RTDB, a filtragem complexa no cliente é mais comum, ou você precisa de estruturas de dados/índices muito específicos.
     // Aqui, vamos buscar todas e filtrar no cliente, depois remover individualmente.
     // Para otimizar, você poderia criar um índice composto no Firebase se as queries forem frequentes.
     try {
-      const snapshot = await get(transactionsRef);
+      const snapshot = await get(
+        ref(db, `clientBases/${selectedBaseId}/appTransactions`)
+      ); // Caminho atualizado
       if (snapshot.exists()) {
         const allTransactions = snapshot.val();
         const transactionIdsToRemove: string[] = [];
@@ -398,8 +403,11 @@ export const useFinance = () => {
             transactionIdsToRemove.push(key);
           }
         });
-        const removalPromises = transactionIdsToRemove.map((id) =>
-          remove(ref(db, `users/${currentUser.uid}/appTransactions/${id}`))
+        const removalPromises = transactionIdsToRemove.map(
+          (id) =>
+            remove(
+              ref(db, `clientBases/${selectedBaseId}/appTransactions/${id}`)
+            ) // Caminho atualizado
         );
         await Promise.all(removalPromises);
         if (transactionIdsToRemove.length > 0) {

@@ -12,7 +12,7 @@ import { Star } from "lucide-react"; // Ícone de estrela
 
 interface StoreManagerProps {
   stores: Store[];
-  onAddStore: (store: Omit<Store, "id" | "createdAt">) => void;
+  onAddStore: (store: Omit<Store, "id" | "createdAt" | "baseId">) => void; // baseId não é mais passado
   onUpdateStore: (id: string, store: Partial<Store>) => void;
   onDeleteStore: (id: string) => void;
 }
@@ -64,7 +64,7 @@ export const StoreManager = ({
       name: newStore.name,
       cnpj: onlyNumbers(newStore.cnpj),
       nickname: newStore.nickname || null, // Alterado para null
-      code: newStore.code || null, // Alterado para null
+      code: newStore.code || null,
       icon: newStore.icon, // Enviar o ícone (string ou URL)
       isDefault: newStore.isDefault,
     });

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"; // Importar Button
 import { HelpModal } from "./HelpModal"; // Importar o HelpModal
 import { Menu, X } from "lucide-react"; // Ícones para o menu hambúrguer
 import { InstallPWAButton } from "./InstallPWAButton"; // Importar o botão de instalação
+import { UserMenu } from "./UserMenu"; // Importar o UserMenu
 
 const navItems = [
   { href: "/", label: "Visão Geral" },
@@ -56,30 +57,37 @@ const Navbar: React.FC = () => {
           </div>
           <div className="hidden lg:block">
             {" "}
-            {/* Alterado de md:block para lg:block para dar mais espaço */}
-            <div className="ml-10 flex items-baseline space-x-4">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    "px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700",
-                    location.pathname === item.href
-                      ? "bg-gray-900 text-white"
-                      : "text-gray-300 hover:text-white"
-                  )}
+            <div className="ml-4 flex items-center md:ml-6">
+              <div className="flex items-baseline space-x-3">
+                {" "}
+                {/* Reduzido space-x para acomodar UserMenu */}
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    className={cn(
+                      "px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700",
+                      location.pathname === item.href
+                        ? "bg-gray-900 text-white"
+                        : "text-gray-300 hover:text-white"
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsHelpModalOpen(true)}
+                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
                 >
-                  {item.label}
-                </Link>
-              ))}
-              <Button
-                variant="ghost"
-                onClick={() => setIsHelpModalOpen(true)}
-                className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-              >
-                Ajuda
-              </Button>
-              <InstallPWAButton />
+                  Ajuda
+                </Button>
+                <InstallPWAButton />
+              </div>
+              {/* UserMenu posicionado à direita */}
+              <div className="ml-4">
+                <UserMenu />
+              </div>
             </div>
           </div>
           {/* Botão do Menu Hambúrguer */}
@@ -129,6 +137,10 @@ const Navbar: React.FC = () => {
             >
               Ajuda
             </Button>
+            {/* UserMenu no menu mobile */}
+            <div className="px-1 py-2 border-t border-gray-700 mt-2">
+              <UserMenu />
+            </div>
             <div className="px-1 py-1">
               {" "}
               {/* Wrapper para melhor posicionamento no menu mobile */}
