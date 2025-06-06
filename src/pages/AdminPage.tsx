@@ -161,7 +161,9 @@ const AdminPage: React.FC = () => {
     const newClientBaseRef = push(clientBasesRef); // Gera um UUID para a base
 
     // authorizedUIDs começará vazio, usuários serão adicionados via convite
-    const authorizedUIDsObject: { [key: string]: boolean } = {};
+    const authorizedUIDsObject: { [key: string]: boolean } = {
+      [currentUser.uid]: true,
+    };
 
     const baseData: Omit<ClientBase, "id"> = {
       name: newBaseName,
