@@ -70,6 +70,7 @@ export const MovementTypeManager: React.FC<MovementTypeManagerProps> = ({
     toast({
       title: "Sucesso",
       description: "Tipo de movimentação adicionado!",
+      variant: "success",
     });
   };
 

@@ -22,8 +22,9 @@ const GerenciarFormaPagamentoPage: React.FC = () => {
     setPaymentMethods((prev) => [...prev, newMethod]);
     // TODO: Integrar com o Firebase para salvar a forma de pagamento.
     toast({
-      title: "Forma de Pagamento Adicionada (Simulação)",
+      title: "Forma de Pagamento Adicionada",
       description: `${method.name} foi adicionada com sucesso.`,
+      variant: "success",
     });
   };
 
@@ -31,9 +32,9 @@ const GerenciarFormaPagamentoPage: React.FC = () => {
     setPaymentMethods((prev) => prev.filter((pm) => pm.id !== id));
     // TODO: Integrar com o Firebase para remover a forma de pagamento.
     toast({
-      title: "Forma de Pagamento Removida (Simulação)",
+      title: "Forma de Pagamento Removida",
       description: `A forma de pagamento foi removida.`,
-      variant: "destructive",
+      variant: "success",
     });
   };
 

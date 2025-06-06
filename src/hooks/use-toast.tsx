@@ -3,7 +3,7 @@ import * as React from "react";
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
 const TOAST_LIMIT = 1;
-const TOAST_VISIBLE_DURATION = 2000;
+const TOAST_VISIBLE_DURATION = 1500;
 const TOAST_ANIMATION_CLEANUP_DELAY = 1000;
 
 type ToasterToast = ToastProps & {
@@ -155,6 +155,8 @@ function toast({ ...props }: Toast) {
       open: true,
       duration: props.duration ?? TOAST_VISIBLE_DURATION, // Define a duração visual do toast
       onOpenChange: (open) => {
+        console.log(`Toast ${id} onOpenChange, open: ${open}`); // <--- ADICIONAR ESTE LOG
+
         if (!open) dismiss();
       },
       // Adiciona o onClick padrão aqui
@@ -170,21 +172,8 @@ function toast({ ...props }: Toast) {
               if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard
                   .writeText(props.description)
-                  .then(() => {
-                    // Opcional: Mostrar um feedback de que foi copiado.
-                    // Poderia ser um console.log ou até mesmo um outro toast (cuidado com loops).
-                    // Por simplicidade, vamos apenas logar.
-                    console.log(
-                      "Descrição do toast copiada:",
-                      props.description
-                    );
-                    // Se quiser um toast de confirmação (use com cautela para não poluir):
-                    // dispatch({ type: "ADD_TOAST", toast: { id: genId(), title: "Copiado!", description: "Descrição copiada para a área de transferência.", open: true, onOpenChange: (o) => !o && dispatch({ type: "DISMISS_TOAST", toastId: id}) }});
-                  })
-                  .catch((err) => {
-                    console.warn("Falha ao copiar descrição do toast:", err);
-                    // Poderia mostrar um toast de erro para a cópia, se desejado.
-                  });
+                  .then(() => {})
+                  .catch((err) => {});
               } else {
                 console.warn(
                   "API de Clipboard não disponível ou writeText não suportado."

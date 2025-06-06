@@ -25,6 +25,7 @@ export const TransactionList = ({
     toast({
       title: "Transação removida",
       description: `"${description}" foi removida com sucesso.`,
+      variant: "success",
     });
   };
 

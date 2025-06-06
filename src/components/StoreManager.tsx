@@ -78,6 +78,7 @@ export const StoreManager = ({
     toast({
       title: "Sucesso!",
       description: "Loja cadastrada com sucesso!",
+      variant: "success",
     });
   };
 
@@ -105,6 +106,7 @@ export const StoreManager = ({
     toast({
       title: "Sucesso",
       description: "Loja atualizada com sucesso!",
+      variant: "success",
     });
   };
 
@@ -113,6 +115,7 @@ export const StoreManager = ({
     toast({
       title: "Loja removida",
       description: `"${name}" foi removida com sucesso.`,
+      variant: "success",
     });
   };
 

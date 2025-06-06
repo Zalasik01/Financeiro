@@ -58,6 +58,7 @@ export const PaymentMethodManager = ({
     toast({
       title: "Sucesso",
       description: "Forma de pagamento adicionada!",
+      variant: "success",
     });
   };
 
