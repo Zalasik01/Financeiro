@@ -127,7 +127,7 @@ const Navbar: React.FC = () => {
               }}
               className="w-full justify-start px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
             >
-              🆘 Ajuda
+              Ajuda
             </Button>
             <div className="px-1 py-1">
               {" "}
