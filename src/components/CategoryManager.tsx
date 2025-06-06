@@ -200,10 +200,8 @@ export const CategoryManager = ({
                   <div>
                     <p className="font-medium">{category.name}</p>
                     <Badge
-                      variant={
-                        category.type === "income" ? "default" : "destructive"
-                      }
-                      className="text-xs"
+                      style={{ backgroundColor: category.color }}
+                      className="text-xs text-white"
                     >
                       {category.type === "income" ? "Receita" : "Despesa"}
                     </Badge>

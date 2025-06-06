@@ -39,10 +39,14 @@ export const useFinance = () => {
     const unsubscribe = onValue(categoriesQuery, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        const categoriesList: Category[] = Object.keys(data).map((key) => ({
-          id: key,
-          ...data[key],
-        }));
+        const categoriesList: Category[] = Object.keys(data).map((key) => {
+          const categoryEntry = data[key];
+          return {
+            id: key,
+            ...categoryEntry,
+            createdAt: new Date(categoryEntry.createdAt),
+          };
+        });
         setCategories(categoriesList);
       } else {
         setCategories([]);
@@ -85,7 +89,9 @@ export const useFinance = () => {
   }, [currentUser]); // Re-executar se o usuário mudar
 
   // Adicionar uma nova categoria
-  const addCategory = async (categoryData: Omit<Category, "id">) => {
+  const addCategory = async (
+    categoryData: Omit<Category, "id" | "createdAt">
+  ) => {
     if (!currentUser) {
       toast({
         title: "Erro!",
@@ -102,8 +108,11 @@ export const useFinance = () => {
       const newCategoryRef = push(categoriesNodeRef); // Gera um ID único
       const categoryToSave = { ...categoryData, createdAt: serverTimestamp() };
       await set(newCategoryRef, categoryToSave);
-      toast({ title: "Sucesso!", description: "Categoria adicionada." });
-      return { ...categoryData, id: newCategoryRef.key! };
+      return {
+        ...categoryData,
+        id: newCategoryRef.key!,
+        createdAt: new Date(),
+      } as Category;
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível adicionar a categoria.";
@@ -167,7 +176,6 @@ export const useFinance = () => {
         `users/${currentUser.uid}/appCategories/${id}`
       );
       await remove(categoryRef);
-      toast({ title: "Sucesso!", description: "Categoria deletada." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível deletar a categoria.";
@@ -355,7 +363,6 @@ export const useFinance = () => {
       startDate,
       endDate,
     };
-    // console.log("Summary calculado:", calculatedSummary);
     return calculatedSummary;
   }, [transactions]); // Dependência correta
 

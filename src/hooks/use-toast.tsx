@@ -3,8 +3,8 @@ import * as React from "react";
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
 const TOAST_LIMIT = 1;
-const TOAST_VISIBLE_DURATION = 4000; // Tempo que o toast fica visível (4 segundos)
-const TOAST_ANIMATION_CLEANUP_DELAY = 1000; // Tempo para a animação de saída antes de remover do estado (1 segundo)
+const TOAST_VISIBLE_DURATION = 2000;
+const TOAST_ANIMATION_CLEANUP_DELAY = 1000;
 
 type ToasterToast = ToastProps & {
   id: string;

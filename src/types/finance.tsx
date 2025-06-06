@@ -4,6 +4,7 @@ export interface Category {
   type: "income" | "expense";
   color: string;
   icon: string;
+  createdAt: Date;
 }
 
 export interface Transaction {
