@@ -1,8 +1,14 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"; // prettier-ignore
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom"; // Adicionar Outlet
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Outlet,
+  useLocation,
+} from "react-router-dom"; // Adicionar useLocation
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage"; // Importar LoginPage
@@ -19,6 +25,7 @@ import MetaPage from "./pages/MetaPage";
 import GerenciarFormaPagamentoPage from "./pages/GerenciarFormaPagamentoPage";
 import GerenciarUsuarioPage from "./pages/GerenciarUsuarioPage";
 import GerenciarTipoMovimentacaoPage from "./pages/GerenciarTipoMovimentacaoPage";
+import { useEffect } from "react"; // Importar useEffect
 import Navbar from "./components/Navbar"; // Importar o Navbar
 import Footer from "./components/Footer"; // 1. Importar o Footer
 import EditarPerfilPage from "./pages/EditarPerfilPage"; // Importar a nova página
@@ -37,14 +44,48 @@ const ProtectedPagesLayout = () => (
   </>
 );
 const App = () => (
-  <AuthProvider>
-    {" "}
-    {/* Envolver com AuthProvider */}
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+  // Mover BrowserRouter para envolver AppContent
+  <BrowserRouter>
+    <AppContent />
+  </BrowserRouter>
+);
+
+// Componente separado para usar hooks como useLocation
+const AppContent = () => {
+  const location = useLocation();
+
+  // Mapeamento de rotas para títulos de página
+  const routeTitles: Record<string, string> = {
+    "/": "Visão Geral",
+    "/transacao": "Transações",
+    "/categoria": "Categorias",
+    "/loja": "Lojas",
+    "/fechamento": "Fechamentos",
+    "/dre": "DRE",
+    "/meta": "Metas",
+    "/forma-pagamento": "Formas de Pagamento",
+    "/gerenciar-forma-pagamento": "Formas de Pagamento", // Assumindo o mesmo título
+    "/gerenciar-usuario": "Gerenciar Usuários",
+    "/gerenciar-tipo-movimentacao": "Gerenciar Tipos de Movimentação",
+    "/editar-perfil": "Editar Perfil",
+    "/login": "Login",
+    "/signup": "Criar Conta",
+    "*": "Página Não Encontrada", // Fallback para rotas não encontradas
+  };
+
+  useEffect(() => {
+    const pageTitle = routeTitles[location.pathname] || routeTitles["*"];
+    document.title = `Financeiro App - ${pageTitle}`;
+  }, [location.pathname]); // Atualiza o título sempre que a rota muda
+
+  return (
+    <AuthProvider>
+      {" "}
+      {/* Envolver com AuthProvider */}
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
           {/* O Navbar pode ser colocado aqui se for global, ou dentro de ProtectedRoute se for apenas para rotas protegidas */}
           <div className="flex flex-col min-h-screen">
             <Routes>
@@ -87,10 +128,9 @@ const App = () => (
             <Footer />{" "}
             {/* 3. Adicionar o Footer aqui, fora das Routes mas dentro do layout principal */}
           </div>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </AuthProvider>
-);
-
+        </TooltipProvider>
+      </QueryClientProvider>
+    </AuthProvider>
+  );
+};
 export default App;
