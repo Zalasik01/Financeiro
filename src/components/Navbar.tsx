@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"; // Para classes condicionais (opcional, mas ú
 import { Button } from "@/components/ui/button"; // Importar Button
 import { HelpModal } from "./HelpModal"; // Importar o HelpModal
 import { Menu, X } from "lucide-react"; // Ícones para o menu hambúrguer
+import { InstallPWAButton } from "./InstallPWAButton"; // Importar o botão de instalação
 
 const navItems = [
   { href: "/", label: "Visão Geral" },
@@ -78,6 +79,7 @@ const Navbar: React.FC = () => {
               >
                 🆘 Ajuda
               </Button>
+              <InstallPWAButton />
             </div>
           </div>
           {/* Botão do Menu Hambúrguer */}
@@ -127,6 +129,11 @@ const Navbar: React.FC = () => {
             >
               🆘 Ajuda
             </Button>
+            <div className="px-1 py-1">
+              {" "}
+              {/* Wrapper para melhor posicionamento no menu mobile */}
+              <InstallPWAButton />
+            </div>
           </div>
         </div>
       )}

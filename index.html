@@ -85,5 +85,24 @@
 
     <!-- Script principal da sua aplicação Vite/React -->
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Script para registrar o Service Worker -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then((registration) => {
+              console.log(
+                "ServiceWorker: Registro bem-sucedido, escopo: ",
+                registration.scope
+              );
+            })
+            .catch((error) => {
+              console.log("ServiceWorker: Falha no registro: ", error);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
