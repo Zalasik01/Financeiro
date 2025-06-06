@@ -476,7 +476,18 @@ StoreClosingManagerProps) => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => onDeleteClosing(closing.id)}
+                          onClick={() => {
+                            onDeleteClosing(closing.id);
+                            toast({
+                              title: "Fechamento Removido",
+                              description: `O fechamento da loja "${
+                                closing.store?.name || "Desconhecida"
+                              }" de ${new Date(
+                                closing.closingDate
+                              ).toLocaleDateString("pt-BR")} foi removido.`,
+                              variant: "success",
+                            });
+                          }}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           🗑️
