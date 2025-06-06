@@ -223,7 +223,6 @@ export const useStores = () => {
         "[useStores] Promessa da operação set do Firebase resolvida para o ID da loja:",
         newStoreRef.key
       );
-      toast({ title: "Sucesso!", description: "Loja adicionada." });
       return { ...storeData, id: newStoreRef.key!, createdAt: new Date() };
     } catch (error) {
       const firebaseError = error as Error;
@@ -264,7 +263,6 @@ export const useStores = () => {
     try {
       const storeRef = ref(db, `users/${currentUser.uid}/appStores/${id}`);
       await update(storeRef, storeUpdates);
-      toast({ title: "Sucesso!", description: "Loja atualizada." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível atualizar a loja.";
@@ -320,8 +318,6 @@ export const useStores = () => {
         },
         { onlyOnce: true }
       );
-
-      toast({ title: "Sucesso!", description: "Loja deletada." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível deletar a loja.";
@@ -531,7 +527,6 @@ export const useStores = () => {
         `users/${currentUser.uid}/appMovementTypes/${id}`
       );
       await remove(typeRef);
-      toast({ title: "Sucesso!", description: "Tipo de movimento deletado." });
     } catch (error) {
       const errorMessage =
         (error as Error).message ||
@@ -709,7 +704,6 @@ export const useStores = () => {
       }
 
       await update(closingRef, updatesToSave);
-      toast({ title: "Sucesso!", description: "Fechamento atualizado." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível atualizar o fechamento.";
@@ -734,7 +728,6 @@ export const useStores = () => {
     try {
       const closingRef = ref(db, `users/${currentUser.uid}/appClosings/${id}`);
       await remove(closingRef);
-      toast({ title: "Sucesso!", description: "Fechamento deletado." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível deletar o fechamento.";
@@ -850,7 +843,6 @@ export const useStores = () => {
           : null,
       };
       await set(newGoalRef, goalToSave);
-      toast({ title: "Sucesso!", description: "Meta adicionada." });
       return { ...goalData, id: newGoalRef.key!, createdAt: new Date() };
     } catch (error) {
       const errorMessage =
@@ -884,7 +876,6 @@ export const useStores = () => {
         updatesToSave.targetDate = goalUpdates.targetDate.toISOString();
       }
       await update(goalRef, updatesToSave);
-      toast({ title: "Sucesso!", description: "Meta atualizada." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível atualizar a meta.";
@@ -909,7 +900,6 @@ export const useStores = () => {
     try {
       const goalRef = ref(db, `users/${currentUser.uid}/appGoals/${id}`);
       await remove(goalRef);
-      toast({ title: "Sucesso!", description: "Meta deletada." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível deletar a meta.";

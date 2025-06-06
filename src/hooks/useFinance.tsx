@@ -228,7 +228,6 @@ export const useFinance = () => {
       }
 
       await set(newTransactionRef, transactionToSave);
-      toast({ title: "Sucesso!", description: "Transação adicionada." });
       return {
         ...transactionData,
         id: newTransactionRef.key!,
@@ -289,7 +288,6 @@ export const useFinance = () => {
       }
 
       await update(transactionRef, updatesToSave);
-      toast({ title: "Sucesso!", description: "Transação atualizada." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível atualizar a transação.";
@@ -318,7 +316,6 @@ export const useFinance = () => {
         `users/${currentUser.uid}/appTransactions/${id}`
       );
       await remove(transactionRef);
-      toast({ title: "Sucesso!", description: "Transação deletada." });
     } catch (error) {
       const errorMessage =
         (error as Error).message || "Não foi possível deletar a transação.";
