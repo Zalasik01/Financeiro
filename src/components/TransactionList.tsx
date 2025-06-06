@@ -73,12 +73,14 @@ export const TransactionList = ({
                     </p>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge
-                        variant={
-                          transaction.type === "income"
-                            ? "default"
-                            : "destructive"
-                        }
-                        className="text-xs"
+                        style={{
+                          backgroundColor:
+                            transaction.category?.color ||
+                            (transaction.type === "income"
+                              ? "#10B981"
+                              : "#EF4444"),
+                        }}
+                        className="text-xs text-white"
                       >
                         {transaction.category?.name}
                       </Badge>

@@ -239,8 +239,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           const oldPhotoRef = ref(storage, auth.currentUser.photoURL);
           await deleteObject(oldPhotoRef);
         } catch (deleteError: any) {
-          // Não bloquear o upload se a remoção da antiga falhar, mas logar
-          console.warn("Falha ao remover foto antiga do storage:", deleteError);
+          console.warn(
+            "Falha ao remover foto antiga do storage durante o upload:",
+            deleteError
+          );
         }
       }
 

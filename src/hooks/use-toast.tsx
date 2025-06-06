@@ -155,8 +155,6 @@ function toast({ ...props }: Toast) {
       open: true,
       duration: props.duration ?? TOAST_VISIBLE_DURATION, // Define a duração visual do toast
       onOpenChange: (open) => {
-        console.log(`Toast ${id} onOpenChange, open: ${open}`); // <--- ADICIONAR ESTE LOG
-
         if (!open) dismiss();
       },
       // Adiciona o onClick padrão aqui
@@ -175,9 +173,7 @@ function toast({ ...props }: Toast) {
                   .then(() => {})
                   .catch((err) => {});
               } else {
-                console.warn(
-                  "API de Clipboard não disponível ou writeText não suportado."
-                );
+                console.warn("Clipboard API not supported");
               }
             }
           },

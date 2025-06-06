@@ -634,7 +634,6 @@ export const useStores = () => {
       };
 
       await set(newClosingRef, closingToSave);
-      toast({ title: "Sucesso!", description: "Fechamento adicionado." });
       return {
         ...closingData,
         id: newClosingRef.key!,
