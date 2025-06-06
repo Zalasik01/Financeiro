@@ -1,30 +1,89 @@
 <!DOCTYPE html>
+<!-- O atributo lang é crucial para acessibilidade e SEO. -->
 <html lang="pt-br">
   <head>
+    <!-- Configurações essenciais de caracteres e viewport -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Financeiro</title>
-    <!-- Para iOS (Safari) quando adicionado à tela inicial -->
+
+    <!-- Meta Tags para SEO -->
+    <title>Financeiro | Gerencie Suas Finanças</title>
+    <meta
+      name="description"
+      content="Um aplicativo web moderno para gerenciar suas finanças pessoais e potenciar seu futuro."
+    />
+    <meta name="author" content="Zalasik" />
+    <meta
+      name="keywords"
+      content="finanças, controle financeiro, gerenciador, orçamento, pwa"
+    />
+
+    <!-- Ícones (Favicon) -->
+    <!-- Substitua 'favicon.ico' e 'apple-touch-icon.png' pelos seus próprios arquivos de imagem -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Web App Manifest (essencial para PWA) -->
+    <!-- Este arquivo define como o seu app se comporta ao ser "instalado" na tela inicial. -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Cor do tema para a barra de status do navegador em dispositivos móveis -->
+    <meta name="theme-color" content="#ffffff" />
+
+    <!-- Meta Tags para PWA em iOS e Android (fallback) -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
-    <!-- Para Android (Chrome) quando adicionado à tela inicial (mais efetivo com um Web App Manifest) -->
+    <meta name="apple-mobile-web-app-title" content="Financeiro" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="description" content="Projeto para controle financeiro" />
-    <meta name="author" content="Zalasik" />
 
-    <meta property="og:title" content="Financeiro" />
+    <!-- Open Graph (para compartilhamento no Facebook, WhatsApp, etc.) -->
+    <meta property="og:title" content="Financeiro | Gerencie Suas Finanças" />
     <meta
       property="og:description"
-      content="Projeto para controle financeiro"
+      content="Um aplicativo web moderno para gerenciar suas finanças pessoais."
     />
     <meta property="og:type" content="website" />
+    <!-- Substitua 'og-image.png' pela URL de uma imagem representativa do seu app (ex: 1200x630px) -->
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:url" content="https://seusite.com" />
+    <!-- Coloque a URL final do seu projeto aqui -->
+    <meta property="og:site_name" content="Financeiro" />
+    <meta property="og:locale" content="pt_BR" />
+
+    <!-- Twitter Cards (para compartilhamento no Twitter) -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Financeiro | Gerencie Suas Finanças" />
+    <meta
+      name="twitter:description"
+      content="Um aplicativo web moderno para gerenciar suas finanças pessoais."
+    />
+    <meta name="twitter:image" content="/og-image.png" />
+    <!-- A mesma imagem do Open Graph funciona bem -->
+
+    <!-- Pré-conexão com o Google Fonts para melhor performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Importação da fonte 'Inter', muito usada em UIs modernas -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
 
-  <body>
+  <body class="antialiased">
+    <!-- Fallback para usuários com JavaScript desabilitado -->
+    <noscript>
+      Você precisa habilitar o JavaScript para rodar este aplicativo.
+    </noscript>
+
+    <!-- O ponto de entrada da sua aplicação React -->
     <div id="root"></div>
+
+    <!-- Script principal da sua aplicação Vite/React -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
