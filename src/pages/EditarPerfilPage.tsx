@@ -154,7 +154,6 @@ const EditarPerfilPage: React.FC = () => {
         title: "Erro",
         description: "Senha atual e nova senha são obrigatórias.",
         variant: "destructive",
-        duration: 3000, // O toast fechará após 3000ms (3 segundos)
       });
       return;
     }

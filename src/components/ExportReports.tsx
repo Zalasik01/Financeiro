@@ -44,6 +44,7 @@ export const ExportReports = ({
     toast({
       title: "Sucesso",
       description: "Relatório CSV exportado com sucesso!",
+      variant: "success",
     });
   };
 
@@ -114,6 +115,7 @@ ${Object.entries(
     toast({
       title: "Sucesso",
       description: "Relatório resumo exportado com sucesso!",
+      variant: "success",
     });
   };
 

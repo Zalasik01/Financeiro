@@ -105,6 +105,7 @@ export const StoreManager = ({
     toast({
       title: "Sucesso",
       description: "Loja atualizada com sucesso!",
+      variant: "success",
     });
   };
 

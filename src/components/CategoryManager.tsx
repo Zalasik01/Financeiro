@@ -80,6 +80,7 @@ export const CategoryManager = ({
     toast({
       title: "Sucesso",
       description: "Categoria criada com sucesso!",
+      variant: "success",
     });
   };
 

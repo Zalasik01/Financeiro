@@ -115,12 +115,14 @@ export const TransactionForm = ({
       toast({
         title: "Sucesso",
         description: "Transação atualizada com sucesso!",
+        variant: "success",
       });
     } else {
       onAddTransaction(transactionData);
       toast({
         title: "Sucesso",
         description: "Transação adicionada com sucesso!",
+        variant: "success",
       });
     }
 

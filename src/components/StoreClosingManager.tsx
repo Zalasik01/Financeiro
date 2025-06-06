@@ -179,6 +179,7 @@ StoreClosingManagerProps) => {
     toast({
       title: "Sucesso",
       description: "Fechamento registrado com sucesso!",
+      variant: "success",
     });
   };
 
