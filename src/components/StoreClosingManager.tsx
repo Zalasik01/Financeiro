@@ -226,8 +226,6 @@ StoreClosingManagerProps) => {
   }, [closings]);
 
   const sortedAndFilteredClosings = useMemo(() => {
-    console.log("[StoreClosingManager] Ordenando por:", sortBy);
-
     let sorted = [...closings];
     switch (sortBy) {
       case "date-asc":
