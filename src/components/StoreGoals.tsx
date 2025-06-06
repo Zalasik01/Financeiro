@@ -14,6 +14,7 @@ import { Store, StoreMeta, StoreClosing } from "@/types/store";
 import { CurrencyInput } from "./CurrencyInput";
 import { formatCurrency } from "@/utils/formatters";
 import { Label } from "@/components/ui/label"; // 1. Importar o Label
+import { cn } from "@/lib/utils"; // Importar cn
 import { useToast } from "@/hooks/use-toast";
 
 interface StoreGoalsProps {
@@ -264,7 +265,14 @@ export const StoreGoals = ({
                 return (
                   <div
                     key={goal.id}
-                    className="p-4 border rounded-lg hover:shadow-md transition-shadow"
+                    className={cn(
+                      "p-4 border rounded-lg hover:shadow-md transition-shadow",
+                      progressPercentage >= 100
+                        ? "bg-green-50 border-green-200"
+                        : progressPercentage < 50
+                        ? "bg-yellow-50 border-yellow-200"
+                        : "bg-gray-50"
+                    )}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -293,10 +301,32 @@ export const StoreGoals = ({
                     </div>
 
                     <div className="space-y-3">
-                      <div className="flex justify-between text-sm">
-                        <span>Meta: {formatCurrency(goal.targetRevenue)}</span>
-                        <span>Realizado: {formatCurrency(currentRevenue)}</span>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-600">Meta:</span>
+                          <p className="font-semibold text-lg">
+                            {formatCurrency(goal.targetRevenue)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-gray-600">Realizado:</span>
+                          <p className="font-semibold text-lg text-green-600">
+                            {formatCurrency(currentRevenue)}
+                          </p>
+                        </div>
                       </div>
+
+                      {goal.targetRevenue > currentRevenue && (
+                        <p className="text-sm text-gray-600 text-center">
+                          Faltam{" "}
+                          <span className="font-semibold text-orange-600">
+                            {formatCurrency(
+                              goal.targetRevenue - currentRevenue
+                            )}
+                          </span>{" "}
+                          para atingir a meta.
+                        </p>
+                      )}
 
                       <Progress value={progressPercentage} className="h-3" />
 
@@ -304,10 +334,10 @@ export const StoreGoals = ({
                         <Badge
                           variant={
                             progressPercentage < 30
-                              ? "destructive"
+                              ? "outline" // Menos de 30%
                               : progressPercentage < 70
-                              ? "outline"
-                              : "default"
+                              ? "secondary" // Entre 30% e 70%
+                              : "default" // Mais de 70%
                           }
                         >
                           {progressPercentage.toFixed(1)}% da meta
@@ -315,9 +345,9 @@ export const StoreGoals = ({
 
                         <span
                           className={`text-sm font-medium ${
-                            currentRevenue >= goal.targetRevenue
+                            progressPercentage >= 100
                               ? "text-green-600"
-                              : "text-gray-600"
+                              : "text-gray-700"
                           }`}
                         >
                           {currentRevenue >= goal.targetRevenue
@@ -325,6 +355,10 @@ export const StoreGoals = ({
                             : `Faltam ${formatCurrency(
                                 goal.targetRevenue - currentRevenue
                               )}`}
+                          {/* Ajuste para mostrar "Meta atingida!" apenas quando >= 100% */}
+                          {progressPercentage >= 100 && (
+                            <span className="ml-1">✅ Meta atingida!</span>
+                          )}
                         </span>
                       </div>
                     </div>

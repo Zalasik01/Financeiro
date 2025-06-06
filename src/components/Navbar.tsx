@@ -6,14 +6,14 @@ import { HelpModal } from "./HelpModal"; // Importar o HelpModal
 import { Menu, X } from "lucide-react"; // Ícones para o menu hambúrguer
 
 const navItems = [
-  { href: "/", label: "📊 Visão Geral" },
-  { href: "/transacao", label: "💳 Transações" },
-  { href: "/categoria", label: "🏷️ Categorias" },
-  { href: "/loja", label: "🏪 Lojas" },
-  { href: "/fechamento", label: "📊 Fechamentos" },
-  { href: "/dre", label: "📋 DRE" },
-  { href: "/meta", label: "🎯 Metas" },
-  { href: "/forma-pagamento", label: "💳 Formas de Pagamento" },
+  { href: "/", label: "Visão Geral" },
+  { href: "/transacao", label: "Transações" },
+  { href: "/categoria", label: "Categorias" },
+  { href: "/loja", label: "Lojas" },
+  { href: "/fechamento", label: "Fechamentos" },
+  { href: "/dre", label: "DRE" },
+  { href: "/meta", label: "Metas" },
+  { href: "/forma-pagamento", label: "Formas de Pagamento" },
 ];
 
 const Navbar: React.FC = () => {
