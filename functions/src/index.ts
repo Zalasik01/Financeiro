@@ -1,29 +1,10 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
-
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
-
-// export const helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
-// functions/src/index.ts
 import * as functions from "firebase-functions";
-import *admin from "firebase-admin";
+import * as admin from "firebase-admin";
 
-// Inicialize o Firebase Admin SDK apenas uma vez
 if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-// Função para criar administrador (já existente, mantida para contexto)
 export const createAdminUser = functions.https.onCall(async (data, context) => {
   // ... (código da sua função createAdminUser)
   // Verificação de autenticação e admin
@@ -65,9 +46,10 @@ export const createAdminUser = functions.https.onCall(async (data, context) => {
     };
     await admin.database().ref(`users/${userRecord.uid}/profile`).set(userProfile);
     return { success: true, message: `Administrador "${displayName}" criado.`, uid: userRecord.uid };
-  } catch (error: any) {
-    console.error("Erro em createAdminUser:", error);
-    throw new functions.https.HttpsError("internal", error.message || "Erro ao criar admin.");
+  } catch (e: unknown) {
+    const error = e as { message?: string };
+    console.error("Erro em createAdminUser:", error.message || e);
+    throw new functions.https.HttpsError("internal", error.message || "Erro desconhecido ao criar admin.");
   }
 });
 
@@ -125,14 +107,15 @@ export const toggleUserAuthStatus = functions.https.onCall(async (data, context)
       success: true,
       message: `Usuário ${targetUid} foi ${disable ? "desativado" : "ativado"} com sucesso.`,
     };
-  } catch (error: any) {
-    console.error("Erro ao tentar alterar status do usuário:", error);
-    if (error.code === "auth/user-not-found") {
+  } catch (e: unknown) {
+    const error = e as { code?: string; message?: string };
+    console.error("Erro ao tentar alterar status do usuário:", error.message || e);
+    if (error.code === "auth/user-not-found") { // Erros do Firebase Auth costumam ter 'code'
         throw new functions.https.HttpsError("not-found", "Usuário alvo não encontrado.");
     }
     throw new functions.https.HttpsError(
       "internal",
-      "Ocorreu um erro interno ao tentar alterar o status do usuário."
+      error.message || "Ocorreu um erro interno ao tentar alterar o status do usuário."
     );
   }
 });
