@@ -51,7 +51,7 @@ export const AdminManagement: React.FC<AdminManagementProps> = ({
       const newUser = await signup(newAdminEmail, newAdminPassword, newAdminDisplayName, undefined, undefined, undefined, true);
 
       if (newUser) {
-        toast({ title: "Sucesso!", description: `Administrador "${newAdminDisplayName}" criado com o email ${newAdminEmail}.` });
+        toast({ title: "Sucesso!", description: `Administrador "${newAdminDisplayName}" criado com o email ${newAdminEmail}.`, variant: "success" });
         setNewAdminEmail("");
         setNewAdminDisplayName("");
         setNewAdminPassword("");

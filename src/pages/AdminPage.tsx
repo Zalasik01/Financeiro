@@ -68,6 +68,7 @@ const AdminPage: React.FC = () => {
               uid,
               displayName: userProfile.displayName || "N/A",
               email: userProfile.email || "N/A",
+              isAdmin: true, // Adicionar a propriedade isAdmin
             });
           }
         });
@@ -135,7 +136,7 @@ const AdminPage: React.FC = () => {
     
     try {
       await set(ref(db, `users/${userToRevoke.uid}/profile/isAdmin`), false);
-      toast({ title: "Sucesso", description: `Privilégios de admin revogados para ${userToRevoke.displayName}.`});
+      toast({ title: "Sucesso", description: `Privilégios de admin revogados para ${userToRevoke.displayName}.`, variant: "success" });
     } catch (error) {
       toast({ title: "Erro", description: "Não foi possível revogar os privilégios.", variant: "destructive" });
     } finally {
