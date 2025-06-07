@@ -31,6 +31,7 @@ import {
   serverTimestamp, // Importar serverTimestamp
 } from "firebase/database"; // Funções do RTDB
 import { useToast } from "./use-toast";
+import type { ClientBase } from "@/types/store"; // Importar ClientBase
 
 interface AppUser extends User {
   isAdmin?: boolean;
@@ -61,7 +62,7 @@ interface AuthContextType {
   uploadProfilePhotoAndUpdateURL: (file: File) => Promise<void>;
   removeProfilePhoto: () => Promise<void>;
   selectedBaseId: string | null; // Adicionar selectedBaseId
-  setSelectedBaseId: (baseId: string | null) => void; // Adicionar setter para selectedBaseId
+  setSelectedBaseId: (baseId: string | null) => Promise<void>; // Modificado para Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -82,8 +83,50 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null); // Estado para armazenar mensagens de erro
   const [_selectedBaseId, _setSelectedBaseId] = useState<string | null>(null); // Estado para a base selecionada
-  const setSelectedBaseId = (baseId: string | null) => {    
-    _setSelectedBaseId(baseId);
+  
+  const setSelectedBaseId = async (baseId: string | null): Promise<void> => {
+    if (!currentUser) { // Adicionado para segurança, embora AppContent deva garantir
+      _setSelectedBaseId(null);
+      return;
+    }
+    if (!baseId) {
+      _setSelectedBaseId(null);
+      return;
+    }
+
+    try {
+      const baseDataRef = databaseRef(db, `clientBases/${baseId}`);
+      const snapshot = await databaseGet(baseDataRef);
+
+      if (!snapshot.exists()) {
+        toast({
+          title: "Erro",
+          description: "A base selecionada não foi encontrada.",
+          variant: "destructive",
+        });
+        _setSelectedBaseId(null);
+        return;
+      }
+
+      const baseData = snapshot.val() as ClientBase;
+
+      if (!baseData.ativo) {
+        toast({
+          title: "Acesso Bloqueado",
+          description: `A base "${baseData.name}" está temporariamente inativa. Motivo: ${baseData.motivo_inativo || "Não especificado."}`,
+          variant: "destructive",
+          duration: 9000,
+        });
+        _setSelectedBaseId(null); // Não define a base se estiver inativa
+        return;
+      }
+      // Base está ativa e existe
+      _setSelectedBaseId(baseId);
+    } catch (err) {
+      console.error("Erro ao verificar status da base:", err);
+      toast({ title: "Erro ao Acessar Base", description: "Não foi possível verificar o status da base selecionada.", variant: "destructive" });
+      _setSelectedBaseId(null);
+    }
   };
   const { toast } = useToast();
 
@@ -127,6 +170,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           isAdmin: isAdminOverride === true ? true : (email === "nizalasik@gmail.com"), // Prioriza override, senão lógica antiga
           clientBaseId: isAdminOverride === true ? null : (inviteClientBaseNumberId ?? null), // Admins não têm clientBaseId
           createdAt: serverTimestamp(), // Adiciona timestamp de criação do perfil
+              authDisabled: false, // Novo usuário é criado ativo
         });
 
         // Se o cadastro veio de um convite válido E NÃO é um admin sendo criado, vincular usuário à base

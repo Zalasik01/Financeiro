@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Navigate } from "react-router-dom"; // Importar Navigate
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   BrowserRouter,
@@ -31,6 +32,7 @@ import Footer from "./components/Footer";
 import EditarPerfilPage from "./pages/EditarPerfilPage";
 import AdminPage from "./pages/AdminPage";
 import AdminLayout from "./components/AdminLayout";
+import GerenciarUsuariosGlobalPage from "./pages/AdminPage/GerenciarUsuariosGlobalPage"; // Certifique-se que a importação está correta
 import { AccessSelectionModal } from "./components/AccessSelectionModal";
 import InvitePage from "./pages/InvitePage";
 import { useStores } from "./hooks/useStores";
@@ -153,9 +155,13 @@ const AppContent = () => {
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
             </Route>
-            <Route path="/admin/store-management" element={<ProtectedRoute />}>
+            {/* Agrupar todas as rotas de admin sob /admin */}
+            <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]} />}>
               <Route element={<AdminLayout />}>
-                <Route index element={<AdminPage />} />
+                <Route index element={<Navigate to="store-management" replace />} /> {/* Redireciona /admin para /admin/store-management */}
+                <Route path="store-management" element={<AdminPage />} />
+                <Route path="gerenciar-usuarios-global" element={<GerenciarUsuariosGlobalPage />} />
+                {/* Outras sub-rotas do admin podem vir aqui */}
               </Route>
             </Route>
             <Route path="/login" element={<LoginPage />} />

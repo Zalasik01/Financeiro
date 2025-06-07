@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, ShieldCheck, Users, Settings } from "lucide-react";
+import { LogOut, ShieldCheck, Users, Settings, Building, UserCog } from "lucide-react";
 
 const AdminHeader: React.FC = () => {
   const { logout, currentUser } = useAuth();
@@ -18,8 +18,9 @@ const AdminHeader: React.FC = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
-            <Link
-              to="/admin/store-management"
+            {/* O link principal do admin pode ir para o dashboard ou para a primeira página de gestão */}
+            <Link 
+              to="/admin"
               className="flex items-center gap-2 text-xl font-semibold hover:text-slate-300"
             >
               <ShieldCheck size={28} />
@@ -28,11 +29,18 @@ const AdminHeader: React.FC = () => {
           </div>
           <nav className="flex items-center space-x-4">
             {/* Adicione links de navegação do admin aqui, se necessário */}
-            <Link
-              to="/admin/store-management" // Exemplo de link, ajuste conforme suas rotas admin
+            <Link 
+              to="/admin/store-management" // Rota principal da gestão de bases e admins
               className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-700"
             >
-              <Users size={16} />
+              <Building size={16} />
+              Gestão de Base
+            </Link>
+            <Link 
+              to="/admin/gerenciar-usuarios-global" // Nova rota para gestão global de usuários
+              className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-700"
+            >
+              <UserCog size={16} />
               Usuários
             </Link>
             {/* <Link

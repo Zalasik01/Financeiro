@@ -2,7 +2,10 @@ export interface ClientBase {
   id: string; // Firebase push ID (UUID)
   name: string;
   numberId: number;
-  authorizedUIDs: { // Alterado aqui
+  ativo: boolean;
+  limite_acesso?: number | null;
+  motivo_inativo?: string | null; // Novo campo para o motivo da inativação
+  authorizedUIDs: { 
     [uid: string]: {
       displayName: string;
       email: string;
@@ -15,7 +18,7 @@ export interface ClientBase {
 export interface Base {
   id: string; // Será "1", "2", "3", etc.
   name: string;
-  numberId?: number; // Adicionado para consistência com o uso no useStores e AccessSelectionModal
+  numberId?: number
   createdAt: number; // Usaremos timestamp do Firebase
 }
 export interface Store {

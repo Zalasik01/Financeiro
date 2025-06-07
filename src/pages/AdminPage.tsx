@@ -12,7 +12,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/firebase";
-import { ref, onValue, serverTimestamp, get, remove, set, push } from "firebase/database";
+import { ref, onValue, serverTimestamp, get, remove, set, push, update } from "firebase/database";
 import { Users } from "lucide-react";
 import { BaseManagement, ClientBase as ClientBaseType } from "./AdminPage/components/BaseManagement"; // Importar ClientBase como ClientBaseType
 import { AdminManagement } from "./AdminPage/components/AdminManagement";
@@ -21,6 +21,8 @@ interface AppUser {
   uid: string;
   displayName?: string | null;
   email?: string | null;
+  // O campo isAdmin é inferido pela presença no nó 'users' com profile.isAdmin = true
+  // Não precisa estar explicitamente aqui se já é tratado na lógica de carregamento
   isAdmin?: boolean;
 }
 
@@ -39,6 +41,9 @@ const AdminPage: React.FC = () => {
 
   const [userToRevoke, setUserToRevoke] = useState<AppUser | null>(null);
   const [userToRemove, setUserToRemove] = useState<{ user: { uid: string; displayName: string }; base: ClientBase } | null>(null);
+  const [baseToDelete, setBaseToDelete] = useState<ClientBaseType | null>(null); // Estado para a base a ser excluída
+  const [baseToToggleStatus, setBaseToToggleStatus] = useState<ClientBaseType | null>(null); // Estado para ativar/inativar base
+  const [inactivationReason, setInactivationReason] = useState<string>(""); // Estado para o motivo da inativação
 
   useEffect(() => {
     const clientBasesRef = ref(db, "clientBases");
@@ -159,6 +164,71 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  const handleSetBaseToDelete = (base: ClientBaseType | null) => {
+    setBaseToDelete(base);
+  };
+
+  const handleDeleteBaseConfirm = async () => {
+    if (!baseToDelete) return;
+
+    try {
+      await remove(ref(db, `clientBases/${baseToDelete.id}`));
+      toast({
+        title: "Sucesso!",
+        description: `Base "${baseToDelete.name}" excluída com sucesso.`,
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Erro ao excluir base:", error);
+      toast({
+        title: "Erro ao excluir",
+        description: `Não foi possível excluir a base "${baseToDelete.name}".`,
+        variant: "destructive",
+      });
+    } finally {
+      setBaseToDelete(null); // Fecha o diálogo
+    }
+  };
+
+  const handleSetBaseToToggleStatus = (base: ClientBaseType) => {
+    setBaseToToggleStatus(base);
+    if (base.ativo) { // Se for inativar, limpa o motivo anterior para o input
+      setInactivationReason("");
+    } else { // Se for ativar, pode pré-preencher com o motivo existente, ou limpar
+      setInactivationReason(base.motivo_inativo || "");
+    }
+  };
+
+  const handleToggleBaseStatusConfirm = async () => {
+    if (!baseToToggleStatus) return;
+
+    const newStatus = !baseToToggleStatus.ativo;
+    const updates: { ativo: boolean; motivo_inativo: string | null } = {
+      ativo: newStatus,
+      motivo_inativo: newStatus ? null : (inactivationReason.trim() || "Motivo não especificado"),
+    };
+
+    if (!newStatus && !inactivationReason.trim()) {
+      toast({ title: "Atenção", description: "Por favor, forneça um motivo para inativar a base.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await update(ref(db, `clientBases/${baseToToggleStatus.id}`), updates);
+      toast({
+        title: "Sucesso!",
+        description: `Base "${baseToToggleStatus.name}" foi ${newStatus ? 'ativada' : 'inativada'}.`,
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Erro ao alterar status da base:", error);
+      toast({ title: "Erro", description: "Não foi possível alterar o status da base.", variant: "destructive" });
+    } finally {
+      setBaseToToggleStatus(null);
+      setInactivationReason("");
+    }
+  };
+
   return (
     <>
       <AlertDialog open={!!userToRevoke} onOpenChange={(open) => !open && setUserToRevoke(null)}>
@@ -191,6 +261,56 @@ const AdminPage: React.FC = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* AlertDialog para confirmar exclusão de base */}
+      {baseToDelete && (
+        <AlertDialog open={!!baseToDelete} onOpenChange={(open) => !open && setBaseToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Exclusão da Base</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir a base "{baseToDelete.name}" (ID: {baseToDelete.numberId})?
+                Esta ação não pode ser desfeita. Todos os dados associados a esta base (lojas, movimentações, usuários autorizados, etc.)
+                serão afetados ou perdidos se não houver uma estratégia de arquivamento ou remoção em cascata.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setBaseToDelete(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteBaseConfirm} className="bg-red-600 hover:bg-red-700 text-destructive-foreground">Excluir Permanentemente</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {/* AlertDialog para confirmar ativação/inativação de base */}
+      {baseToToggleStatus && (
+        <AlertDialog open={!!baseToToggleStatus} onOpenChange={(open) => { if (!open) { setBaseToToggleStatus(null); setInactivationReason(""); }}}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {baseToToggleStatus.ativo ? "Inativar" : "Ativar"} Base "{baseToToggleStatus.name}"?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {baseToToggleStatus.ativo 
+                  ? "Ao inativar, o acesso à base será bloqueado. Por favor, informe o motivo:" 
+                  : `Deseja reativar a base "${baseToToggleStatus.name}"? O motivo da inativação anterior foi: "${baseToToggleStatus.motivo_inativo || 'Não especificado'}"`}
+              </AlertDialogDescription>
+              {baseToToggleStatus.ativo && (
+                <textarea
+                  value={inactivationReason}
+                  onChange={(e) => setInactivationReason(e.target.value)}
+                  placeholder="Motivo da inativação (obrigatório)"
+                  className="mt-2 w-full p-2 border rounded bg-background text-foreground"
+                />
+              )}
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => { setBaseToToggleStatus(null); setInactivationReason(""); }}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleToggleBaseStatusConfirm} className={baseToToggleStatus.ativo ? "bg-yellow-500 hover:bg-yellow-600 text-black" : "bg-green-500 hover:bg-green-600"}>{baseToToggleStatus.ativo ? "Confirmar Inativação" : "Confirmar Ativação"}</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
       <div className="space-y-6">
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <Users className="h-8 w-8" /> Painel Administrativo
@@ -203,6 +323,8 @@ const AdminPage: React.FC = () => {
           onGenerateInviteLink={handleGenerateInviteLinkForBase}
           generatedInviteLink={generatedInviteLink}
           onSetUserToRemove={setUserToRemove}
+          onSetBaseToDelete={handleSetBaseToDelete}
+          onSetBaseToToggleStatus={handleSetBaseToToggleStatus} // Passar a nova função
         />
 
         <AdminManagement
