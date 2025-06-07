@@ -2,7 +2,12 @@ export interface ClientBase {
   id: string; // Firebase push ID (UUID)
   name: string;
   numberId: number;
-  authorizedUIDs: { [uid: string]: boolean }; // Chaves são UIDs de usuários autorizados
+  authorizedUIDs: { // Alterado aqui
+    [uid: string]: {
+      displayName: string;
+      email: string;
+    };
+  }; // Chaves são UIDs de usuários autorizados
   createdAt: number; // Timestamp (Firebase serverTimestamp)
   createdBy: string; // UID do admin
 }

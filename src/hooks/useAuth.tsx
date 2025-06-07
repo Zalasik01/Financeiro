@@ -47,7 +47,8 @@ interface AuthContextType {
     displayName: string,
     inviteToken?: string | null,
     inviteClientBaseUUID?: string | null,
-    inviteClientBaseNumberId?: number | null
+    inviteClientBaseNumberId?: number | null,
+    isAdminOverride?: boolean // Novo parâmetro
   ) => Promise<User | null>;
   login: (email: string, password: string) => Promise<User | null>;
   logout: () => Promise<void>;
@@ -95,7 +96,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     displayName: string,
     inviteToken?: string | null,
     inviteClientBaseUUID?: string | null,
-    inviteClientBaseNumberId?: number | null
+    inviteClientBaseNumberId?: number | null,
+    isAdminOverride?: boolean // Novo parâmetro
   ) => {
     try {
       setError(null); // Limpa erros anteriores
@@ -121,13 +123,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           email: userCredential.user.email,
           displayName: displayName,
           uid: newUserUID,
-          isAdmin: email === "nizalasik@gmail.com", // Define isAdmin - idealmente isso seria gerenciado de outra forma
-          clientBaseId: inviteClientBaseNumberId ?? null, // Vincula ao numberId da base do convite
+          // Lógica de isAdmin e clientBaseId ajustada
+          isAdmin: isAdminOverride === true ? true : (email === "nizalasik@gmail.com"), // Prioriza override, senão lógica antiga
+          clientBaseId: isAdminOverride === true ? null : (inviteClientBaseNumberId ?? null), // Admins não têm clientBaseId
           createdAt: serverTimestamp(), // Adiciona timestamp de criação do perfil
         });
 
-        // Se o cadastro veio de um convite válido, vincular usuário à base e atualizar convite
+        // Se o cadastro veio de um convite válido E NÃO é um admin sendo criado, vincular usuário à base
         if (
+          isAdminOverride !== true && // Não executar para criação de admin
           inviteToken &&
           inviteClientBaseUUID &&
           inviteClientBaseNumberId !== null &&
@@ -138,7 +142,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             db,
             `clientBases/${inviteClientBaseUUID}/authorizedUIDs/${newUserUID}`
           );
-          await databaseSet(authorizedUIDRef, true);
+          await databaseSet(authorizedUIDRef, {
+            displayName: userCredential.user.displayName || "Usuário Convidado",
+            email: userCredential.user.email || "email.nao.fornecido@example.com",
+          });
 
           // 2. Marcar convite como usado
           const inviteStatusRef = databaseRef(

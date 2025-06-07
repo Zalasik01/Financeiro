@@ -1,485 +1,215 @@
 import React, { useState, useEffect, FormEvent } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { db } from "@/firebase";
 import {
-  ref,
-  set,
-  push,
-  onValue,
-  serverTimestamp,
-  get,
-} from "firebase/database";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { ClientBase } from "@/types/store"; // Certifique-se que este tipo está correto
-import { Badge } from "@/components/ui/badge";
+import { db } from "@/firebase";
+import { ref, onValue, serverTimestamp, get, remove, set, push } from "firebase/database";
+import { Users } from "lucide-react";
+import { BaseManagement, ClientBase as ClientBaseType } from "./AdminPage/components/BaseManagement"; // Importar ClientBase como ClientBaseType
+import { AdminManagement } from "./AdminPage/components/AdminManagement";
+
+interface AppUser {
+  uid: string;
+  displayName?: string | null;
+  email?: string | null;
+  isAdmin?: boolean;
+}
 
 const AdminPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { toast } = useToast();
 
-  const [clientBases, setClientBases] = useState<ClientBase[]>([]);
-  const [newBaseName, setNewBaseName] = useState("");
-  // const [newBaseAuthorizedUIDs, setNewBaseAuthorizedUIDs] = useState(""); // Removido - UIDs serão via convite
+  // Renomear ClientBase para ClientBaseType para evitar conflito de nome se ClientBase for usado em outro lugar
+  const [clientBases, setClientBases] = useState<ClientBaseType[]>([]);
+  const [adminUsers, setAdminUsers] = useState<AppUser[]>([]);
+  const [baseCreatorsMap, setBaseCreatorsMap] = useState<{ [uid: string]: string }>({});
+
   const [nextNumberId, setNextNumberId] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(
-    null
-  );
-  const [userEmailsMap, setUserEmailsMap] = useState<{ [uid: string]: string }>(
-    {}
-  );
-  const [adminUsers, setAdminUsers] = useState<AppUser[]>([]); // Para listar admins
-  const [uidToPromote, setUidToPromote] = useState("");
-  const [isPromotingUser, setIsPromotingUser] = useState(false);
+  
+  const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
+
+  const [userToRevoke, setUserToRevoke] = useState<AppUser | null>(null);
+  const [userToRemove, setUserToRemove] = useState<{ user: { uid: string; displayName: string }; base: ClientBase } | null>(null);
 
   useEffect(() => {
     const clientBasesRef = ref(db, "clientBases");
     const unsubscribe = onValue(clientBasesRef, (snapshot) => {
       const data = snapshot.val();
-      if (data) {
-        const basesArray: ClientBase[] = Object.keys(data).map((key) => ({
-          id: key,
-          ...data[key],
-        }));
-        setClientBases(basesArray);
+      const basesArray: ClientBaseType[] = data
+        ? Object.keys(data).map((key) => ({ id: key, ...data[key] }))
+        : [];
+      setClientBases(basesArray);
 
-        // Determinar o próximo numberId
-        if (basesArray.length === 0) {
-          setNextNumberId(1);
-        } else {
-          const maxId = Math.max(...basesArray.map((b) => b.numberId || 0), 0);
-          setNextNumberId(maxId + 1);
-        }
-      } else {
-        setClientBases([]);
-        setNextNumberId(1);
-      }
+      const maxId = basesArray.length > 0 ? Math.max(...basesArray.map((b) => b.numberId || 0)) : 0;
+      setNextNumberId(maxId + 1);
     });
     return () => unsubscribe();
   }, []);
 
-  // Efeito para buscar administradores
   useEffect(() => {
     const usersRef = ref(db, "users");
     const unsubscribeAdmins = onValue(usersRef, (snapshot) => {
       const usersData = snapshot.val();
+      const loadedAdmins: AppUser[] = [];
       if (usersData) {
-        const loadedAdmins: AppUser[] = [];
         Object.keys(usersData).forEach((uid) => {
           const userProfile = usersData[uid]?.profile;
-          if (userProfile && userProfile.isAdmin === true) {
+          if (userProfile?.isAdmin === true) {
             loadedAdmins.push({
               uid,
               displayName: userProfile.displayName || "N/A",
               email: userProfile.email || "N/A",
-              // Adicione outros campos de AppUser se necessário, mas mantenha simples para a lista
-            } as AppUser); // Type assertion
+            });
           }
         });
-        setAdminUsers(loadedAdmins);
-      } else {
-        setAdminUsers([]);
       }
+      setAdminUsers(loadedAdmins);
     });
     return () => unsubscribeAdmins();
   }, []);
 
   useEffect(() => {
-    const fetchEmailsForBases = async () => {
-      const newEmailsMap = { ...userEmailsMap };
-      let mapNeedsUpdate = false;
+    const fetchCreatorNames = async () => {
+      if (clientBases.length === 0) return;
+      const uidsToFetch = new Set<string>(clientBases.map(base => base.createdBy).filter(uid => !baseCreatorsMap[uid]));
+      if (uidsToFetch.size === 0) return;
 
-      for (const base of clientBases) {
-        if (base.authorizedUIDs) {
-          for (const uid of Object.keys(base.authorizedUIDs)) {
-            if (!newEmailsMap[uid]) {
-              // Só busca se ainda não tivermos o email
-              try {
-                const emailRef = ref(db, `users/${uid}/profile/email`); // Corrigido para ref
-                const snapshot = await get(emailRef);
-                if (snapshot.exists()) {
-                  newEmailsMap[uid] = snapshot.val();
-                } else {
-                  newEmailsMap[uid] = "Email não encontrado"; // Fallback
-                }
-                mapNeedsUpdate = true;
-              } catch (error) {
-                console.error(`Erro ao buscar email para UID ${uid}:`, error);
-                newEmailsMap[uid] = "Erro ao buscar"; // Fallback
-                mapNeedsUpdate = true;
-              }
-            }
-          }
+      const newCreatorsMap = { ...baseCreatorsMap };
+      for (const uid of uidsToFetch) {
+        try {
+          const userProfileRef = ref(db, `users/${uid}/profile/displayName`);
+          const snapshot = await get(userProfileRef);
+          newCreatorsMap[uid] = snapshot.exists() ? snapshot.val() : "Desconhecido";
+        } catch (error) {
+          console.error(`Erro ao buscar nome do criador para UID ${uid}:`, error);
+          newCreatorsMap[uid] = "Erro ao buscar";
         }
       }
-      if (mapNeedsUpdate) {
-        setUserEmailsMap(newEmailsMap);
-      }
+      setBaseCreatorsMap(newCreatorsMap);
     };
+    fetchCreatorNames();
+  }, [clientBases, baseCreatorsMap]);
 
-    if (clientBases.length > 0) {
-      fetchEmailsForBases();
-    }
-  }, [clientBases]); // Dependência userEmailsMap removida para evitar loop se a atualização for parcial
-
-  const handleAddClientBase = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!newBaseName.trim() || !currentUser || nextNumberId === null) {
-      toast({
-        title: "Erro",
-        description:
-          "Nome da base é obrigatório e o ID numérico deve ser válido.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-
-    // Verificar se o numberId já existe para evitar duplicidade (embora o useEffect tente pegar o próximo)
-    const existingBaseWithNumberId = clientBases.find(
-      (b) => b.numberId === nextNumberId
-    );
-    if (existingBaseWithNumberId) {
-      toast({
-        title: "Erro de Conflito",
-        description: `O ID Numérico ${nextNumberId} já está em uso. Recarregue ou ajuste.`,
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      // Recalcular nextNumberId em caso de conflito (pode acontecer se houver escritas concorrentes)
-      const maxId = Math.max(...clientBases.map((b) => b.numberId || 0), 0);
-      setNextNumberId(maxId + 1);
-      return;
-    }
-
-    const clientBasesRef = ref(db, "clientBases");
-    const newClientBaseRef = push(clientBasesRef);
-
-    const authorizedUIDsObject: { [key: string]: boolean } = {
-      [currentUser.uid]: true,
-    };
-
-    const baseData: Omit<ClientBase, "id"> = {
-      name: newBaseName,
-      numberId: nextNumberId,
-      authorizedUIDs: authorizedUIDsObject,
-      createdAt: serverTimestamp() as unknown as number, // Firebase preencherá
-      createdBy: currentUser.uid,
-    };
-
-    try {
-      await set(newClientBaseRef, baseData);
-      toast({
-        title: "Sucesso!",
-        description: `Base "${newBaseName}" criada com ID Numérico ${nextNumberId}.`,
-      });
-      setNewBaseName("");
-      // O useEffect atualizará o nextNumberId automaticamente quando a lista de bases mudar
-    } catch (error) {
-      console.error("Erro ao criar base:", error);
-      toast({
-        title: "Erro ao criar base",
-        description: (error as Error).message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGenerateInviteLink = async (clientBaseId: string) => {
+  const handleGenerateInviteLinkForBase = async (base: ClientBaseType) => {
     if (!currentUser) return;
-    setGeneratedInviteLink(null); // Limpa link anterior
+    setGeneratedInviteLink(null);
 
-    const invitesRef = ref(db, "invites");
-    const newInviteRef = push(invitesRef); // Gera um token único para o convite
+    const newInviteRef = push(ref(db, "invites"));
     const inviteToken = newInviteRef.key;
 
     if (!inviteToken) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível gerar o token do convite.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const selectedClientBase = clientBases.find((b) => b.id === clientBaseId);
-    if (!selectedClientBase) {
-      toast({
-        title: "Erro",
-        description: "Base não encontrada para gerar convite.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Não foi possível gerar o token do convite.", variant: "destructive" });
       return;
     }
 
     const inviteData = {
-      clientBaseId: clientBaseId,
-      clientBaseNumberId: selectedClientBase.numberId, // Adicionar numberId
+      clientBaseId: base.id,
+      clientBaseNumberId: base.numberId,
       createdBy: currentUser.uid,
       createdAt: serverTimestamp(),
-      status: "pending", // pending, used, expired
+      status: "pending",
     };
 
     try {
       await set(newInviteRef, inviteData);
       const inviteLink = `${window.location.origin}/convite/${inviteToken}`;
       setGeneratedInviteLink(inviteLink);
-      toast({
-        title: "Link de Convite Gerado!",
-        description: "Copie o link abaixo e envie ao usuário.",
-      });
+      toast({ title: "Link de Convite Gerado!", description: "Copie o link e envie ao usuário." });
     } catch (error) {
       console.error("Erro ao criar convite:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível salvar o convite.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Não foi possível salvar o convite.", variant: "destructive" });
     }
   };
 
-  const handlePromoteToAdmin = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!uidToPromote.trim() || !currentUser?.isAdmin) {
-      toast({
-        title: "Erro",
-        description: "UID do usuário é obrigatório.",
-        variant: "destructive",
-      });
-      return;
+  const confirmRevokeAdmin = async () => {
+    if (!userToRevoke || !currentUser || userToRevoke.uid === currentUser.uid) return;
+    
+    try {
+      await set(ref(db, `users/${userToRevoke.uid}/profile/isAdmin`), false);
+      toast({ title: "Sucesso", description: `Privilégios de admin revogados para ${userToRevoke.displayName}.`});
+    } catch (error) {
+      toast({ title: "Erro", description: "Não foi possível revogar os privilégios.", variant: "destructive" });
+    } finally {
+      setUserToRevoke(null);
     }
-    if (uidToPromote === currentUser.uid) {
-      toast({
-        title: "Aviso",
-        description:
-          "Você não pode alterar sua própria permissão de admin aqui.",
-        variant: "default",
-      });
-      return;
-    }
+  };
 
-    setIsPromotingUser(true);
-    const userProfileAdminFlagRef = ref(
-      db,
-      `users/${uidToPromote}/profile/isAdmin`
-    );
-    const userProfileClientBaseIdRef = ref(
-      db,
-      `users/${uidToPromote}/profile/clientBaseId`
-    );
+  const confirmRemoveUserFromBase = async () => {
+    if (!userToRemove) return;
+    const { user, base } = userToRemove; // base aqui é ClientBaseType
 
     try {
-      // Verificar se o usuário existe antes de promover
-      const userProfileRef = ref(db, `users/${uidToPromote}/profile`);
-      const userSnapshot = await get(userProfileRef);
-      if (!userSnapshot.exists()) {
-        toast({
-          title: "Erro",
-          description: "Usuário com este UID não encontrado.",
-          variant: "destructive",
-        });
-        setIsPromotingUser(false);
-        return;
-      }
-
-      await set(userProfileAdminFlagRef, true);
-      await set(userProfileClientBaseIdRef, null); // Admins não têm clientBaseId
-      toast({
-        title: "Sucesso!",
-        description: `Usuário ${uidToPromote} agora é um administrador.`,
-      });
-      setUidToPromote("");
-    } catch (error) {
-      console.error("Erro ao promover usuário:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível promover o usuário.",
-        variant: "destructive",
-      });
+      const userRef = ref(db, `clientBases/${base.id}/authorizedUIDs/${user.uid}`);
+      await remove(userRef);
+      toast({ title: "Sucesso", description: `${user.displayName} foi removido da base ${base.name}.` });
+    } catch(error: any) {
+      toast({ title: "Erro", description: "Não foi possível remover o usuário da base.", variant: "destructive" });
     } finally {
-      setIsPromotingUser(false);
+      setUserToRemove(null);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Painel Administrativo</h1>
+    <>
+      <AlertDialog open={!!userToRevoke} onOpenChange={(open) => !open && setUserToRevoke(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revogar privilégios de Admin?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação removerá o status de administrador de <strong>{userToRevoke?.displayName}</strong>. Ele perderá acesso a este painel. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRevokeAdmin} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Gerenciar Bases de Cliente</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <form
-            onSubmit={handleAddClientBase}
-            className="space-y-4 p-4 border rounded-md bg-slate-50"
-          >
-            <h3 className="text-lg font-semibold">Criar Nova Base</h3>
-            <div>
-              <Label htmlFor="baseName">Nome da Base *</Label>
-              <Input
-                id="baseName"
-                value={newBaseName}
-                onChange={(e) => setNewBaseName(e.target.value)}
-                placeholder="Ex: Cliente Alpha"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="baseNumberId">ID Numérico (Automático)</Label>
-              <Input
-                id="baseNumberId"
-                value={nextNumberId ?? "Carregando..."}
-                readOnly
-                disabled
-              />
-            </div>
-            {/* Campo de UIDs/Emails removido do formulário de criação */}
-            <Button type="submit" disabled={isLoading || nextNumberId === null}>
-              {isLoading
-                ? "Criando..."
-                : nextNumberId === null
-                ? "Aguarde ID..."
-                : "Criar Base"}
-            </Button>
-          </form>
+      <AlertDialog open={!!userToRemove} onOpenChange={(open) => !open && setUserToRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover Usuário da Base?</AlertDialogTitle>
+            <AlertDialogDescription>
+          Você tem certeza que deseja remover <strong>{userToRemove?.user.displayName || "este usuário"}</strong> da base <strong>{userToRemove?.base.name}</strong>? O usuário perderá o acesso aos dados desta base.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemoveUserFromBase} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Confirmar Remoção</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-          {generatedInviteLink && (
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-              <Label className="font-semibold text-green-700">
-                Link de Convite Gerado:
-              </Label>
-              <Input
-                type="text"
-                value={generatedInviteLink}
-                readOnly
-                className="mt-1 bg-white"
-                onClick={(e) => (e.target as HTMLInputElement).select()}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={() =>
-                  navigator.clipboard
-                    .writeText(generatedInviteLink)
-                    .then(() => toast({ description: "Link copiado!" }))
-                }
-              >
-                Copiar Link
-              </Button>
-            </div>
-          )}
-          <div>
-            <h3 className="text-lg font-semibold mt-6 mb-2">
-              Bases Existentes
-            </h3>
-            {clientBases.length === 0 ? (
-              <p>Nenhuma base de cliente cadastrada.</p>
-            ) : (
-              <ul className="space-y-2">
-                {clientBases
-                  .sort((a, b) => (a.numberId || 0) - (b.numberId || 0))
-                  .map((base) => (
-                    <li
-                      key={base.id}
-                      className="p-3 border rounded-md flex justify-between items-center"
-                    >
-                      <div>
-                        <span className="font-medium">{base.name}</span>{" "}
-                        <Badge variant="secondary">
-                          ID Num: {base.numberId}
-                        </Badge>
-                        <p className="text-sm text-gray-600">
-                          UIDs Autorizados:{" "}
-                          {typeof base.authorizedUIDs === "object" &&
-                          base.authorizedUIDs !== null
-                            ? Object.keys(base.authorizedUIDs).join(", ")
-                            : Array.isArray(base.authorizedUIDs) // Fallback caso a estrutura antiga ainda exista
-                            ? base.authorizedUIDs.join(", ")
-                            : "Nenhum"}
-                        </p>
-                        <p className="text-xs text-gray-400">UUID: {base.id}</p>
-                      </div>
-                      <div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleGenerateInviteLink(base.id)}
-                        >
-                          Gerar Convite
-                        </Button>
-                        {/* Adicionar botões de Editar/Deletar aqui no futuro */}
-                      </div>
-                    </li>
-                  ))}
-              </ul>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <Users className="h-8 w-8" /> Painel Administrativo
+        </h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Gerenciar Administradores do Sistema</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <form
-            onSubmit={handlePromoteToAdmin}
-            className="space-y-4 p-4 border rounded-md bg-slate-50"
-          >
-            <h3 className="text-lg font-semibold">
-              Promover Usuário a Administrador
-            </h3>
-            <div>
-              <Label htmlFor="uidToPromote">
-                UID do Usuário a ser Promovido *
-              </Label>
-              <Input
-                id="uidToPromote"
-                value={uidToPromote}
-                onChange={(e) => setUidToPromote(e.target.value)}
-                placeholder="Cole o UID do usuário aqui"
-                required
-              />
-            </div>
-            <Button type="submit" disabled={isPromotingUser}>
-              {isPromotingUser ? "Promovendo..." : "Tornar Administrador"}
-            </Button>
-          </form>
+        <BaseManagement
+          clientBases={clientBases}
+          nextNumberId={nextNumberId}
+          baseCreatorsMap={baseCreatorsMap}
+          onGenerateInviteLink={handleGenerateInviteLinkForBase}
+          generatedInviteLink={generatedInviteLink}
+          onSetUserToRemove={setUserToRemove}
+        />
 
-          <div>
-            <h3 className="text-lg font-semibold mt-6 mb-2">
-              Administradores Atuais
-            </h3>
-            {adminUsers.length === 0 ? (
-              <p>Nenhum administrador adicional cadastrado.</p>
-            ) : (
-              <ul className="space-y-2">
-                {adminUsers.map((admin) => (
-                  <li key={admin.uid} className="p-3 border rounded-md">
-                    <p className="font-medium">{admin.displayName}</p>
-                    <p className="text-sm text-gray-600">{admin.email}</p>
-                    <p className="text-xs text-gray-400">UID: {admin.uid}</p>
-                    {/* Futuramente: Botão para revogar admin, exceto para o próprio admin logado se for o "super admin" */}
-                    {/* {currentUser?.uid !== admin.uid && (
-                       <Button variant="destructive" size="sm" onClick={() => handleRevokeAdmin(admin.uid)}>Revogar</Button>
-                    )} */}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        <AdminManagement
+          adminUsers={adminUsers}
+          onSetUserToRevoke={setUserToRevoke}
+        />
+      </div>
+    </>
   );
 };
 

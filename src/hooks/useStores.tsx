@@ -151,27 +151,21 @@ export const useStores = () => {
       if (data) {
         const list: Store[] = Object.keys(data).map((key) => {
           const storeEntry = data[key];
-          let createdAtDate: Date;
+          let createdAtValue: Date;
           if (
             storeEntry.createdAt &&
             (typeof storeEntry.createdAt === "number" ||
               typeof storeEntry.createdAt === "string")
           ) {
-            createdAtDate = new Date(storeEntry.createdAt);
+            createdAtValue = new Date(storeEntry.createdAt);
           } else {
-            // console.warn(
-            //   `[useStores] Loja ${key} createdAt tem formato inválido ou está ausente:`,
-            //   storeEntry.createdAt,
-            //   ". Usando data atual como fallback."
-            // );
-            createdAtDate = new Date();
+            // Fallback para data atual se createdAt for inválido ou ausente
+            createdAtValue = new Date(); 
           }
           return {
             id: key,
             ...storeEntry,
-            // Manter createdAt como número (timestamp) para consistência com serverTimestamp
-            // A conversão para Date pode ser feita na UI ou em useMemo se necessário
-            createdAt: storeEntry.createdAt, // Assumindo que já é um timestamp ou será
+            createdAt: createdAtValue, // Agora é um objeto Date
             baseId: storeEntry.baseId, // Garantir que baseId seja carregado
           };
         });
