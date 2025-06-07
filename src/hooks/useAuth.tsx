@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   ReactNode,
+  useRef,
 } from "react";
 import {
   User,
@@ -79,8 +80,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null); // Modificado para AppUser
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null); // Estado para armazenar mensagens de erro
-  const [selectedBaseId, setSelectedBaseId] = useState<string | null>(null); // Estado para a base selecionada
+  const [_selectedBaseId, _setSelectedBaseId] = useState<string | null>(null); // Estado para a base selecionada
+  const setSelectedBaseId = (baseId: string | null) => {    
+    _setSelectedBaseId(baseId);
+  };
   const { toast } = useToast();
+
+  // Ref para rastrear se um login acabou de ser concluído
+  const hasJustLoggedInRef = useRef(false); 
 
   const signup = async (
     email: string,
@@ -185,14 +192,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         email,
         password
       );
-      const description = "Bem-vindo(a) de volta!";
-      toast({
-        title: "Login realizado!",
-        description,
-        variant: "success",
-      });
+      if (userCredential.user) {
+        hasJustLoggedInRef.current = true; 
+      }
+      // O toast "Bem-vindo(a) de volta!" será tratado pelo useEffect abaixo
       return userCredential.user;
     } catch (err) {
+      hasJustLoggedInRef.current = false; 
       const error = err as AuthError;
       const errorMessage =
         error.code === "auth/invalid-credential"
@@ -214,7 +220,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       setError(null); // Limpa erros anteriores
       sessionStorage.removeItem("adminModalDismissed"); // Limpa a flag do modal admin
-      setSelectedBaseId(null); // Limpa a base selecionada ao fazer logout
+      hasJustLoggedInRef.current = false; 
+      setSelectedBaseId(null); 
       await signOut(auth);
       const description = "Usuário deslogado com sucesso!";
       toast({
@@ -222,13 +229,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         description,
         variant: "success",
       });
-    } catch (error: AuthError) {
+    } catch (err) { // Corrigido para usar err como nome da variável de erro
       // Não costuma dar erro, mas se der:
-      const errorMessage = error.message || "Não foi possível fazer logout.";
+      const authError = err as AuthError; // Tipar o erro
+      const errorMessage = authError.message || "Não foi possível fazer logout.";
       setError(errorMessage);
       toast({
         title: "Erro no logout",
-        description,
+        description: errorMessage, // Usar errorMessage aqui
         variant: "destructive",
       });
     }
@@ -398,7 +406,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        // Buscar dados adicionais do perfil do usuário (incluindo isAdmin) do RTDB
         const userProfileRef = databaseRef(db, `users/${user.uid}/profile`);
         databaseGet(userProfileRef)
           .then((snapshot) => {
@@ -407,21 +414,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
             if (snapshot.exists()) {
               const profileData = snapshot.val();
-              console.log(
-                "[useAuth] Perfil do usuário encontrado no RTDB:",
-                profileData
-              ); // Log para ver os dados do perfil
-              isAdmin = profileData.isAdmin === true; // Garante que seja explicitamente true
-              // profileData.clientBaseId aqui é o numberId
+              isAdmin = profileData.isAdmin === true;
               userClientBaseId =
                 typeof profileData.clientBaseId === "number"
                   ? profileData.clientBaseId
                   : null;
             } else {
-              console.log(
-                "[useAuth] Perfil do usuário NÃO encontrado no RTDB para UID:",
-                user.uid
-              );
             }
             // Armazena o numberId no currentUser.clientBaseId
             setCurrentUser({
@@ -430,7 +428,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               clientBaseId: userClientBaseId,
             });
             // selectedBaseId (UUID) será definido em AppContent
-            setSelectedBaseId(null); // Inicializa como null, AppContent resolverá
+            setSelectedBaseId(null); // Inicializa como null, AppContent resolverá            
           })
           .catch((error) => {
             console.error("Erro ao buscar perfil do usuário no RTDB:", error);
@@ -446,10 +444,27 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setCurrentUser(null);
         setLoading(false);
         setSelectedBaseId(null);
+        hasJustLoggedInRef.current = false; 
       }
     });
     return unsubscribe;
   }, []);
+
+  // Efeito para exibir o toast "Bem-vindo(a) de volta!" após o login e seleção da base
+  useEffect(() => {
+    if (
+      hasJustLoggedInRef.current &&
+      currentUser &&
+      _selectedBaseId 
+    ) {
+      toast({
+        title: `Bem-vindo(a) de volta!`,
+        description: currentUser.displayName || "Usuário", // Usa displayName ou um fallback
+        variant: "success",
+      });
+      hasJustLoggedInRef.current = false; 
+    }
+  }, [currentUser, _selectedBaseId, toast]);
 
   const value = {
     currentUser,
@@ -462,8 +477,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     updateUserProfileData,
     uploadProfilePhotoAndUpdateURL, // Adicionar ao contexto
     removeProfilePhoto, // Adicionar ao contexto
-    selectedBaseId, // Expor selectedBaseId
-    setSelectedBaseId, // Expor setSelectedBaseId
+    selectedBaseId: _selectedBaseId, // Expor selectedBaseId
+    setSelectedBaseId, 
   };
 
   return (

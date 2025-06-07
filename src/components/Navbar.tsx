@@ -6,6 +6,7 @@ import { HelpModal } from "./HelpModal";
 import { Menu, X, Database } from "lucide-react";
 import { InstallPWAButton } from "./InstallPWAButton";
 import { UserMenu } from "./UserMenu";
+import { useStores } from "@/hooks/useStores"; // Adicionar useStores
 import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
@@ -21,10 +22,14 @@ const navItems = [
 
 const Navbar: React.FC = () => {
   const location = useLocation();
-  const { currentUser } = useAuth();
+  const { currentUser, selectedBaseId } = useAuth(); // Obter selectedBaseId
+  const { bases } = useStores(); // Obter a lista de bases
   const navigate = useNavigate();
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Encontrar os detalhes da base selecionada
+  const selectedBaseDetails = selectedBaseId ? bases.find(b => b.id === selectedBaseId) : null;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -82,11 +87,11 @@ const Navbar: React.FC = () => {
                 Ajuda
               </Button>
               <InstallPWAButton />
-              {currentUser && currentUser.numberId && currentUser.name && (
+              {selectedBaseDetails && (
                 <div className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-300">
                   <Database size={16} className="mr-2 text-gray-400" />
                   <span>
-                    {currentUser.name} ({currentUser.numberId})
+                    {selectedBaseDetails.name} (#{selectedBaseDetails.numberId})
                   </span>
                 </div>
               )}
@@ -134,11 +139,11 @@ const Navbar: React.FC = () => {
           </div>
           <div className="border-t border-gray-700 px-2 pt-2 pb-3 space-y-2">
             {/* Informação da Base de Dados para consistência com o desktop */}
-            {currentUser && currentUser.numberId && currentUser.name && (
+            {selectedBaseDetails && (
               <div className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-300">
                 <Database size={18} className="mr-2 text-gray-400" />
                 <span>
-                  {currentUser.name} ({currentUser.numberId})
+                  {selectedBaseDetails.name} (#{selectedBaseDetails.numberId})
                 </span>
               </div>
             )}
