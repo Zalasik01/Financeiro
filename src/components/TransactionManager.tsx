@@ -18,6 +18,12 @@ interface TransactionManagerProps {
   onDeleteTransaction: (id: string) => void;
 }
 
+interface LastUsedTransactionFields {
+  type?: "income" | "expense";
+  storeId?: string;
+  categoryId?: string;
+}
+
 export const TransactionManager = ({
   transactions,
   categories,
@@ -27,6 +33,8 @@ export const TransactionManager = ({
 }: TransactionManagerProps) => {
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
+  const [lastUsedFields, setLastUsedFields] =
+    useState<LastUsedTransactionFields | null>(null);
   const { stores } = useStores(); // Obter a lista de lojas
 
   const handleUpdateTransaction = (
@@ -35,6 +43,18 @@ export const TransactionManager = ({
   ) => {
     onUpdateTransaction(id, transaction);
     setEditingTransaction(null);
+  };
+
+  const handleAddTransaction = (
+    transaction: Omit<Transaction, "id" | "createdAt">
+  ) => {
+    onAddTransaction(transaction); // Chama a prop original
+    // Atualiza os campos da última transação usada
+    setLastUsedFields({
+      type: transaction.type,
+      storeId: transaction.storeId,
+      categoryId: transaction.categoryId,
+    });
   };
 
   return (
@@ -47,9 +67,10 @@ export const TransactionManager = ({
       <CardContent className="space-y-6">
         <TransactionForm
           categories={categories}
-          onAddTransaction={onAddTransaction}
+          onAddTransaction={handleAddTransaction} // Usa o novo handler
           onUpdateTransaction={handleUpdateTransaction}
           editingTransaction={editingTransaction}
+          lastUsedFields={lastUsedFields} // Passa os campos para o formulário
         />
 
         <TransactionList

@@ -26,6 +26,11 @@ interface TransactionFormProps {
     transaction: Partial<Transaction> | null
   ) => void;
   editingTransaction?: Transaction | null;
+  lastUsedFields?: { // Prop para campos da última transação
+    type?: "income" | "expense";
+    storeId?: string;
+    categoryId?: string;
+  } | null;
 }
 
 export const TransactionForm = ({
@@ -33,6 +38,7 @@ export const TransactionForm = ({
   onAddTransaction,
   onUpdateTransaction,
   editingTransaction,
+  lastUsedFields, // Receber a prop
 }: TransactionFormProps) => {
   const [newTransaction, setNewTransaction] = useState({
     description: "",
@@ -70,35 +76,29 @@ export const TransactionForm = ({
         type: editingTransaction.type,
         storeId: editingTransaction.storeId, // Carregar storeId se estiver editando
       });
-    }
-  }, [editingTransaction]);
+    } else {
+      // Não está editando: reseta o formulário,
+      // usando lastUsedFields se disponível, ou os padrões.
+      const defaultStore = stores.find((s) => s.isDefault);
+      let initialStoreId = defaultStore?.id;
+      if (!initialStoreId && stores.length === 1) { // Se não há default e só uma loja, usa ela
+        initialStoreId = stores[0].id;
+      }
 
-  useEffect(() => {
-    const defaultStore = stores.find((s) => s.isDefault);
-    if (defaultStore && !newTransaction.storeId && !editingTransaction) {
-      setNewTransaction((prev) => ({ ...prev, storeId: defaultStore.id }));
-    } else if (
-      stores.length === 1 &&
-      !newTransaction.storeId &&
-      !editingTransaction
-    ) {
-      // Mantém a lógica de pré-selecionar se houver apenas uma loja e nenhuma padrão
-      setNewTransaction((prev) => ({ ...prev, storeId: stores[0].id }));
-    } else if (
-      !defaultStore &&
-      stores.length > 1 &&
-      !editingTransaction &&
-      newTransaction.storeId &&
-      !stores.find((s) => s.id === newTransaction.storeId)
-    ) {
-      // Se a loja selecionada não existe mais e não há padrão, limpa a seleção
-      setNewTransaction((prev) => ({ ...prev, storeId: undefined }));
+      setNewTransaction({
+        description: "", // Limpa descrição
+        amount: 0,       // Limpa valor
+        discount: 0,     // Limpa desconto
+        categoryId: lastUsedFields?.categoryId || "", // Usa último usado ou vazio
+        date: new Date().toISOString().split("T")[0], // Reseta data
+        type: lastUsedFields?.type || "expense",     // Usa último usado ou padrão
+        storeId: lastUsedFields?.storeId || initialStoreId, // Usa último usado ou inicial
+      });
     }
-  }, [stores, newTransaction.storeId, editingTransaction]);
+  }, [editingTransaction, lastUsedFields, stores]); // Depende de editingTransaction, lastUsedFields e stores
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (
       !newTransaction.description.trim() ||
       newTransaction.amount <= 0 ||
@@ -166,17 +166,10 @@ export const TransactionForm = ({
       });
     }
 
-    setNewTransaction({
-      description: "",
-      amount: 0,
-      discount: 0,
-      categoryId: "",
-      date: new Date().toISOString().split("T")[0],
-      type: "expense",
-      storeId: undefined,
-    });
+    // O reset do formulário (setNewTransaction) é agora tratado pelo useEffect
+    // quando 'editingTransaction' se torna null (após um update/cancel)
+    // ou quando 'lastUsedFields' muda (após um add).
   };
-
   const filteredCategories = categories.filter(
     (cat) => cat.type === newTransaction.type
   );
