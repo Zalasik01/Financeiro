@@ -38,9 +38,15 @@ export const useStores = () => {
   const { currentUser, selectedBaseId } = useAuth(); // Obter o usuário atual e o selectedBaseId
   const { toast } = useToast(); // Inicializar o hook de toast
 
+  console.log("[useStores] Hook useStores inicializado/re-renderizado. currentUser:", currentUser ? { email: currentUser.email, clientBaseId: currentUser.clientBaseId, isAdmin: currentUser.isAdmin } : null, "selectedBaseId:", selectedBaseId);
+
   // Carregar Bases (appBases para o usuário logado ou clientBases filtradas para não-admins)
   useEffect(() => {
+    // Esta linha de log já deve existir no seu arquivo, conforme seus logs anteriores.
+        console.log("[useStores] Entrando no useEffect de carregamento de Bases. currentUser:", currentUser ? { email: currentUser.email, clientBaseId: currentUser.clientBaseId, isAdmin: currentUser.isAdmin } : null);
+
     if (!currentUser) {
+      console.log("[useStores] useEffect para bases: currentUser é null, limpando bases e retornando.");
       setBases([]);
       return;
     }
@@ -48,7 +54,9 @@ export const useStores = () => {
     // Todos os usuários (admin e não admin) buscarão do nó /clientBases.
     // O filtro será aplicado para não-admins.
     const clientBasesRef = ref(db, "clientBases");
+    console.log("[useStores] useEffect para bases: currentUser existe. Tentando carregar clientBases.", { email: currentUser.email, clientBaseId: currentUser.clientBaseId, isAdmin: currentUser.isAdmin });
     const unsubscribeBases = onValue(clientBasesRef, (snapshot) => {
+      console.log("[useStores] onValue para clientBases: snapshot recebido.");
       const data = snapshot.val();
       if (data) {
         const allClientBases: ClientBase[] = Object.keys(data).map((key) => ({
@@ -61,14 +69,33 @@ export const useStores = () => {
         if (currentUser.isAdmin) {
           // Admin vê todas as clientBases
           accessibleClientBases = allClientBases;
+        } else if (
+          currentUser.clientBaseId !== null &&
+          currentUser.clientBaseId !== undefined
+        ) {
+          // Usuário não-admin COM clientBaseId definido:
+          console.log(`[useStores] Filtrando para não-admin ${currentUser.email} com clientBaseId: ${currentUser.clientBaseId}`);
+          // Filtra para APENAS essa base. A verificação de authorizedUIDs é removida
+          // pois a presença do clientBaseId no perfil do usuário já implica acesso.
+          accessibleClientBases = allClientBases.filter(
+            (cb) => {
+              const match = cb.numberId === currentUser.clientBaseId;
+              console.log(`[useStores] Comparando base "${cb.name}" (numberId: ${cb.numberId}, tipo: ${typeof cb.numberId}) com currentUser.clientBaseId (${currentUser.clientBaseId}, tipo: ${typeof currentUser.clientBaseId}). Match: ${match}`);
+              return match; // Mantido para depuração, pode ser comentado depois
+            }
+          );
+          console.log("[useStores] Bases acessíveis após filtro por clientBaseId:", accessibleClientBases.map(b => ({id: b.id, name: b.name, numberId: b.numberId })));
         } else {
-          // Usuário não-admin filtra clientBases às quais tem acesso
+          // Usuário não-admin SEM clientBaseId definido:
+          // Vê todas as clientBases às quais tem acesso via authorizedUIDs.
+          console.log(`[useStores] Filtrando para não-admin ${currentUser.email} SEM clientBaseId, verificando authorizedUIDs.`);
           accessibleClientBases = allClientBases.filter(
             (cb) =>
-              cb.authorizedUIDs && // Alterado de authorizedEmails para authorizedUIDs
-              currentUser.uid && // Garante que currentUser.uid exista
+              cb.authorizedUIDs && // Garante que authorizedUIDs exista
+              currentUser.uid &&    // Garante que currentUser.uid exista
               (cb.authorizedUIDs as any)[currentUser.uid] === true
           );
+          console.log("[useStores] Bases acessíveis após filtro por authorizedUIDs:", accessibleClientBases.map(b => ({id: b.id, name: b.name })));
         }
         // Mapear ClientBase para Base para o modal
         setBases(
@@ -85,8 +112,12 @@ export const useStores = () => {
           )
         );
       } else {
+        console.log("[useStores] onValue para clientBases: Nenhum dado encontrado no snapshot.");
         setBases([]);
       }
+    }, (error) => {
+        console.error("[useStores] Erro ao carregar clientBases do Firebase:", error);
+        setBases([]); // Limpa as bases em caso de erro
     });
 
     return () => unsubscribeBases();
@@ -94,25 +125,27 @@ export const useStores = () => {
 
   // Carregar Lojas (agora associadas a bases)
   useEffect(() => {
+    // console.log("[useStores] Entrando no useEffect de carregamento de Lojas. currentUser:", currentUser ? currentUser.email : null, "selectedBaseId:", selectedBaseId);
     if (!currentUser || !selectedBaseId) {
       // Precisa de um selectedBaseId
+      // console.log("[useStores] useEffect para lojas: currentUser ou selectedBaseId é null/undefined. Limpando lojas.");
       setStores([]);
       return;
     }
-    console.log(
-      "[useStores] Configurando listener para lojas. selectedBaseId:",
-      selectedBaseId
-    ); // DEBUG
+    // console.log(
+    //   "[useStores] Configurando listener para lojas. selectedBaseId:",
+    //   selectedBaseId
+    // ); 
     const storesPath = `clientBases/${selectedBaseId}/appStores`; // Caminho atualizado
     const storesNodeRef = ref(db, storesPath);
     const storesQuery = query(storesNodeRef, orderByChild("name"));
     const unsubscribe = onValue(storesQuery, (snapshot) => {
-      console.log(
-        "[useStores] Snapshot de lojas recebido. Caminho:",
-        storesPath,
-        "Valor:",
-        snapshot.val()
-      ); // DEBUG
+      // console.log(
+      //   "[useStores] Snapshot de lojas recebido. Caminho:",
+      //   storesPath,
+      //   "Valor:",
+      //   snapshot.val()
+      // ); 
       // console.log("[useStores] Snapshot recebido para lojas:", snapshot.val());
       const data = snapshot.val();
       if (data) {
@@ -142,14 +175,14 @@ export const useStores = () => {
             baseId: storeEntry.baseId, // Garantir que baseId seja carregado
           };
         });
-        console.log("[useStores] Nova lista de lojas para o estado:", list); // DEBUG: Verifique se a nova loja aparece aqui
+        // console.log("[useStores] Nova lista de lojas para o estado:", list); 
         // console.log("[useStores] Lista de lojas processada:", list);
         setStores(list);
       } else {
-        console.log(
-          "[useStores] Nenhum dado de loja encontrado no Firebase para o selectedBaseId:",
-          selectedBaseId
-        ); // DEBUG
+        // console.log(
+        //   "[useStores] Nenhum dado de loja encontrado no Firebase para o selectedBaseId:",
+        //   selectedBaseId
+        // ); 
         setStores([]);
       }
     });

@@ -415,10 +415,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             if (snapshot.exists()) {
               const profileData = snapshot.val();
               isAdmin = profileData.isAdmin === true;
-              userClientBaseId =
+              // No perfil, clientBaseId é o numberId da base
+              userClientBaseId = 
                 typeof profileData.clientBaseId === "number"
                   ? profileData.clientBaseId
                   : null;
+              console.log("[useAuth] Perfil do usuário carregado:", { profileData, userClientBaseId }); // LOG ADICIONADO
             } else {
             }
             // Armazena o numberId no currentUser.clientBaseId
