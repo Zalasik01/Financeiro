@@ -87,7 +87,7 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
 
     try {
       await set(newClientBaseRef, baseData);
-      toast({ title: "Sucesso!", description: `Base "${newBaseName}" criada com ID ${nextNumberId}.` });
+      toast({ title: "Sucesso!", description: `Base "${newBaseName}" criada com ID ${nextNumberId}.`, variant: "success" });
       setNewBaseName("");
       setNewBaseLimit(""); // Limpar o campo de limite
     } catch (error) {

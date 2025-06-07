@@ -3,6 +3,7 @@
     {
       "source": "functions",
       "codebase": "dataconnect", 
+      "storageBucket": "financeiro-597c4.firebasestorage.app",
       "ignore": [
         "node_modules",
         ".git",
@@ -15,5 +16,19 @@
         "cmd /c npm --prefix \"$RESOURCE_DIR\" run build"
       ]
     }
-  ]
+  ],
+  "hosting": {
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
 }

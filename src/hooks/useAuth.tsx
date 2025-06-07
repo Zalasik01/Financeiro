@@ -123,7 +123,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           title: "Acesso Bloqueado",
           description: `A base "${baseData.name}" está temporariamente inativa. Motivo: ${baseData.motivo_inativo || "Não especificado."}`,
           variant: "destructive",
-          duration: 9000,
         });
         _setSelectedBaseId(null); // Não define a base se estiver inativa
         return;
