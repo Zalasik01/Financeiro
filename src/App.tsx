@@ -12,8 +12,8 @@ import {
 } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import LoginPage from "./pages/LoginPage";
-import SignupPage from "./pages/SignupPage";
+import LoginPage from "./pages/LoginPage"; 
+// import SignupPage from "./pages/SignupPage"; // Página de signup não será mais usada
 import ProtectedRoute from "./components/ProtectedRoute";
 import SettingsPage from "./pages/SettingsPage";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
@@ -165,7 +165,7 @@ const AppContent = () => {
               </Route>
             </Route>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
+            {/* <Route path="/signup" element={<SignupPage />} />  // Rota de signup removida */}
             <Route path="/convite/:inviteToken" element={<InvitePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -121,15 +121,6 @@ export default function LoginPage() {
                 "Entrar"
               )}
             </Button>
-            <div className="text-center text-sm">
-              Não tem uma conta?{" "}
-              <Link
-                to="/signup"
-                className="font-medium text-primary hover:underline"
-              >
-                Crie uma agora
-              </Link>
-            </div>
           </CardFooter>
         </form>
       </Card>

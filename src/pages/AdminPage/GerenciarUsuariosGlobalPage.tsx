@@ -3,7 +3,7 @@ import { db, functions as firebaseFunctions } from "@/firebase"; // Importar fun
 import { ref, onValue, get } from "firebase/database";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button"; // Importar buttonVariants
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
@@ -44,6 +44,7 @@ const GerenciarUsuariosGlobalPage: React.FC = () => {
 
   const [userToLink, setUserToLink] = useState<UserWithBaseInfo | null>(null);
   const [baseNumberIdToLink, setBaseNumberIdToLink] = useState<string>("");
+  const [userToDelete, setUserToDelete] = useState<UserWithBaseInfo | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -214,7 +215,35 @@ const GerenciarUsuariosGlobalPage: React.FC = () => {
     }
   };
 
-  const handleDeleteUser = (user: UserWithBaseInfo) => toast({ title: "Ação: Excluir Usuário", description: `TODO: Implementar exclusão para ${user.displayName}. Requer Admin SDK e limpeza no RTDB.`, duration: 5000 });
+  const handleDeleteUser = (user: UserWithBaseInfo) => {
+    setUserToDelete(user);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      const deleteUserAccountFunction = httpsCallable(firebaseFunctions, 'deleteUserAccount');
+      const result = await deleteUserAccountFunction({ targetUid: userToDelete.uid });
+      const resultData = result.data as { success: boolean; message: string };
+
+      if (resultData.success) {
+        toast({ title: "Sucesso!", description: resultData.message, variant: "success" });
+        setAllUsers(prevUsers => prevUsers.filter(u => u.uid !== userToDelete.uid));
+        // A remoção do authorizedUIDs na Cloud Function deve ser refletida
+        // se você recarregar os dados das bases ou tiver um listener para elas.
+        // Para uma atualização imediata da UI das bases associadas, você pode precisar
+        // atualizar 'allClientBases' também, removendo o UID de 'authorizedUIDs'.
+      } else {
+        toast({ title: "Erro ao excluir usuário", description: resultData.message || "Ocorreu um erro.", variant: "destructive" });
+      }
+    } catch (error: any) {
+      console.error("Erro ao chamar Cloud Function deleteUserAccount:", error);
+      toast({ title: "Erro na Operação", description: error.message || `Não foi possível excluir o usuário ${userToDelete.displayName}.`, variant: "destructive" });
+    } finally {
+      setUserToDelete(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -314,6 +343,25 @@ const GerenciarUsuariosGlobalPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {userToDelete && (
+        <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir o usuário "{userToDelete.displayName || userToDelete.uid}" (UID: {userToDelete.uid})?
+                Esta ação é irreversível e removerá o usuário do sistema de autenticação,
+                seu perfil do banco de dados e o desvinculará de todas as bases.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setUserToDelete(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteUser} className={buttonVariants({ variant: "destructive" })}>Excluir Usuário</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
 
       {userToLink && (
         <AlertDialog open={!!userToLink} onOpenChange={(open) => !open && setUserToLink(null)}>

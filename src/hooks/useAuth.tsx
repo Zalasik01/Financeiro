@@ -154,52 +154,47 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // para que o useEffect no AppContent não abra o modal imediatamente.
         sessionStorage.setItem("adminModalDismissed", "true");
 
-        // displayName é agora obrigatório
+        // Atualizar o perfil no Firebase Auth (displayName, photoURL etc.)
         await updateProfile(userCredential.user, { displayName });
-        const newUserUID = userCredential.user.uid;
-        // Salvar dados adicionais do usuário no RTDB, incluindo a flag isAdmin
-        const userProfileRef = databaseRef(
-          db,
-          `users/${userCredential.user.uid}/profile` // Nó para perfil
-        );
-        await databaseSet(userProfileRef, {
-          email: userCredential.user.email,
-          displayName: displayName,
-          uid: newUserUID,
-          // Lógica de isAdmin e clientBaseId ajustada
-          isAdmin: isAdminOverride === true ? true : (email === "nizalasik@gmail.com"), // Prioriza override, senão lógica antiga
-          clientBaseId: isAdminOverride === true ? null : (inviteClientBaseNumberId ?? null), // Admins não têm clientBaseId
-          createdAt: serverTimestamp(), // Adiciona timestamp de criação do perfil
-              authDisabled: false, // Novo usuário é criado ativo
-        });
+        // const newUserUID = userCredential.user.uid;
+        
+        // A CRIAÇÃO DO PERFIL NO REALTIME DATABASE SERÁ MOVIDA
+        // PARA UMA CLOUD FUNCTION CHAMADA PELO ADMIN
+        // Exemplo de como era antes (agora removido daqui):
+        // const userProfileRef = databaseRef(db, `users/${newUserUID}/profile`);
+        // await databaseSet(userProfileRef, {
+        //   email: userCredential.user.email,
+        //   displayName: displayName,
+        //   uid: newUserUID,
+        //   isAdmin: isAdminOverride === true ? true : (email === "nizalasik@gmail.com"),
+        //   clientBaseId: isAdminOverride === true ? null : (inviteClientBaseNumberId ?? null),
+        //   createdAt: serverTimestamp(),
+        //   authDisabled: false,
+        // });
 
-        // Se o cadastro veio de um convite válido E NÃO é um admin sendo criado, vincular usuário à base
-        if (
-          isAdminOverride !== true && // Não executar para criação de admin
-          inviteToken &&
-          inviteClientBaseUUID &&
-          inviteClientBaseNumberId !== null &&
-          inviteClientBaseNumberId !== undefined
-        ) {
-          // 1. Adicionar UID do usuário à base
-          const authorizedUIDRef = databaseRef(
-            db,
-            `clientBases/${inviteClientBaseUUID}/authorizedUIDs/${newUserUID}`
-          );
-          await databaseSet(authorizedUIDRef, {
-            displayName: userCredential.user.displayName || "Usuário Convidado",
-            email: userCredential.user.email || "email.nao.fornecido@example.com",
-          });
-
-          // 2. Marcar convite como usado
-          const inviteStatusRef = databaseRef(
-            db,
-            `invites/${inviteToken}/status`
-          );
-          await databaseSet(inviteStatusRef, "used");
-          // Opcional: Adicionar usedBy: newUserUID, usedAt: serverTimestamp() ao convite
-          // Opcional: Remover o nó do convite após o uso bem-sucedido
-        }
+        // A LÓGICA DE VINCULAR A UMA BASE VIA CONVITE TAMBÉM É REMOVIDA DAQUI
+        // POIS ESTAVA ATRELADA AO AUTO-CADASTRO
+        // if (
+        //   isAdminOverride !== true &&
+        //   inviteToken &&
+        //   inviteClientBaseUUID &&
+        //   inviteClientBaseNumberId !== null &&
+        //   inviteClientBaseNumberId !== undefined
+        // ) {
+        //   const authorizedUIDRef = databaseRef(
+        //     db,
+        //     `clientBases/${inviteClientBaseUUID}/authorizedUIDs/${newUserUID}`
+        //   );
+        //   await databaseSet(authorizedUIDRef, {
+        //     displayName: userCredential.user.displayName || "Usuário Convidado",
+        //     email: userCredential.user.email || "email.nao.fornecido@example.com",
+        //   });
+        //   const inviteStatusRef = databaseRef(
+        //     db,
+        //     `invites/${inviteToken}/status`
+        //   );
+        //   await databaseSet(inviteStatusRef, "used");
+        // }
       }
       const description = "Bem-vindo(a)! " + displayName;
       toast({
