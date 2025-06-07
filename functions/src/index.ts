@@ -34,7 +34,7 @@ const verifyAdmin = async (context: functions.https.CallableContext): Promise<st
   return callerUid;
 };
 
-export const createAdminUser = functions.https.onCall(async (data, context) => {
+export const createAdminUser = functions.https.onCall(async (data: any, context: functions.https.CallableContext) => {
   // 1. Verifica se o chamador é admin usando a função auxiliar
   await verifyAdmin(context);
 
@@ -82,7 +82,7 @@ export const createAdminUser = functions.https.onCall(async (data, context) => {
   }
 });
 
-export const toggleUserAuthStatus = functions.https.onCall(async (data, context) => {
+export const toggleUserAuthStatus = functions.https.onCall(async (data: any, context: functions.https.CallableContext) => {
   // 1. Verifica se o chamador é admin e obtém seu UID
   const callerUid = await verifyAdmin(context);
 

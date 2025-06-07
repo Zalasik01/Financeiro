@@ -88,7 +88,8 @@
 
     <!-- Script para registrar o Service Worker -->
     <script>
-      if ("serviceWorker" in navigator) {
+      // Registra o Service Worker apenas se não estiver em ambiente de desenvolvimento (DEV)
+      if ("serviceWorker" in navigator && !import.meta.env.DEV) {
         window.addEventListener("load", () => {
           navigator.serviceWorker
             .register("/sw.js")
