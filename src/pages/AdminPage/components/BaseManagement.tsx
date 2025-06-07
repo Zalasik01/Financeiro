@@ -74,15 +74,15 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
       limiteAcessoParaNovaBase = parsedLimit;
     }
 
-    const baseData: Omit<ClientBase, "id"> = {
+    const baseData = { // <--- REMOVA a anotação de tipo daqui
       name: newBaseName,
       numberId: nextNumberId,
       authorizedUIDs: authorizedUIDsObject,
-      createdAt: serverTimestamp() as any,
-      limite_acesso: limiteAcessoParaNovaBase, // Usar o valor do input
+      createdAt: serverTimestamp(), // 'as any' removido
+      limite_acesso: limiteAcessoParaNovaBase,
       createdBy: currentUser.uid,
-      ativo: true, // Definir base como ativa na criação
-      motivo_inativo: null, // Inicialmente sem motivo
+      ativo: true,
+      motivo_inativo: null,
     };
 
     try {

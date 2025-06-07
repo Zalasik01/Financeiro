@@ -115,9 +115,9 @@ export const useFinance = () => {
         id: newCategoryRef.key!,
         createdAt: new Date(),
       } as Category;
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message || "Não foi possível adicionar a categoria.";
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message || "Não foi possível adicionar a categoria.";
       console.error("Erro ao adicionar categoria: ", error);
       toast({
         title: "Erro!",
@@ -150,9 +150,9 @@ export const useFinance = () => {
       // `update` é mais seguro para atualizações parciais.
       await update(categoryRef, categoryUpdates);
       toast({ title: "Sucesso!", description: "Categoria atualizada." });
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message || "Não foi possível atualizar a categoria.";
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message || "Não foi possível atualizar a categoria.";
       console.error("Erro ao atualizar categoria: ", error);
       toast({
         title: "Erro!",
@@ -179,9 +179,9 @@ export const useFinance = () => {
       ); // Caminho atualizado
       await remove(categoryRef);
       toast({ title: "Sucesso!", description: "Categoria deletada." });
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message || "Não foi possível deletar a categoria.";
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message || "Não foi possível deletar a categoria.";
       console.error("Erro ao deletar categoria: ", error);
       toast({
         title: "Erro!",
@@ -211,7 +211,7 @@ export const useFinance = () => {
       const newTransactionRef = push(transactionsNodeRef);
 
       // Construir o objeto a ser salvo, garantindo que não haja 'undefined'
-      const transactionToSave: any = {
+      const transactionToSave: Partial<Transaction> & { createdAt: object } = {
         // Usar 'any' temporariamente para flexibilidade na construção
         description: transactionData.description,
         amount: transactionData.amount,
@@ -235,10 +235,10 @@ export const useFinance = () => {
         ...transactionData,
         id: newTransactionRef.key!,
         createdAt: new Date(),
-      }; // Retornar com ID e data convertida
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message || "Não foi possível adicionar a transação.";
+      } as Transaction; // Retornar com ID e data convertida
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message || "Não foi possível adicionar a transação.";
       console.error("Erro ao adicionar transação:", error);
       toast({
         title: "Erro!",
@@ -270,16 +270,20 @@ export const useFinance = () => {
         db,
         `clientBases/${selectedBaseId}/appTransactions/${id}`
       ); // Caminho atualizado
-      const updatesToSave: any = { ...transactionUpdates }; // Usar 'any' temporariamente
+      // Use Record<string, any> for the object to be passed to Firebase `update`
+      // to allow for type differences (e.g., Date vs. string for date field).
+      const updatesToSave: Record<string, unknown> = { ...transactionUpdates };
 
-      if (transactionUpdates.date) {
-        updatesToSave.date = transactionUpdates.date.toISOString();
+      // Explicitly type dateToUpdate to avoid implicit any if transactionUpdates.date is not strictly Date | string
+      const dateToUpdate: Date | string | undefined | null = transactionUpdates.date;
+      if (dateToUpdate && typeof dateToUpdate !== 'string' && dateToUpdate instanceof Date) {
+        updatesToSave.date = dateToUpdate.toISOString(); // Firebase expects string
       }
 
       // Tratar 'discount' especificamente:
       // Se 'discount' está presente em transactionUpdates e é 0 ou null, queremos remover o campo ou setar para null.
       // Se for um número > 0, o mantemos.
-      if (transactionUpdates.hasOwnProperty("discount")) {
+      if (Object.prototype.hasOwnProperty.call(transactionUpdates, "discount")) {
         if (
           typeof transactionUpdates.discount === "number" &&
           transactionUpdates.discount > 0
@@ -291,9 +295,9 @@ export const useFinance = () => {
       }
 
       await update(transactionRef, updatesToSave);
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message || "Não foi possível atualizar a transação.";
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message || "Não foi possível atualizar a transação.";
       console.error("Erro ao atualizar transação:", error);
       toast({
         title: "Erro!",
@@ -320,9 +324,9 @@ export const useFinance = () => {
       ); // Caminho atualizado
       await remove(transactionRef);
       toast({ title: "Sucesso!", description: "Transação deletada." });
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message || "Não foi possível deletar a transação.";
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message || "Não foi possível deletar a transação.";
       console.error("Erro ao deletar transação:", error);
       toast({
         title: "Erro!",
@@ -417,9 +421,9 @@ export const useFinance = () => {
           });
         }
       }
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message ||
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message ||
         "Não foi possível remover as transações do fechamento anterior.";
       console.error("Erro ao remover transações por data e loja:", error);
       toast({

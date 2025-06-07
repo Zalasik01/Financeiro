@@ -209,8 +209,9 @@ const GerenciarUsuariosGlobalPage: React.FC = () => {
       } else {
         toast({ title: `Erro ao ${actionText} usuário`, description: resultData.message || "Ocorreu um erro.", variant: "destructive" });
       }
-    } catch (error: any) {
-      console.error(`Erro ao chamar Cloud Function toggleUserAuthStatus para ${actionText} usuário:`, error);
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as { message?: string };
+      console.error(`Erro ao chamar Cloud Function toggleUserAuthStatus para ${actionText} usuário:`, error.message || error);
       toast({ title: "Erro na Operação", description: error.message || `Não foi possível ${actionText} o usuário.`, variant: "destructive" });
     }
   };
@@ -237,8 +238,9 @@ const GerenciarUsuariosGlobalPage: React.FC = () => {
       } else {
         toast({ title: "Erro ao excluir usuário", description: resultData.message || "Ocorreu um erro.", variant: "destructive" });
       }
-    } catch (error: any) {
-      console.error("Erro ao chamar Cloud Function deleteUserAccount:", error);
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as { message?: string };
+      console.error("Erro ao chamar Cloud Function deleteUserAccount:", error.message || error);
       toast({ title: "Erro na Operação", description: error.message || `Não foi possível excluir o usuário ${userToDelete.displayName}.`, variant: "destructive" });
     } finally {
       setUserToDelete(null);

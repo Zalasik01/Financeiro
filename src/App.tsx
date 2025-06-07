@@ -35,7 +35,7 @@ import AdminLayout from "./components/AdminLayout";
 import GerenciarUsuariosGlobalPage from "./pages/AdminPage/GerenciarUsuariosGlobalPage"; // Certifique-se que a importação está correta
 import { AccessSelectionModal } from "./components/AccessSelectionModal";
 import InvitePage from "./pages/InvitePage";
-import { useStores } from "./hooks/useStores";
+import { useStores } from "./hooks/useStores";import { useMemo } from "react";
 
 const queryClient = new QueryClient();
 
@@ -60,7 +60,8 @@ const AppContent = () => {
   const { currentUser, loading: authLoading, setSelectedBaseId } = useAuth();
   const { bases } = useStores();
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
-  const routeTitles: Record<string, string> = {
+
+  const routeTitles = useMemo((): Record<string, string> => ({
     "/": "Visão Geral",
     "/transacao": "Transações",
     "/categoria": "Categorias",
@@ -77,12 +78,12 @@ const AppContent = () => {
     "/login": "Login",
     "/signup": "Criar Conta",
     "*": "Página Não Encontrada",
-  };
+  }), []);
 
   useEffect(() => {
     const pageTitle = routeTitles[location.pathname] || routeTitles["*"];
     document.title = `Financeiro App - ${pageTitle}`;
-  }, [location.pathname, routeTitles]);
+  }, [location.pathname, routeTitles]); // routeTitles is now stable due to useMemo
 
   useEffect(() => {
     if (

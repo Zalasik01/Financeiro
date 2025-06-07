@@ -45,8 +45,10 @@ export const StoreManager = ({
   useEffect(() => {
     if (editingStore) {
       setDisplayCNPJ(maskCNPJ(editingStore.cnpj));
+    } else { // Limpar displayCNPJ se não estiver editando
+      setDisplayCNPJ(newStore.cnpj ? maskCNPJ(newStore.cnpj) : "");
     }
-  }, [editingStore?.cnpj]);
+  }, [editingStore, newStore.cnpj]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -20,6 +20,7 @@ export const InstallPWAButton = () => {
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault(); // Previne o mini-infobar do Chrome de aparecer
+      // @ts-expect-error - e.prompt is not available on all Event types, but this event listener is specific to 'beforeinstallprompt' which has it.
       setDeferredPrompt(e as BeforeInstallPromptEvent); // Salva o evento para ser usado depois
     };
 
@@ -28,7 +29,6 @@ export const InstallPWAButton = () => {
     // Verifica se é iOS para mostrar instruções específicas
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIOS = /iphone|ipad|ipod/.test(userAgent);
-    // @ts-ignore: Property 'standalone' does not exist on type 'Navigator'.
     const isInStandaloneMode =
       window.navigator.standalone ||
       window.matchMedia("(display-mode: standalone)").matches;

@@ -1,13 +1,18 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
+// Inicializa o Admin SDK apenas uma vez
 if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-export const createAdminUser = functions.https.onCall(async (data, context) => {
-  // ... (código da sua função createAdminUser)
-  // Verificação de autenticação e admin
+/**
+ * Função auxiliar para verificar se o chamador da função é um administrador.
+ * Lança um HttpsError se o usuário não for autenticado ou não for admin.
+ * @param {functions.https.CallableContext} context O contexto da função.
+ * @returns {Promise<string>} O UID do chamador admin.
+ */
+const verifyAdmin = async (context: functions.https.CallableContext): Promise<string> => {
   if (!context.auth) {
     throw new functions.https.HttpsError(
       "unauthenticated",
@@ -15,26 +20,40 @@ export const createAdminUser = functions.https.onCall(async (data, context) => {
     );
   }
   const callerUid = context.auth.uid;
-  const callerProfileSnap = await admin.database().ref(`users/${callerUid}/profile`).get();
+  const callerProfileSnap = await admin
+    .database()
+    .ref(`users/${callerUid}/profile`)
+    .get();
+    
   if (!callerProfileSnap.exists() || !callerProfileSnap.val().isAdmin) {
     throw new functions.https.HttpsError(
       "permission-denied",
       "Apenas administradores podem executar esta ação."
     );
   }
+  return callerUid;
+};
+
+export const createAdminUser = functions.https.onCall(async (data, context) => {
+  // 1. Verifica se o chamador é admin usando a função auxiliar
+  await verifyAdmin(context);
 
   const { email, password, displayName } = data;
   if (!email || !password || !displayName) {
-    throw new functions.https.HttpsError("invalid-argument", "Dados incompletos.");
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "Dados incompletos (email, password, displayName são obrigatórios)."
+    );
   }
-  // ... (restante da lógica de createAdminUser)
+
   try {
     const userRecord = await admin.auth().createUser({
-      email: email,
-      password: password,
-      displayName: displayName,
-      emailVerified: false,
+      email,
+      password,
+      displayName,
+      emailVerified: false, // Por padrão, admins podem precisar verificar o email
     });
+
     const userProfile = {
       email: userRecord.email,
       displayName: userRecord.displayName,
@@ -42,66 +61,52 @@ export const createAdminUser = functions.https.onCall(async (data, context) => {
       isAdmin: true,
       clientBaseId: null,
       createdAt: admin.database.ServerValue.TIMESTAMP,
-      authDisabled: false, // Novo usuário admin é criado ativo
+      authDisabled: false,
     };
+
     await admin.database().ref(`users/${userRecord.uid}/profile`).set(userProfile);
-    return { success: true, message: `Administrador "${displayName}" criado.`, uid: userRecord.uid };
+    
+    return {
+      success: true,
+      message: `Administrador "${displayName}" criado com sucesso.`,
+      uid: userRecord.uid,
+    };
   } catch (e: unknown) {
-    const error = e as { message?: string };
-    console.error("Erro em createAdminUser:", error.message || e);
+    const error = e as { code?: string; message?: string };
+    console.error("Erro em createAdminUser:", error);
+    // Fornece uma mensagem de erro mais específica se disponível
+    if (error.code === 'auth/email-already-exists') {
+        throw new functions.https.HttpsError("already-exists", "O email fornecido já está em uso por outra conta.");
+    }
     throw new functions.https.HttpsError("internal", error.message || "Erro desconhecido ao criar admin.");
   }
 });
 
-
-// Nova função para ativar/inativar usuário
 export const toggleUserAuthStatus = functions.https.onCall(async (data, context) => {
-  // 1. Verificar se o chamador está autenticado
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
-      "unauthenticated",
-      "A função só pode ser chamada por usuários autenticados."
-    );
-  }
+  // 1. Verifica se o chamador é admin e obtém seu UID
+  const callerUid = await verifyAdmin(context);
 
-  // 2. Verificar se o chamador é um administrador
-  const callerUid = context.auth.uid;
-  const callerProfileSnap = await admin.database().ref(`users/${callerUid}/profile`).get();
-  if (!callerProfileSnap.exists() || !callerProfileSnap.val().isAdmin) {
-    throw new functions.https.HttpsError(
-      "permission-denied",
-      "Apenas administradores podem alterar o status de outros usuários."
-    );
-  }
-
-  const { targetUid, disable } = data; // disable será true para desativar, false para ativar
-
-  // 3. Validar os dados de entrada
+  const { targetUid, disable } = data;
   if (!targetUid || typeof disable !== "boolean") {
     throw new functions.https.HttpsError(
       "invalid-argument",
-      "UID do usuário alvo e status de desativação são obrigatórios."
+      "UID do usuário alvo (targetUid) e o status (disable) são obrigatórios."
     );
   }
 
-  // 4. Impedir que um admin se auto-desative por esta função (opcional, mas seguro)
   if (callerUid === targetUid) {
-      throw new functions.https.HttpsError(
-          "failed-precondition",
-          "Administradores não podem desativar a própria conta através desta função."
-      );
+    throw new functions.https.HttpsError(
+      "failed-precondition",
+      "Administradores não podem desativar a própria conta através desta função."
+    );
   }
 
   try {
-    // 5. Atualizar o status do usuário no Firebase Authentication
-    await admin.auth().updateUser(targetUid, {
-      disabled: disable,
-    });
+    // Atualiza o status no Firebase Auth
+    await admin.auth().updateUser(targetUid, { disabled: disable });
 
-    // 6. Atualizar o campo 'authDisabled' no perfil do usuário no Realtime Database
-    // Este campo é a "coluna de ativo" que você mencionou para o RTDB
-    const userProfileRef = admin.database().ref(`users/${targetUid}/profile/authDisabled`);
-    await userProfileRef.set(disable);
+    // Atualiza o status no Realtime Database
+    await admin.database().ref(`users/${targetUid}/profile/authDisabled`).set(disable);
 
     return {
       success: true,
@@ -109,13 +114,15 @@ export const toggleUserAuthStatus = functions.https.onCall(async (data, context)
     };
   } catch (e: unknown) {
     const error = e as { code?: string; message?: string };
-    console.error("Erro ao tentar alterar status do usuário:", error.message || e);
-    if (error.code === "auth/user-not-found") { // Erros do Firebase Auth costumam ter 'code'
-        throw new functions.https.HttpsError("not-found", "Usuário alvo não encontrado.");
+    console.error("Erro ao tentar alterar status do usuário:", error);
+    
+    if (error.code === "auth/user-not-found") {
+      throw new functions.https.HttpsError("not-found", "O usuário alvo não foi encontrado.");
     }
+    
     throw new functions.https.HttpsError(
       "internal",
-      error.message || "Ocorreu um erro interno ao tentar alterar o status do usuário."
+      error.message || "Ocorreu um erro interno ao alterar o status do usuário."
     );
   }
 });

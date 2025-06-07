@@ -5,6 +5,7 @@ import {
   useContext,
   ReactNode,
   useRef,
+  useCallback,
 } from "react";
 import {
   User,
@@ -83,9 +84,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null); // Estado para armazenar mensagens de erro
   const [_selectedBaseId, _setSelectedBaseId] = useState<string | null>(null); // Estado para a base selecionada
-  
-  const setSelectedBaseId = async (baseId: string | null): Promise<void> => {
-    if (!currentUser) { // Adicionado para segurança, embora AppContent deva garantir
+  const { toast } = useToast();
+
+  const setSelectedBaseId = useCallback(async (baseId: string | null): Promise<void> => {
+    // currentUser é uma dependência implícita aqui, mas como está no escopo do provider,
+    // e o hook useAuth garante que o contexto existe, não precisamos passá-lo explicitamente
+    // para o useCallback se a lógica interna não depender de uma versão específica dele que muda.
+    // No entanto, se currentUser fosse usado para algo mais do que uma verificação de existência,
+    // e essa verificação precisasse da versão mais recente, ele deveria ser uma dependência.
+    // Para este caso, a lógica atual parece segura sem currentUser no array de dependências do useCallback.
+    // A função toast também é estável.
+    if (!auth.currentUser) { // Usar auth.currentUser para a verificação mais direta
       _setSelectedBaseId(null);
       return;
     }
@@ -109,7 +118,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       const baseData = snapshot.val() as ClientBase;
-
       if (!baseData.ativo) {
         toast({
           title: "Acesso Bloqueado",
@@ -127,8 +135,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       toast({ title: "Erro ao Acessar Base", description: "Não foi possível verificar o status da base selecionada.", variant: "destructive" });
       _setSelectedBaseId(null);
     }
-  };
-  const { toast } = useToast();
+  }, [toast]); // currentUser e toast são dependências. toast é estável.
 
   // Ref para rastrear se um login acabou de ser concluído
   const hasJustLoggedInRef = useRef(false); 
@@ -364,12 +371,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // 1. Remover foto antiga do Storage se existir (opcional, mas bom para limpeza)
       if (auth.currentUser.photoURL) {
         try {
-          const oldPhotoRef = ref(storage, auth.currentUser.photoURL);
+          const oldPhotoRef = ref(storage, auth.currentUser.photoURL); // Corrigido para usar ref do storage
           await deleteObject(oldPhotoRef);
-        } catch (deleteError: any) {
+        } catch (deleteErrorUnknown: unknown) {
+          const deleteError = deleteErrorUnknown as { message?: string };
           console.warn(
             "Falha ao remover foto antiga do storage durante o upload:",
-            deleteError
+            deleteError.message || deleteError
           );
         }
       }
@@ -392,9 +400,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         title: "Foto atualizada!",
         description: "Sua nova foto de perfil foi salva.",
       });
-    } catch (error: any) {
-      const errMessage =
-        error.message || "Não foi possível atualizar a foto de perfil.";
+    } catch (errorUnknown: unknown) {
+      const typedError = errorUnknown as { message?: string };
+      const errMessage = typedError.message || "Não foi possível atualizar a foto de perfil.";
       setError(errMessage);
       toast({
         title: "Erro no Upload",
@@ -419,10 +427,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         try {
           const photoRef = ref(storage, auth.currentUser.photoURL);
           await deleteObject(photoRef);
-        } catch (deleteError: any) {
+        } catch (deleteErrorUnknown: unknown) {
+          const deleteError = deleteErrorUnknown as { message?: string };
           console.warn(
             "Falha ao remover foto do storage durante a remoção do perfil:",
-            deleteError
+            deleteError.message || deleteError
           );
         }
       }
@@ -436,9 +445,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         title: "Foto removida!",
         description: "Sua foto de perfil foi removida.",
       });
-    } catch (error: any) {
-      const errMessage =
-        error.message || "Não foi possível remover a foto de perfil.";
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as { message?: string };
+      const errMessage = error.message || "Não foi possível remover a foto de perfil.";
       setError(errMessage);
       toast({
         title: "Erro ao Remover Foto",
@@ -456,7 +465,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         databaseGet(userProfileRef)
           .then((snapshot) => {
             let isAdmin = false; // Define um valor padrão
-            let userClientBaseId: string | null = null;
+            let userClientBaseId: number | null = null;
 
             if (snapshot.exists()) {
               const profileData = snapshot.val();
@@ -467,8 +476,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   ? profileData.clientBaseId
                   : null;
               console.log("[useAuth] Perfil do usuário carregado:", { profileData, userClientBaseId }); // LOG ADICIONADO
-            } else {
-            }
+            } // Fechamento do if (snapshot.exists())
             // Armazena o numberId no currentUser.clientBaseId
             setCurrentUser({
               ...user,
@@ -476,12 +484,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               clientBaseId: userClientBaseId,
             });
             // selectedBaseId (UUID) será definido em AppContent
-            setSelectedBaseId(null); // Inicializa como null, AppContent resolverá            
+            // setSelectedBaseId(null); // Comentado pois AppContent já lida com isso e pode causar loop se não memoizado corretamente
           })
           .catch((error) => {
             console.error("Erro ao buscar perfil do usuário no RTDB:", error);
             // Em caso de erro ao buscar perfil, define isAdmin como false para o usuário atual
-            setCurrentUser({ ...user, isAdmin: false });
+            setCurrentUser({ ...user, isAdmin: false, clientBaseId: null });
             setSelectedBaseId(null);
           })
           .finally(() => {
@@ -496,7 +504,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     });
     return unsubscribe;
-  }, []);
+  }, [setSelectedBaseId]); // Adicionado setSelectedBaseId
 
   // Efeito para exibir o toast "Bem-vindo(a) de volta!" após o login e seleção da base
   useEffect(() => {

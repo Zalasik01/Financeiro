@@ -33,8 +33,8 @@ const toastVariants = cva(
         info: "info group border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-400",
         warning:
           "warning group border-yellow-500 bg-yellow-50 text-yellow-700 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-400",
-        destructive:
-          "destructive group border-destructive bg-destructive text-destructive-foreground dark:border-red-900 dark:bg-red-950 dark:text-red-50",
+        destructive: // Ajustado para ter fundo vermelho fraco e borda mais escura
+          "destructive group border-red-500 bg-red-50 text-red-700 dark:border-red-700 dark:bg-red-950 dark:text-red-400",
       },
     },
     defaultVariants: {

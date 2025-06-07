@@ -132,12 +132,12 @@ const EditarPerfilPage: React.FC = () => {
       }
       setIsPhotoRemovalRequested(false); // Reseta o estado de remoção
       setPhotoFile(null); // Limpa o arquivo selecionado após o "upload"
-    } catch (error: any) {
-      console.error("Erro ao atualizar perfil:", error);
-      // O toast de erro já é tratado no hook useAuth
-    } finally {
-      setIsUpdatingProfile(false);
-    }
+    } catch (error: unknown) { // Substituído 'any' por 'unknown'
+  console.error("Erro ao atualizar perfil:", error);
+  // O toast de erro já é tratado no hook useAuth
+} finally {
+  setIsUpdatingProfile(false);
+}
   };
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
@@ -169,12 +169,12 @@ const EditarPerfilPage: React.FC = () => {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
-    } catch (error: any) {
-      // Toast de erro já é tratado no hook useAuth
-      console.error("Erro ao atualizar senha:", error);
-    } finally {
-      setIsUpdatingPassword(false);
-    }
+    } catch (error: unknown) { // Substituído 'any' por 'unknown'
+  // Toast de erro já é tratado no hook useAuth
+  console.error("Erro ao atualizar senha:", error);
+} finally {
+  setIsUpdatingPassword(false);
+}
   };
 
   if (loadingAuth || !currentUser) {

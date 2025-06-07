@@ -6,11 +6,11 @@ export interface ClientBase {
   limite_acesso?: number | null;
   motivo_inativo?: string | null; // Novo campo para o motivo da inativação
   authorizedUIDs: { 
-    [uid: string]: {
-      displayName: string;
-      email: string;
-    };
-  }; // Chaves são UIDs de usuários autorizados
+  [uid: string]: {
+    displayName: string;
+    email: string;
+  };
+};
   createdAt: number; // Timestamp (Firebase serverTimestamp)
   createdBy: string; // UID do admin
 }

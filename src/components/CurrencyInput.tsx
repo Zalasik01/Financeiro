@@ -50,7 +50,7 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
         // value is not a valid number (NaN, undefined, null, etc.)
         setDisplayValue("");
       }
-    }, [value]);
+    }, [value, displayValue]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const inputValue = e.target.value;

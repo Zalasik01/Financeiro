@@ -93,7 +93,7 @@ export const useStores = () => {
             (cb) =>
               cb.authorizedUIDs && // Garante que authorizedUIDs exista
               currentUser.uid &&    // Garante que currentUser.uid exista
-              (cb.authorizedUIDs as any)[currentUser.uid] === true
+              cb.authorizedUIDs[currentUser.uid]
           );
           console.log("[useStores] Bases acessíveis após filtro por authorizedUIDs:", accessibleClientBases.map(b => ({id: b.id, name: b.name })));
         }
@@ -101,17 +101,16 @@ export const useStores = () => {
         setBases(
           accessibleClientBases.map(
             (
-              cb: ClientBase // Adicionar tipo para cb para clareza
-            ) =>
-              ({
+              cb: ClientBase
+            ): Base => ({
                 id: cb.id, // UUID
                 name: cb.name,
                 createdAt: cb.createdAt,
-                numberId: cb.numberId, // Mapear o numberId
-              } as Base) // Assegure-se que o tipo Base em @/types/store.ts inclua numberId: number;
+                numberId: cb.numberId as number, // Assuming Base.numberId is number and cb.numberId might be any
+              })
           )
         );
-      } else {
+      } else { // Adicionado ponto e vírgula
         console.log("[useStores] onValue para clientBases: Nenhum dado encontrado no snapshot.");
         setBases([]);
       }
@@ -334,13 +333,13 @@ export const useStores = () => {
         baseId: selectedBaseId,
         // createdAt será preenchido pelo serverTimestamp, new Date() é uma aproximação local
         createdAt: Date.now(), // Ou deixe como undefined e confie no listener para atualizar
-      } as Store;
-    } catch (error) {
-      const firebaseError = error as Error;
-      if ((firebaseError as any).code) {
+      } as unknown as Store; // Usar unknown para depois forçar o tipo Store
+    } catch (errorUnknown: unknown) {
+      const firebaseError = errorUnknown as Error & { code?: string }; // Adiciona code opcional
+      if (firebaseError.code) {
         console.error(
           "[useStores] Código de erro do Firebase:",
-          (firebaseError as any).code
+          firebaseError.code
         );
       }
       const errorMessage =
@@ -378,9 +377,9 @@ export const useStores = () => {
       await update(storeRef, storeUpdates);
       // Opcional: toast de sucesso
       toast({ title: "Sucesso!", description: "Loja atualizada." });
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message || "Não foi possível atualizar a loja.";
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message || "Não foi possível atualizar a loja.";
       console.error("Erro ao atualizar loja:", error);
       toast({
         title: "Erro!",
@@ -442,9 +441,9 @@ export const useStores = () => {
         title: "Sucesso!",
         description: "Loja e dados associados deletados.",
       });
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message || "Não foi possível deletar a loja.";
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message || "Não foi possível deletar a loja.";
       console.error("Erro ao deletar loja:", error);
       toast({
         title: "Erro!",
@@ -479,9 +478,9 @@ export const useStores = () => {
         description: "Método de pagamento adicionado.",
       });
       return { ...methodData, id: newMethodRef.key!, createdAt: new Date() };
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message ||
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message ||
         "Não foi possível adicionar o método de pagamento.";
       console.error("Erro ao adicionar método de pagamento:", error);
       toast({
@@ -515,9 +514,9 @@ export const useStores = () => {
         title: "Sucesso!",
         description: "Método de pagamento atualizado.",
       });
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message ||
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message ||
         "Não foi possível atualizar o método de pagamento.";
       console.error("Erro ao atualizar método de pagamento:", error);
       toast({
@@ -547,9 +546,9 @@ export const useStores = () => {
         title: "Sucesso!",
         description: "Método de pagamento deletado.",
       });
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message ||
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message ||
         "Não foi possível deletar o método de pagamento.";
       console.error("Erro ao deletar método de pagamento:", error);
       toast({
@@ -584,9 +583,9 @@ export const useStores = () => {
         description: "Tipo de movimento adicionado.",
       });
       return { ...typeData, id: newTypeRef.key!, createdAt: new Date() };
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message ||
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message ||
         "Não foi possível adicionar o tipo de movimento.";
       console.error("Erro ao adicionar tipo de movimento:", error);
       toast({
@@ -620,9 +619,9 @@ export const useStores = () => {
         title: "Sucesso!",
         description: "Tipo de movimento atualizado.",
       });
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message ||
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message ||
         "Não foi possível atualizar o tipo de movimento.";
       console.error("Erro ao atualizar tipo de movimento:", error);
       toast({
@@ -649,9 +648,9 @@ export const useStores = () => {
       ); // Caminho atualizado
       await remove(typeRef);
       toast({ title: "Sucesso!", description: "Tipo de movimento deletado." });
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message ||
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message ||
         "Não foi possível deletar o tipo de movimento.";
       console.error("Erro ao deletar tipo de movimento:", error);
       toast({
@@ -765,9 +764,9 @@ export const useStores = () => {
           (closingData.finalBalance || 0) - (closingData.initialBalance || 0), // Adicionado fallback para 0
         createdAt: new Date(),
       };
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message || "Não foi possível adicionar o fechamento.";
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message || "Não foi possível adicionar o fechamento.";
       console.error("Erro ao adicionar fechamento:", error);
       toast({
         title: "Erro!",
@@ -798,8 +797,8 @@ export const useStores = () => {
       const updatesToSave: Partial<StoreClosing> = { ...closingUpdates }; // Tipagem mais específica
 
       if (closingUpdates.closingDate) {
-        (updatesToSave as any).closingDate =
-          closingUpdates.closingDate.toISOString();
+        (updatesToSave as Record<string, unknown>).closingDate =
+  closingUpdates.closingDate.toISOString();
       }
 
       // Se movements forem atualizados, recalcular totais
@@ -811,7 +810,7 @@ export const useStores = () => {
         updatesToSave.totalSaidas = totalSaidas;
         updatesToSave.totalOutros = totalOutros;
 
-        let currentClosingData;
+        let currentClosingData: StoreClosing | undefined | null; // Tipagem mais precisa
         if (
           closingUpdates.finalBalance === undefined ||
           closingUpdates.initialBalance === undefined
@@ -833,9 +832,9 @@ export const useStores = () => {
 
       await update(closingRef, updatesToSave);
       toast({ title: "Sucesso!", description: "Fechamento atualizado." });
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message || "Não foi possível atualizar o fechamento.";
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message || "Não foi possível atualizar o fechamento.";
       console.error("Erro ao atualizar fechamento:", error);
       toast({
         title: "Erro!",
@@ -861,9 +860,9 @@ export const useStores = () => {
       ); // Caminho atualizado
       await remove(closingRef);
       toast({ title: "Sucesso!", description: "Fechamento deletado." });
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message || "Não foi possível deletar o fechamento.";
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message || "Não foi possível deletar o fechamento.";
       console.error("Erro ao deletar fechamento:", error);
       toast({
         title: "Erro!",
@@ -909,7 +908,8 @@ export const useStores = () => {
       : stores;
 
     const storeResults = filteredStores
-      .map((store) => {
+      // Assuming filteredStores is Store[]
+      .map((store: Store) => {
         const storeClosings = filteredClosings.filter(
           (closing) => closing.storeId === store.id
         );
@@ -978,9 +978,9 @@ export const useStores = () => {
       await set(newGoalRef, goalToSave);
       toast({ title: "Sucesso!", description: "Meta adicionada." });
       return { ...goalData, id: newGoalRef.key!, createdAt: new Date() };
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message || "Não foi possível adicionar a meta.";
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message || "Não foi possível adicionar a meta.";
       console.error("Erro ao adicionar meta:", error);
       toast({
         title: "Erro!",
@@ -1005,15 +1005,15 @@ export const useStores = () => {
     }
     try {
       const goalRef = ref(db, `clientBases/${selectedBaseId}/appGoals/${id}`); // Caminho atualizado
-      const updatesToSave = { ...goalUpdates } as any;
+      const updatesToSave: Record<string, unknown> = { ...goalUpdates };
       if (goalUpdates.targetDate) {
         updatesToSave.targetDate = goalUpdates.targetDate.toISOString();
       }
       await update(goalRef, updatesToSave);
       toast({ title: "Sucesso!", description: "Meta atualizada." });
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message || "Não foi possível atualizar a meta.";
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message || "Não foi possível atualizar a meta.";
       console.error("Erro ao atualizar meta:", error);
       toast({
         title: "Erro!",
@@ -1036,9 +1036,9 @@ export const useStores = () => {
       const goalRef = ref(db, `clientBases/${selectedBaseId}/appGoals/${id}`); // Caminho atualizado
       await remove(goalRef);
       toast({ title: "Sucesso!", description: "Meta deletada." });
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message || "Não foi possível deletar a meta.";
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as Error;
+      const errorMessage = error.message || "Não foi possível deletar a meta.";
       console.error("Erro ao deletar meta:", error);
       toast({
         title: "Erro!",
@@ -1075,7 +1075,7 @@ export const useStores = () => {
           : 0;
 
       const sortedClosings = [...storeClosings].sort(
-        (a, b) =>
+        (a: StoreClosing, b: StoreClosing) =>
           new Date(b.closingDate).getTime() - new Date(a.closingDate).getTime()
       );
 

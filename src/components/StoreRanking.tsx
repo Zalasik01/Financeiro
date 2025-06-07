@@ -15,10 +15,10 @@ interface StoreRankingProps {
   rankings: StoreRankingType[];
 }
 
+type SortByType = "totalRevenue" | "totalClosings" | "totalExpenses" | "averageBalance";
+
 export const StoreRanking = ({ rankings }: StoreRankingProps) => {
-  const [sortBy, setSortBy] = useState<
-    "totalRevenue" | "totalClosings" | "totalExpenses" | "averageBalance"
-  >("totalRevenue");
+  const [sortBy, setSortBy] = useState<SortByType>("totalRevenue");
 
   const sortedRankings = [...rankings].sort((a, b) => {
     switch (sortBy) {
@@ -57,15 +57,14 @@ export const StoreRanking = ({ rankings }: StoreRankingProps) => {
         return `${position}º`;
     }
   };
-
   return (
     <Card className="animate-fade-in">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span className="flex items-center gap-2">🏆 Ranking de Lojas</span>
           <Select
-            value={sortBy}
-            onValueChange={(value: any) => setSortBy(value)}
+            value={sortBy} // value é do tipo SortByType
+            onValueChange={(value: SortByType) => setSortBy(value)} // value é do tipo SortByType
           >
             <SelectTrigger className="w-48">
               <SelectValue />

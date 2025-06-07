@@ -12,10 +12,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/firebase";
-import { ref, onValue, serverTimestamp, get, remove, set, push, update } from "firebase/database";
+import { ref, onValue, serverTimestamp, get, remove, set, push, update, DatabaseReference } from "firebase/database";
 import { Users } from "lucide-react";
 import { BaseManagement, ClientBase as ClientBaseType } from "./AdminPage/components/BaseManagement"; // Importar ClientBase como ClientBaseType
 import { AdminManagement } from "./AdminPage/components/AdminManagement";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 interface AppUser {
   uid: string;
@@ -26,7 +28,12 @@ interface AppUser {
   isAdmin?: boolean;
 }
 
-const AdminPage: React.FC = () => {
+// Definir o tipo para o estado userToRemove, que já existe no seu código
+interface UserToRemoveData {
+  user: { uid: string; displayName: string };
+  base: ClientBaseType; // Usar ClientBaseType que já está importado
+}
+const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
   const { currentUser } = useAuth();
   const { toast } = useToast();
 
@@ -40,10 +47,18 @@ const AdminPage: React.FC = () => {
   const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
 
   const [userToRevoke, setUserToRevoke] = useState<AppUser | null>(null);
-  const [userToRemove, setUserToRemove] = useState<{ user: { uid: string; displayName: string }; base: ClientBase } | null>(null);
+  const [userToRemove, setUserToRemove] = useState<UserToRemoveData | null>(null);
   const [baseToDelete, setBaseToDelete] = useState<ClientBaseType | null>(null); // Estado para a base a ser excluída
   const [baseToToggleStatus, setBaseToToggleStatus] = useState<ClientBaseType | null>(null); // Estado para ativar/inativar base
   const [inactivationReason, setInactivationReason] = useState<string>(""); // Estado para o motivo da inativação
+  const [selectedPredefinedReason, setSelectedPredefinedReason] = useState<string>("");
+
+  const predefinedInactivationReasons = [
+    "Pagamento pendente",
+    "Solicitação do cliente",
+    "Fim do período de teste",
+    "Suspensão temporária",
+  ];
 
   useEffect(() => {
     const clientBasesRef = ref(db, "clientBases");
@@ -149,18 +164,47 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  // Definição da função que estava faltando
   const confirmRemoveUserFromBase = async () => {
-    if (!userToRemove) return;
-    const { user, base } = userToRemove; // base aqui é ClientBaseType
+    if (!userToRemove) {
+      toast({ title: "Erro", description: "Nenhum usuário selecionado para remoção.", variant: "destructive" });
+      return;
+    }
+
+    const { user, base } = userToRemove;
 
     try {
-      const userRef = ref(db, `clientBases/${base.id}/authorizedUIDs/${user.uid}`);
-      await remove(userRef);
-      toast({ title: "Sucesso", description: `${user.displayName} foi removido da base ${base.name}.` });
-    } catch(error: any) {
-      toast({ title: "Erro", description: "Não foi possível remover o usuário da base.", variant: "destructive" });
+      // Caminho para o UID específico dentro de authorizedUIDs da base
+      const authorizedUserRef: DatabaseReference = ref(db, `clientBases/${base.id}/authorizedUIDs/${user.uid}`);
+      await remove(authorizedUserRef);
+
+      toast({
+        title: "Sucesso!",
+        description: `Usuário "${user.displayName}" removido da base "${base.name}".`,
+        variant: "success",
+      });
+
+      // Atualizar o estado local clientBases para refletir a remoção
+      setClientBases(prevBases =>
+        prevBases.map(b => {
+          if (b.id === base.id && b.authorizedUIDs) {
+            const { [user.uid]: _, ...remainingAuthUIDs } = b.authorizedUIDs;
+            return { ...b, authorizedUIDs: remainingAuthUIDs };
+          }
+          return b;
+        })
+      );
+
+    } catch (error) {
+      console.error("Erro ao remover usuário da base:", error);
+      const typedError = error as Error;
+      toast({
+        title: "Erro ao Remover",
+        description: typedError.message || "Não foi possível remover o usuário da base.",
+        variant: "destructive"
+      });
     } finally {
-      setUserToRemove(null);
+      setUserToRemove(null); // Fecha o diálogo
     }
   };
 
@@ -194,6 +238,7 @@ const AdminPage: React.FC = () => {
     setBaseToToggleStatus(base);
     if (base.ativo) { // Se for inativar, limpa o motivo anterior para o input
       setInactivationReason("");
+      setSelectedPredefinedReason(""); // Limpa a razão pré-definida
     } else { // Se for ativar, pode pré-preencher com o motivo existente, ou limpar
       setInactivationReason(base.motivo_inativo || "");
     }
@@ -205,11 +250,11 @@ const AdminPage: React.FC = () => {
     const newStatus = !baseToToggleStatus.ativo;
     const updates: { ativo: boolean; motivo_inativo: string | null } = {
       ativo: newStatus,
-      motivo_inativo: newStatus ? null : (inactivationReason.trim() || "Motivo não especificado"),
+      motivo_inativo: newStatus ? null : (inactivationReason.trim() || selectedPredefinedReason || "Motivo não especificado"),
     };
 
-    if (!newStatus && !inactivationReason.trim()) {
-      toast({ title: "Atenção", description: "Por favor, forneça um motivo para inativar a base.", variant: "destructive" });
+    if (!newStatus && !inactivationReason.trim() && !selectedPredefinedReason) {
+      toast({ title: "Atenção", description: "Por favor, selecione ou forneça um motivo para inativar a base.", variant: "destructive" });
       return;
     }
 
@@ -226,7 +271,13 @@ const AdminPage: React.FC = () => {
     } finally {
       setBaseToToggleStatus(null);
       setInactivationReason("");
+      setSelectedPredefinedReason("");
     }
+  };
+
+  const handlePredefinedReasonChange = (value: string) => {
+    setSelectedPredefinedReason(value);
+    setInactivationReason(value); // Também atualiza o campo de texto
   };
 
   return (
@@ -283,24 +334,45 @@ const AdminPage: React.FC = () => {
 
       {/* AlertDialog para confirmar ativação/inativação de base */}
       {baseToToggleStatus && (
-        <AlertDialog open={!!baseToToggleStatus} onOpenChange={(open) => { if (!open) { setBaseToToggleStatus(null); setInactivationReason(""); }}}>
+        <AlertDialog open={!!baseToToggleStatus} onOpenChange={(open) => { if (!open) { setBaseToToggleStatus(null); setInactivationReason(""); setSelectedPredefinedReason(""); }}}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>
                 {baseToToggleStatus.ativo ? "Inativar" : "Ativar"} Base "{baseToToggleStatus.name}"?
               </AlertDialogTitle>
               <AlertDialogDescription>
-                {baseToToggleStatus.ativo 
-                  ? "Ao inativar, o acesso à base será bloqueado. Por favor, informe o motivo:" 
+                {baseToToggleStatus.ativo
+                  ? "Ao inativar, o acesso à base será bloqueado. Por favor, selecione ou informe o motivo:"
                   : `Deseja reativar a base "${baseToToggleStatus.name}"? O motivo da inativação anterior foi: "${baseToToggleStatus.motivo_inativo || 'Não especificado'}"`}
               </AlertDialogDescription>
               {baseToToggleStatus.ativo && (
-                <textarea
-                  value={inactivationReason}
-                  onChange={(e) => setInactivationReason(e.target.value)}
-                  placeholder="Motivo da inativação (obrigatório)"
-                  className="mt-2 w-full p-2 border rounded bg-background text-foreground"
-                />
+                <div className="mt-4 space-y-3">
+                  <RadioGroup value={selectedPredefinedReason} onValueChange={handlePredefinedReasonChange}>
+                    {predefinedInactivationReasons.map((reason) => (
+                      <div className="flex items-center space-x-2" key={reason}>
+                        <RadioGroupItem value={reason} id={`reason-${reason.replace(/\s+/g, '-')}`} />
+                        <Label htmlFor={`reason-${reason.replace(/\s+/g, '-')}`}>{reason}</Label>
+                      </div>
+                    ))}
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="outro" id="reason-outro" />
+                      <Label htmlFor="reason-outro">Outro motivo (especificar abaixo)</Label>
+                    </div>
+                  </RadioGroup>
+
+                  <textarea
+                    value={inactivationReason}
+                    onChange={(e) => {
+                      setInactivationReason(e.target.value);
+                      // Se o usuário começar a digitar, desmarca a opção de rádio pré-definida, exceto se for "outro"
+                      if (selectedPredefinedReason !== "outro" && selectedPredefinedReason !== e.target.value) {
+                        setSelectedPredefinedReason(predefinedInactivationReasons.includes(e.target.value) ? e.target.value : "outro");
+                      }
+                    }}
+                    placeholder="Especifique o motivo aqui se 'Outro' ou para detalhar"
+                    className="mt-2 w-full p-2 border rounded bg-background text-foreground"
+                  />
+                </div>
               )}
             </AlertDialogHeader>
             <AlertDialogFooter>
