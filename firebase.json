@@ -1,22 +1,18 @@
 {
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "dataconnect", 
-      "storageBucket": "financeiro-597c4.firebasestorage.app",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ],
-      "predeploy": [
-        "cmd /c npm --prefix \"$RESOURCE_DIR\" run lint",
-        "cmd /c npm --prefix \"$RESOURCE_DIR\" run build"
-      ]
-    }
-  ],
+  "functions": {
+    "source": "functions",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "*.local"
+    ],
+    "predeploy": [
+  "npm --prefix ./functions run lint",
+  "npm --prefix ./functions run build"
+]
+  },
   "hosting": {
     "public": "dist",
     "ignore": [
