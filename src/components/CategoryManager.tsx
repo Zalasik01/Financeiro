@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Category } from "@/types/finance";
 import { useToast } from "@/hooks/use-toast";
+import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react"; // Importar o seletor de emojis
 
 interface CategoryManagerProps {
   categories: Category[];
@@ -56,6 +57,9 @@ export const CategoryManager = ({
     icon: "💰",
     color: "#10B981",
   });
+  // Estado para controlar a visibilidade do seletor de emojis
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -69,13 +73,19 @@ export const CategoryManager = ({
       return;
     }
 
-    onAddCategory(newCategory);
+    onAddCategory({
+      name: newCategory.name,
+      type: newCategory.type,
+      icon: newCategory.icon, // O ícone já estará atualizado pelo seletor
+      color: newCategory.color,
+    });
     setNewCategory({
       name: "",
       type: "expense",
       icon: "💰",
       color: "#10B981",
     });
+    setShowEmojiPicker(false); // Esconder o seletor de emojis
 
     toast({
       title: "Sucesso",
@@ -142,44 +152,82 @@ export const CategoryManager = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Ícone</Label>
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="flex flex-wrap items-center gap-2 mt-2 relative">
                 {categoryIcons.map((icon) => (
                   <button
                     key={icon}
                     type="button"
                     className={`p-2 rounded-lg border-2 hover:scale-110 transition-transform ${
-                      newCategory.icon === icon
+                      newCategory.icon === icon && !showEmojiPicker // Destaca se for o ícone selecionado E o picker não estiver aberto
                         ? "border-blue-500 bg-blue-50"
                         : "border-gray-200"
                     }`}
-                    onClick={() =>
-                      setNewCategory((prev) => ({ ...prev, icon }))
-                    }
+                    onClick={() => {
+                      setNewCategory((prev) => ({ ...prev, icon }));
+                      setShowEmojiPicker(false); // Fecha o picker se um ícone predefinido for clicado
+                    }}
                   >
                     {icon}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  className="p-2 rounded-lg border-2 border-gray-200 hover:scale-110 transition-transform text-xl"
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  title="Escolher emoji"
+                >
+                  {/* Mostra o ícone selecionado se não for um dos predefinidos, ou um emoji genérico */}
+                  {newCategory.icon && !categoryIcons.includes(newCategory.icon) ? newCategory.icon : "😀"}
+                </button>
+                {showEmojiPicker && (
+                  <div className="absolute z-10 top-full mt-2 left-0"> {/* Ajuste 'left-0' para alinhar */}
+                    <EmojiPicker
+                      onEmojiClick={(emojiData: EmojiClickData) => {
+                        setNewCategory((prev) => ({ ...prev, icon: emojiData.emoji }));
+                        setShowEmojiPicker(false);
+                      }}
+                      autoFocusSearch={false}
+                      theme={Theme.AUTO} // Ou Theme.LIGHT, Theme.DARK
+                      height={350}
+                      // width="300px" // Pode definir uma largura fixa se desejar
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
             <div>
-              <Label>Cor</Label>
-              <div className="flex flex-wrap gap-2 mt-2">
+              <Label htmlFor="category-color-select">Cor</Label>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
                 {categoryColors.map((color) => (
                   <button
                     key={color}
                     type="button"
                     className={`w-8 h-8 rounded-full border-2 hover:scale-110 transition-transform ${
                       newCategory.color === color
-                        ? "border-gray-800"
+                        ? "ring-2 ring-offset-1 ring-gray-800"
                         : "border-gray-300"
                     }`}
                     style={{ backgroundColor: color }}
                     onClick={() =>
                       setNewCategory((prev) => ({ ...prev, color }))
                     }
+                    title={`Selecionar cor ${color}`}
                   />
                 ))}
+                <Input
+                  id="category-color-select"
+                  type="color"
+                  value={newCategory.color}
+                  onChange={(e) =>
+                    setNewCategory((prev) => ({
+                      ...prev,
+                      color: e.target.value,
+                    }))
+                  }
+                  className="w-10 h-10 p-0 border-gray-300 rounded-md cursor-pointer"
+                  title="Escolher cor customizada"
+                />
               </div>
             </div>
           </div>

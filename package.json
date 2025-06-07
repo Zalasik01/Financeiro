@@ -46,6 +46,7 @@
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
+    "emoji-picker-react": "^4.12.2",
     "firebase": "^11.8.1",
     "firebase-functions": "^6.3.2",
     "input-otp": "^1.2.4",
