@@ -18,6 +18,8 @@ export interface Transaction {
   category?: Category;
   storeId?: string;
   createdAt: Date;
+  updatedAt?: Date;]
+  updatedBy?: string;
 }
 
 export interface FinancialSummary {

@@ -87,7 +87,7 @@ export const TransactionList = ({
                       <span className="text-xs text-gray-500">
                         {new Date(transaction.date).toLocaleDateString("pt-BR")}
                       </span>
-                      {transaction.discount && transaction.discount > 0 && (
+                      {transaction.discount != null && transaction.discount > 0 && (
                         <Badge
                           variant="outline"
                           className="text-xs text-red-500"
@@ -95,8 +95,20 @@ export const TransactionList = ({
                           Desconto: {formatCurrency(transaction.discount)}
                         </Badge>
                       )}
-                    </div>
-                  </div>
+                    </div> {/* Fim do <div className="flex items-center gap-2 flex-wrap"> */}
+                    {transaction.updatedAt && (
+                      <div className="text-xs text-gray-500 italic mt-1">
+                        <span>
+                          Editado em: {new Date(transaction.updatedAt).toLocaleDateString("pt-BR")}
+                          {' às '}
+                          {new Date(transaction.updatedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit'})}
+                        </span>
+                        {transaction.updatedBy && (
+                          <span className="ml-1">(por {transaction.updatedBy})</span>
+                        )}
+                      </div>
+                    )}
+                  </div> {/* Fim do <div className="min-w-0"> */}
                 </div>
                 <div className="flex items-center gap-2">
                   <span

@@ -12,6 +12,7 @@ import {
 import { Transaction, Category } from "@/types/finance";
 import { useToast } from "@/hooks/use-toast";
 import { CurrencyInput } from "./CurrencyInput";
+import { useAuth } from "@/hooks/useAuth"; // Adicionar useAuth
 import { useStores } from "@/hooks/useStores"; // Importar o hook de lojas
 
 interface TransactionFormProps {
@@ -44,6 +45,7 @@ export const TransactionForm = ({
   });
   const { toast } = useToast();
   const { stores } = useStores(); // Obter a lista de lojas
+  const { currentUser } = useAuth(); // Obter o usuário atual
 
   // Refs para os campos do formulário
   const descriptionRef = useRef<HTMLInputElement>(null);
@@ -131,7 +133,7 @@ export const TransactionForm = ({
     const [year, month, day] = newTransaction.date.split("-").map(Number);
     const transactionDateObj = new Date(year, month - 1, day); // Mês é 0-indexado
 
-    const transactionData = {
+    const baseTransactionData = {
       description: newTransaction.description,
       amount: newTransaction.type === "expense" ? -finalAmount : finalAmount,
       // Se o desconto for 0 ou não definido, passamos null.
@@ -142,16 +144,21 @@ export const TransactionForm = ({
       type: newTransaction.type,
       storeId: newTransaction.storeId, // Incluir storeId nos dados da transação
     };
-
+    
     if (editingTransaction && onUpdateTransaction) {
-      onUpdateTransaction(editingTransaction.id, transactionData);
+      const updatedTransactionData: Partial<Transaction> = {
+        ...baseTransactionData,
+        updatedAt: new Date(),
+        updatedBy: currentUser?.displayName || "Usuário",
+      };
+      onUpdateTransaction(editingTransaction.id, updatedTransactionData);
       toast({
         title: "Sucesso",
         description: "Transação atualizada com sucesso!",
         variant: "success",
       });
     } else {
-      onAddTransaction(transactionData);
+      onAddTransaction(baseTransactionData);
       toast({
         title: "Sucesso",
         description: "Transação adicionada com sucesso!",
@@ -211,32 +218,11 @@ export const TransactionForm = ({
       className="space-y-4 p-4 bg-gray-50 rounded-lg"
     >
       <div className="flex justify-between items-center">
+        {/* O título do formulário permanece aqui */}
         <h3 className="text-lg font-medium text-gray-700">
           {editingTransaction ? "Editar Transação" : "Nova Transação"}
         </h3>
-        {editingTransaction && onUpdateTransaction && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setNewTransaction({
-                description: "",
-                amount: 0,
-                discount: 0,
-                categoryId: "",
-                date: new Date().toISOString().split("T")[0],
-                type: "expense",
-                storeId: undefined,
-              });
-              // Chamamos onUpdateTransaction com o mesmo id mas passando null como dado
-              // A implementação então irá cancelar a edição
-              onUpdateTransaction(editingTransaction.id, null);
-            }}
-          >
-            Cancelar
-          </Button>
-        )}
+        {/* O botão Cancelar foi movido para baixo, junto com o botão de Atualizar */}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -404,9 +390,37 @@ export const TransactionForm = ({
           )}
       </div>
 
-      <Button ref={submitButtonRef} type="submit" className="w-full">
-        {editingTransaction ? "Atualizar Transação" : "Adicionar Transação"}
-      </Button>
+      {/* Botões de Ação */}
+      {editingTransaction && onUpdateTransaction ? (
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700 hover:border-red-400"
+            onClick={() => {
+              setNewTransaction({
+                description: "",
+                amount: 0,
+                discount: 0,
+                categoryId: "",
+                date: new Date().toISOString().split("T")[0],
+                type: "expense",
+                storeId: undefined,
+              });
+              onUpdateTransaction(editingTransaction.id, null);
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button ref={submitButtonRef} type="submit" className="w-full">
+            Atualizar Transação
+          </Button>
+        </div>
+      ) : (
+        <Button ref={submitButtonRef} type="submit" className="w-full">
+          Adicionar Transação
+        </Button>
+      )}
     </form>
   );
 };

@@ -58,6 +58,8 @@ export interface MovementItem {
   discount?: number; // Campo de desconto opcional
   movementTypeId: string;
   paymentMethodId: string;
+  updateAt?: Date; // Data de atualização opcional
+  createdAt: Date;
   movementType?: MovementType;
   paymentMethod?: PaymentMethod;
 }
