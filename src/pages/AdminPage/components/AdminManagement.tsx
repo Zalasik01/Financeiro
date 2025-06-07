@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { db } from "@/firebase";
-import { ref, set, get } from "firebase/database";
+import { functions } from "@/firebase"; // Importar 'functions'
+import { httpsCallable } from "firebase/functions"; // Importar httpsCallable
 import { Users, UserPlus, ShieldOff } from "lucide-react";
 
 interface AppUser {
@@ -27,7 +27,7 @@ export const AdminManagement: React.FC<AdminManagementProps> = ({
 }) => {
   const { currentUser } = useAuth();
   const { toast } = useToast();
-  const { signup } = useAuth(); // Obter a função signup
+  // A função signup do useAuth não será mais usada aqui para criar admins
 
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newAdminDisplayName, setNewAdminDisplayName] = useState("");
@@ -47,21 +47,26 @@ export const AdminManagement: React.FC<AdminManagementProps> = ({
     setIsCreatingAdmin(true);
 
     try {
-      // Chamar a função signup do useAuth com isAdminOverride: true
-      const newUser = await signup(newAdminEmail, newAdminPassword, newAdminDisplayName, undefined, undefined, undefined, true);
+      const createAdminUserFunction = httpsCallable(functions, 'createAdminUser');
+      const result = await createAdminUserFunction({
+        email: newAdminEmail,
+        password: newAdminPassword,
+        displayName: newAdminDisplayName,
+      });
 
-      if (newUser) {
-        toast({ title: "Sucesso!", description: `Administrador "${newAdminDisplayName}" criado com o email ${newAdminEmail}.`, variant: "success" });
+      const resultData = result.data as { success: boolean; message: string; uid?: string };
+
+      if (resultData.success) {
+        toast({ title: "Sucesso!", description: resultData.message, variant: "success" });
         setNewAdminEmail("");
         setNewAdminDisplayName("");
         setNewAdminPassword("");
       } else {
-        // A função signup já mostra um toast de erro, mas podemos adicionar um log se necessário
-        console.error("Falha ao criar administrador, newUser é null.");
+        toast({ title: "Erro ao criar administrador", description: resultData.message || "Ocorreu um erro.", variant: "destructive" });
       }
     } catch (error) {
-      // A função signup já lida com o toast de erro em caso de falha na criação do usuário no Auth
-      console.error("Erro ao chamar signup para criar administrador:", error);
+      console.error("Erro ao chamar Cloud Function createAdminUser:", error);
+      toast({ title: "Erro", description: error.message || "Não foi possível criar o administrador.", variant: "destructive" });
     } finally {
       setIsCreatingAdmin(false);
     }

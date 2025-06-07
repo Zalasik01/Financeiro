@@ -3,6 +3,7 @@ import { initializeApp, getApp, getApps } from "firebase/app";
 import { getDatabase } from "firebase/database"; // Importar getDatabase para RTDB
 import { getAuth } from "firebase/auth"; // Importar getAuth para Autenticação
 import { getStorage } from "firebase/storage"; // 1. Importar getStorage
+import { getFunctions } from "firebase/functions"; // Importar getFunctions
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -36,4 +37,7 @@ export const storage = getStorage(app); // 2. Inicializar e exportar o storage
 // Initialize Firebase Authentication and export it
 const auth = getAuth(app);
 
-export { db, auth, app }; // Exportar 'auth' e 'app' também pode ser útil
+// Initialize Firebase Functions and export it
+const functions = getFunctions(app);
+
+export { db, auth, app, functions }; // Exportar 'functions'
