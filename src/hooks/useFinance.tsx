@@ -101,6 +101,7 @@ export const useFinance = () => {
             type: mappedType,
             date: new Date(entry.date), 
             createdAt: new Date(entry.createdAt), 
+            personId: entry.personId ?? null, 
           };
         });
         setTransactions(transactionsList);
@@ -251,6 +252,11 @@ export const useFinance = () => {
         transactionToSave.discount = transactionData.discount;
       }
 
+      // Adicionar 'personId' se estiver presente em transactionData
+      if (transactionData.personId) {
+        transactionToSave.personId = transactionData.personId;
+      }
+
       await set(newTransactionRef, transactionToSave);
       return {
         ...transactionData,
@@ -344,7 +350,7 @@ export const useFinance = () => {
         `clientBases/${selectedBaseId}/appTransactions/${id}`
       ); // Caminho atualizado
       await remove(transactionRef);
-      toast({ title: "Sucesso!", description: "Transação deletada." });
+      toast({ title: "Sucesso!", description: "Transação deletada.", variant: "success" });
     } catch (errorUnknown: unknown) {
       const error = errorUnknown as Error;
       const errorMessage = error.message || "Não foi possível deletar a transação.";

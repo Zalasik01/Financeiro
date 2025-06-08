@@ -15,6 +15,8 @@ import { CurrencyInput } from "./CurrencyInput";
 import { useAuth } from "@/hooks/useAuth"; // Adicionar useAuth
 import { useStores } from "@/hooks/useStores"; // Importar o hook de lojas
 import { HelpTooltip } from "@/components/ui/HelpToolTip"; // Importar o componente de dica
+import { ClienteFornecedorCombobox } from "@/components/ui/ClienteFornecedorCombobox"; // Importar o seletor de cliente
+import { ClienteFornecedor } from "@/types/clienteFornecedor.tsx"; // Importar o tipo ClienteFornecedor
 
 interface TransactionFormProps {
   categories: Category[];
@@ -32,6 +34,8 @@ interface TransactionFormProps {
     storeId?: string;
     categoryId?: string;
   } | null;
+  clientesFornecedores: ClienteFornecedor[]; // Adicionar prop
+  carregandoCF: boolean; // Adicionar prop
 }
 
 export const TransactionForm = ({
@@ -40,6 +44,8 @@ export const TransactionForm = ({
   onUpdateTransaction,
   editingTransaction,
   lastUsedFields, // Receber a prop
+  clientesFornecedores, // Receber prop
+  carregandoCF, // Receber prop
 }: TransactionFormProps) => {
   const [newTransaction, setNewTransaction] = useState({
     description: "",
@@ -49,6 +55,7 @@ export const TransactionForm = ({
     date: new Date().toISOString().split("T")[0],
     type: "Despesa" as "Receita" | "Despesa", // Ajustado para consistência
     storeId: undefined as string | undefined, // Adicionar storeId ao estado
+    personId: null as string | null, // Adicionar personId (ID do cliente/fornecedor)
   });
   const { toast } = useToast();
   const { stores } = useStores(); // Obter a lista de lojas
@@ -62,6 +69,8 @@ export const TransactionForm = ({
   const categorySelectRef = useRef<HTMLButtonElement>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const storeSelectRef = useRef<HTMLButtonElement>(null);
+  // A ref para ClienteFornecedorCombobox é mais complexa pois o trigger é interno.
+  // A navegação por Tab deve funcionar. Para Enter, pode-se focar no próximo campo.
   const submitButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -76,6 +85,7 @@ export const TransactionForm = ({
         date: new Date(editingTransaction.date).toISOString().split("T")[0],
         type: editingTransaction.type,
         storeId: editingTransaction.storeId, // Carregar storeId se estiver editando
+        personId: editingTransaction.personId || null, // Carregar personId
       });
     } else {
       // Não está editando: reseta o formulário,
@@ -94,6 +104,7 @@ export const TransactionForm = ({
         date: new Date().toISOString().split("T")[0], // Reseta data
         type: lastUsedFields?.type || "Despesa",     // Usa último usado ou padrão
         storeId: lastUsedFields?.storeId || initialStoreId, // Usa último usado ou inicial
+        personId: null, // Limpa personId para novo
       });
     }
   }, [editingTransaction, lastUsedFields, stores]); // Depende de editingTransaction, lastUsedFields e stores
@@ -144,6 +155,7 @@ export const TransactionForm = ({
       date: transactionDateObj,
       type: newTransaction.type,
       storeId: newTransaction.storeId, // Incluir storeId nos dados da transação
+      personId: newTransaction.personId, // Incluir personId
     };
     
     if (editingTransaction && onUpdateTransaction) {
@@ -197,14 +209,10 @@ export const TransactionForm = ({
 
   // Efeito para focar no primeiro campo ao montar ou ao limpar após edição
   useEffect(() => {
-    if (!editingTransaction && descriptionRef.current) {
-      descriptionRef.current.focus();
+    // Foca no seletor de loja se não estiver editando
+    if (!editingTransaction && storeSelectRef.current) {
+      storeSelectRef.current.focus();
     }
-    // Se estiver editando, o foco pode ser gerenciado de outra forma ou não alterado
-    // Se você quiser focar no primeiro campo ao cancelar a edição:
-    // if (editingTransaction === null && descriptionRef.current) {
-    //   descriptionRef.current.focus();
-    // }
   }, [editingTransaction]);
   return (
     <form
@@ -220,6 +228,59 @@ export const TransactionForm = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 1. Loja */}
+        <div>
+          <div className="flex items-center">
+            <Label htmlFor="transaction-store">Loja *</Label>
+            <HelpTooltip dicaKey="transacaoLoja" />
+          </div>
+          <Select
+            value={newTransaction.storeId || ""}
+            onValueChange={(value) =>
+              setNewTransaction((prev) => ({
+                ...prev,
+                storeId: value,
+              }))
+            }
+          >
+            <SelectTrigger
+              id="transaction-store"
+              ref={storeSelectRef}
+              // Ao pressionar Enter na Loja, o próximo campo focável (Descrição) deve receber o foco.
+              // A navegação para o ClienteFornecedorCombobox com Enter é mais complexa de implementar
+              // diretamente aqui, pois o trigger do combobox é interno. O usuário pode usar Tab.
+              onKeyDown={(e) => handleKeyDown(e, descriptionRef)} 
+            >
+              <SelectValue placeholder="Selecione a loja..." />
+            </SelectTrigger>
+            <SelectContent>
+              {stores.map((store) => (
+                <SelectItem key={store.id} value={store.id}>
+                  {store.icon || "🏪"} {store.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* 2. Cliente/Fornecedor */}
+        <div>
+          <div className="flex items-center">
+            <Label htmlFor="personId">Cliente/Fornecedor</Label>
+            <HelpTooltip dicaKey="transacaoClienteFornecedor" /> 
+          </div>
+          <ClienteFornecedorCombobox
+            clientesFornecedores={clientesFornecedores}
+            value={newTransaction.personId}
+            onChange={(value) => setNewTransaction(prev => ({ ...prev, personId: value }))}
+            placeholder="Selecione ou busque..."
+            disabled={carregandoCF}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 3. Descrição */}
         <div>
           <div className="flex items-center">
             <Label htmlFor="description">Descrição *</Label>
@@ -237,44 +298,12 @@ export const TransactionForm = ({
             }
             placeholder="Ex: Supermercado"
             autoComplete="on"
-            autoFocus
             required
-            onKeyDown={(e) => handleKeyDown(e, amountInputRef)}
+            onKeyDown={(e) => handleKeyDown(e, typeSelectRef)} // Próximo: Tipo
           />
         </div>
 
-        <div>
-          <CurrencyInput
-            label="Valor (R$)" // O tooltip será adicionado dentro do CurrencyInput ou ao lado dele
-            id="amount"
-            ref={amountInputRef} // Adicionar ref
-            value={newTransaction.amount}
-            onChange={(value) =>
-              setNewTransaction((prev) => ({ ...prev, amount: value }))
-            }
-            placeholder="R$ 0,00"
-            required
-            helpTooltipDicaKey="transacaoValor" // Passando a chave da dica
-            onKeyDown={(e) => handleKeyDown(e, discountInputRef)} // Adicionar onKeyDown
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <CurrencyInput
-            label="Desconto (R$)" // Opcional: adicionar tooltip aqui também se necessário
-            id="discount"
-            ref={discountInputRef} // Adicionar ref
-            value={newTransaction.discount}
-            onChange={(value) =>
-              setNewTransaction((prev) => ({ ...prev, discount: value }))
-            }
-            placeholder="R$ 0,00"
-            onKeyDown={(e) => handleKeyDown(e, typeSelectRef)} // Adicionar onKeyDown
-          />
-        </div>
-
+        {/* 4. Tipo */}
         <div>
           <div className="flex items-center">
             <Label htmlFor="type">Tipo *</Label>
@@ -293,7 +322,7 @@ export const TransactionForm = ({
           >
             <SelectTrigger
               ref={typeSelectRef}
-              onKeyDown={(e) => handleKeyDown(e, categorySelectRef)}
+              onKeyDown={(e) => handleKeyDown(e, categorySelectRef)} // Próximo: Categoria
             >
               <SelectValue />
             </SelectTrigger>
@@ -303,7 +332,10 @@ export const TransactionForm = ({
             </SelectContent>
           </Select>
         </div>
+      </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* 5. Categoria */}
         <div>
           <div className="flex items-center">
             <Label htmlFor="category">Categoria *</Label>
@@ -317,7 +349,7 @@ export const TransactionForm = ({
           >
             <SelectTrigger
               ref={categorySelectRef}
-              onKeyDown={(e) => handleKeyDown(e, dateInputRef)}
+              onKeyDown={(e) => handleKeyDown(e, amountInputRef)} // Próximo: Valor
             >
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
@@ -330,9 +362,8 @@ export const TransactionForm = ({
             </SelectContent>
           </Select>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 8. Data (agora ao lado de Categoria) */}
         <div>
           <div className="flex items-center">
             <Label htmlFor="date">Data *</Label>
@@ -346,40 +377,44 @@ export const TransactionForm = ({
             onChange={(e) =>
               setNewTransaction((prev) => ({ ...prev, date: e.target.value }))
             }
-            onKeyDown={(e) => handleKeyDown(e, storeSelectRef)}
+            onKeyDown={(e) => handleKeyDown(e, amountInputRef)} // Próximo: Valor (após Data)
+          />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Grid para Valor e Desconto */}
+        {/* 6. Valor */}
+        <div>
+          <CurrencyInput
+            label="Valor (R$)"
+            id="amount"
+            ref={amountInputRef} 
+            value={newTransaction.amount}
+            onChange={(value) =>
+              setNewTransaction((prev) => ({ ...prev, amount: value }))
+            }
+            placeholder="R$ 0,00"
+            required
+            helpTooltipDicaKey="transacaoValor" 
+            onKeyDown={(e) => handleKeyDown(e, discountInputRef)} // Próximo: Desconto
           />
         </div>
 
+        {/* 7. Desconto (agora na mesma linha de Valor e Data) */}
         <div>
-          <div className="flex items-center">
-            <Label htmlFor="transaction-store">Loja *</Label>
-            <HelpTooltip dicaKey="transacaoLoja" />
-          </div>
-          <Select
-            value={newTransaction.storeId || ""}
-            onValueChange={(value) =>
-              setNewTransaction((prev) => ({
-                ...prev,
-                storeId: value, // O valor será o ID da loja ou string vazia se nada for selecionado (placeholder)
-              }))
+          <CurrencyInput
+            label="Desconto (R$)" 
+            id="discount"
+            ref={discountInputRef} 
+            value={newTransaction.discount}
+            onChange={(value) =>
+              setNewTransaction((prev) => ({ ...prev, discount: value }))
             }
-          >
-            <SelectTrigger
-              id="transaction-store"
-              ref={storeSelectRef}
-              onKeyDown={(e) => handleKeyDown(e, submitButtonRef)}
-            >
-              <SelectValue placeholder="Selecione a loja..." />
-            </SelectTrigger>
-            <SelectContent>
-              {/* <SelectItem value="">- Não selecionado</SelectItem>  Removido para corrigir o erro do Radix UI */}
-              {stores.map((store) => (
-                <SelectItem key={store.id} value={store.id}>
-                  {store.icon || "🏪"} {store.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="R$ 0,00"
+            onKeyDown={(e) => handleKeyDown(e, dateInputRef)} // Próximo: Data
+            // Se o desconto for o último campo antes do botão de submit,
+            // onKeyDown={(e) => handleKeyDown(e, submitButtonRef)}
+          />
         </div>
 
         {/* Conditional rendering for discount display */}
@@ -400,6 +435,7 @@ export const TransactionForm = ({
           )}
       </div>
 
+
       {/* Botões de Ação */}
       {editingTransaction && onUpdateTransaction ? (
         <div className="flex gap-2">
@@ -416,6 +452,7 @@ export const TransactionForm = ({
                 date: new Date().toISOString().split("T")[0],
                 type: "Despesa", // Ajustado
                 storeId: undefined,
+                personId: null,
               });
               onUpdateTransaction(editingTransaction.id, null);
             }}

@@ -63,13 +63,23 @@ export function ClienteFornecedorCombobox({
           className="w-full justify-between font-normal"
           disabled={disabled}
         >
-          {selectedClienteFornecedor
-            ? `${selectedClienteFornecedor.nome} (${selectedClienteFornecedor.tipoDocumento}: ${selectedClienteFornecedor.numeroDocumento || 'N/A'})`
-            : <span className="text-muted-foreground">{placeholder}</span>}
+          <div className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left">
+            {selectedClienteFornecedor
+              ? <>
+                  <span className="truncate">{selectedClienteFornecedor.nome}</span>
+                  <span className="ml-1 text-xs text-muted-foreground">({selectedClienteFornecedor.tipoDocumento}: {selectedClienteFornecedor.numeroDocumento || 'N/A'})</span>
+                </>
+              : <span className="text-muted-foreground">{placeholder}</span>}
+          </div>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+      <PopoverContent 
+        className="p-0" 
+        style={{ width: 'var(--radix-popover-trigger-width)' }}
+        sideOffset={5}
+      >
+        {/* A largura do PopoverContent é definida para corresponder ao gatilho, mas o conteúdo interno pode rolar se for maior. */}
         <Command shouldFilter={false}> {/* Filtramos manualmente */}
           <CommandInput
             placeholder={searchPlaceholder}
@@ -89,7 +99,11 @@ export function ClienteFornecedorCombobox({
                 }}
               >
                 <Check className={cn("mr-2 h-4 w-4", value === cf.id ? "opacity-100" : "opacity-0")} />
-                <span>{cf.nome} <span className="text-xs text-muted-foreground">({cf.tipoDocumento}: {cf.numeroDocumento || 'N/A'})</span></span>
+                {/* Garante que o texto possa ser truncado se for muito longo */}
+                <div className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                  {cf.nome} 
+                  <span className="ml-2 text-xs text-muted-foreground">({cf.tipoDocumento}: {cf.numeroDocumento || 'N/A'})</span>
+                </div>
               </CommandItem>
             ))}
           </CommandList>
