@@ -1,15 +1,130 @@
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Transaction } from "@/types/finance";
-import { Store } from "@/types/store"; // Importar o tipo Store
+import { Store } from "@/types/store";
+import { ClienteFornecedor } from "@/types/clienteFornecedor.tsx";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/utils/formatters";
+import { Pencil, Trash2 } from "lucide-react";
+
+// --- Novo Componente para o Item da Lista ---
+
+interface TransactionListItemProps {
+  transaction: Transaction;
+  store?: Store;
+  person?: ClienteFornecedor;
+  onEdit: (transaction: Transaction) => void;
+  onDelete: (id: string, description: string) => void;
+}
+
+const TransactionListItem = ({
+  transaction,
+  store,
+  person,
+  onEdit,
+  onDelete,
+}: TransactionListItemProps) => {
+  const isRevenue = transaction.type === "Receita";
+
+  const borderColor = isRevenue ? "border-green-500" : "border-red-500";
+  const amountColor = isRevenue ? "text-green-600" : "text-red-600";
+  const amountSign = isRevenue ? "+" : "-";
+
+  return (
+    <div
+      className={`flex items-center justify-between p-3 border-l-4 rounded-md shadow-sm hover:shadow-md transition-shadow bg-white ${borderColor}`}
+    >
+      <div className="flex items-center gap-4 flex-grow min-w-0">
+        <span className="text-2xl p-2 bg-gray-100 rounded-full">
+          {transaction.category?.icon || (isRevenue ? "💰" : "💸")}
+        </span>
+        <div className="flex-grow min-w-0">
+          <p className="font-semibold text-gray-800 truncate" title={transaction.description}>
+            {transaction.description}
+          </p>
+          <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500 mt-1">
+            {/* Ordem: Loja >> Cliente >> Data */}
+            {store && (
+              <>
+                <span className="flex items-center gap-1">
+                  {store.icon || "🏪"} {store.name}
+                </span>
+                <span>•</span>
+              </>
+            )}
+            {person && (
+              <>
+                <span className="flex items-center">{person.nome}</span>
+                <span>•</span>
+              </>
+            )}
+            <span>{new Date(transaction.date).toLocaleDateString("pt-BR")}</span>
+          </div>
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            <Badge
+              style={{
+                backgroundColor:
+                  transaction.category?.color || (isRevenue ? "#10B981" : "#EF4444"),
+              }}
+              className="text-xs text-white"
+            >
+              {transaction.category?.name}
+            </Badge>
+            {transaction.discount != null && transaction.discount > 0 && (
+              <Badge variant="outline" className="text-xs text-red-500 border-red-200">
+                Desconto: {formatCurrency(transaction.discount)}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col items-end ml-4">
+        <span className={`font-bold text-lg ${amountColor}`}>
+          {amountSign} {formatCurrency(Math.abs(transaction.amount))}
+        </span>
+        <div className="flex gap-1 mt-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onEdit(transaction)}
+            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 w-8"
+            title="Editar transação"
+          >
+            <Pencil size={16} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onDelete(transaction.id, transaction.description)}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+            title="Remover transação"
+          >
+            <Trash2 size={16} />
+          </Button>
+        </div>
+        {transaction.updatedAt && (
+          <div className="text-xs text-gray-400 italic mt-1 text-right" title={`Editado por ${transaction.updatedBy || 'desconhecido'}`}>
+            <span>
+              Editado em {new Date(transaction.updatedAt).toLocaleDateString("pt-BR")}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
+// --- Componente Principal Refatorado ---
 
 interface TransactionListProps {
   transactions: Transaction[];
   onDeleteTransaction: (id: string) => void;
   onEditTransaction: (transaction: Transaction) => void;
-  stores: Store[]; // Adicionar stores às props
+  stores: Store[];
+  clientesFornecedores?: ClienteFornecedor[];
 }
 
 export const TransactionList = ({
@@ -17,8 +132,13 @@ export const TransactionList = ({
   onDeleteTransaction,
   onEditTransaction,
   stores,
+  clientesFornecedores = [],
 }: TransactionListProps) => {
   const { toast } = useToast();
+
+  // Otimização: Criar mapas de lookup uma vez para evitar buscas repetitivas dentro do loop.
+  const storeMap = useMemo(() => new Map(stores.map(s => [s.id, s])), [stores]);
+  const personMap = useMemo(() => new Map(clientesFornecedores.map(p => [p.id, p])), [clientesFornecedores]);
 
   const handleDelete = (id: string, description: string) => {
     onDeleteTransaction(id);
@@ -29,121 +149,43 @@ export const TransactionList = ({
     });
   };
 
+  // Otimização: A ordenação também pode ser memoizada se a lista de transações for grande.
+  const sortedTransactions = useMemo(() =>
+    [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [transactions]
+  );
+
+  if (clientesFornecedores.length > 0 && personMap.size === 0 && transactions.some(t => t.personId)) {
+    console.warn("[TransactionList] `clientesFornecedores` tem dados, mas `personMap` está vazio. Verifique a criação do map.");
+  }
+
   return (
-    <div className="space-y-2">
-      <h4 className="font-medium text-gray-700">Transações Recentes</h4>
-      <div className="space-y-3 max-h-96 overflow-y-auto">
-        {transactions.length === 0 ? (
+    <div className="space-y-4">
+      <h4 className="text-lg font-semibold text-gray-800 border-b pb-2">
+        Últimas Transações
+      </h4>
+      <div className="space-y-3 max-h-[30rem] overflow-y-auto pr-2">
+        {sortedTransactions.length === 0 ? (
           <p className="text-gray-500 text-center py-4">
             Nenhuma transação registrada
           </p>
         ) : (
-          transactions
-            .sort(
-              (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-            )
-            .map((transaction) => (
-              <div
+          sortedTransactions.map((transaction) => {
+            const store = storeMap.get(transaction.storeId);
+            const person = personMap.get(transaction.personId);
+            // Adicione este log para cada item se o anterior não for suficiente
+            // console.log(`Item: ${transaction.id}, personId: ${transaction.personId}, Person from map:`, person); 
+            return (
+              <TransactionListItem
                 key={transaction.id}
-                className="flex items-center justify-between p-3 border rounded-lg hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center gap-3 flex-grow min-w-0">
-                  {" "}
-                  {/* Adicionado flex-grow e min-w-0 */}
-                  <span className="text-lg">{transaction.category?.icon}</span>
-                  <div className="min-w-0">
-                    {" "}
-                    {/* Adicionado min-w-0 para truncamento */}
-                    <p className="font-medium truncate">
-                      {" "}
-                      {/* Adicionado truncate */}
-                      {transaction.description}
-                      {transaction.storeId &&
-                        stores.find((s) => s.id === transaction.storeId) && (
-                          <span className="text-xs text-blue-600 ml-1">
-                            |{" "}
-                            {stores.find((s) => s.id === transaction.storeId)
-                              ?.icon || "🏢"}{" "}
-                            {
-                              stores.find((s) => s.id === transaction.storeId)
-                                ?.name
-                            }
-                          </span>
-                        )}
-                    </p>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge
-                        style={{
-                          backgroundColor:
-                            transaction.category?.color ||
-                            (transaction.type === "Receita"
-                              ? "#10B981"
-                              : "#EF4444"),
-                        }}
-                        className="text-xs text-white"
-                      >
-                        {transaction.category?.name}
-                      </Badge>
-                      <span className="text-xs text-gray-500">
-                        {new Date(transaction.date).toLocaleDateString("pt-BR")}
-                      </span>
-                      {transaction.discount != null && transaction.discount > 0 && (
-                        <Badge
-                          variant="outline"
-                          className="text-xs text-red-500"
-                        >
-                          Desconto: {formatCurrency(transaction.discount)}
-                        </Badge>
-                      )}
-                    </div> {/* Fim do <div className="flex items-center gap-2 flex-wrap"> */}
-                    {transaction.updatedAt && (
-                      <div className="text-xs text-gray-500 italic mt-1">
-                        <span>
-                          Editado em: {new Date(transaction.updatedAt).toLocaleDateString("pt-BR")}
-                          {' às '}
-                          {new Date(transaction.updatedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit'})}
-                        </span>
-                        {transaction.updatedBy && (
-                          <span className="ml-1">(por {transaction.updatedBy})</span>
-                        )}
-                      </div>
-                    )}
-                  </div> {/* Fim do <div className="min-w-0"> */}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`font-bold ${
-                      transaction.type === "Receita"
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {transaction.type === "Receita" ? "+" : "-"}
-                    {formatCurrency(Math.abs(transaction.amount))}
-                  </span>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEditTransaction(transaction)}
-                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-1 h-8 w-8"
-                    >
-                      ✏️
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        handleDelete(transaction.id, transaction.description)
-                      }
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 h-8 w-8"
-                    >
-                      🗑️
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))
+                transaction={transaction}
+                store={store}
+                person={person}
+                onEdit={onEditTransaction}
+                onDelete={handleDelete}
+              />
+            );
+          })
         )}
       </div>
     </div>

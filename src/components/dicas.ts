@@ -124,5 +124,9 @@ export const DICAS: Record<string, Dica> = {
   tiposMovimentacaoLoja: {
     titulo: "Tipos de Movimentação (Loja)",
     conteudo: "Crie tipos para movimentações manuais específicas do caixa da loja, como 'Sangria', 'Reforço de Caixa', 'Venda Manual'."
+  },
+  transacaoClienteFornecedor: {
+  titulo: "Selecione um cliente ou fornecedor.",
+    conteudo: "Se você selecionar um cliente ou fornecedor, ele será associado a esta transação. Isso é útil para rastrear transações específicas relacionadas a pessoas ou empresas."
   }
 };

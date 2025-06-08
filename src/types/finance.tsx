@@ -18,8 +18,9 @@ export interface Transaction {
   category?: Category;
   storeId?: string;
   createdAt: Date;
-  updatedAt?: Date;]
+  updatedAt?: Date;
   updatedBy?: string;
+  personId?: string | null;
 }
 
 export interface FinancialSummary {

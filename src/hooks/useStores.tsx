@@ -40,10 +40,7 @@ export const useStores = () => {
   // Carregar Bases (appBases para o usuário logado ou clientBases filtradas para não-admins)
   useEffect(() => {
     // Esta linha de log já deve existir no seu arquivo, conforme seus logs anteriores.
-    console.log("[useStores] Entrando no useEffect de carregamento de Bases. currentUser:", currentUser ? { email: currentUser.email, clientBaseId: currentUser.clientBaseId, isAdmin: currentUser.isAdmin } : null);
-
     if (!currentUser) {
-      console.log("[useStores] useEffect para bases: currentUser é null, limpando bases e retornando.");
       setBases([]);
       return;
     }
@@ -51,9 +48,7 @@ export const useStores = () => {
     // Todos os usuários (admin e não admin) buscarão do nó /clientBases.
     // O filtro será aplicado para não-admins.
     const clientBasesRef = ref(db, "clientBases");
-    console.log("[useStores] useEffect para bases: currentUser existe. Tentando carregar clientBases.", { email: currentUser.email, clientBaseId: currentUser.clientBaseId, isAdmin: currentUser.isAdmin });
     const unsubscribeBases = onValue(clientBasesRef, (snapshot) => {
-      console.log("[useStores] onValue para clientBases: snapshot recebido.");
       const data = snapshot.val();
       if (data) {
         const allClientBases: ClientBase[] = Object.keys(data).map((key) => ({
@@ -108,7 +103,6 @@ export const useStores = () => {
           )
         );
       } else { // Adicionado ponto e vírgula
-        console.log("[useStores] onValue para clientBases: Nenhum dado encontrado no snapshot.");
         setBases([]);
       }
     }, (error) => {

@@ -221,7 +221,7 @@ export const ClienteFornecedorForm: React.FC<ClienteFornecedorFormProps> = ({
   };
 
   return (
-    <form onSubmit={submeterFormulario} className="space-y-4 max-h-[70vh] overflow-y-auto p-1 pr-3">
+    <form onSubmit={submeterFormulario} className="space-y-4 p-1 pr-3">
       {!estaEditando && (
         <div className="mb-6 p-4 border-b">
           <Label className="text-base font-medium">Tipo de Cadastro</Label>

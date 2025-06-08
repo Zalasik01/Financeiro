@@ -474,7 +474,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 typeof profileData.clientBaseId === "number"
                   ? profileData.clientBaseId
                   : null;
-              console.log("[useAuth] Perfil do usuário carregado:", { profileData, userClientBaseId }); // LOG ADICIONADO
             } // Fechamento do if (snapshot.exists())
             // Armazena o numberId no currentUser.clientBaseId
             setCurrentUser({

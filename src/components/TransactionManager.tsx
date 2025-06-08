@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Transaction, Category } from "@/types/finance";
 import { TransactionForm } from "./TransactionForm";
 import { TransactionList } from "./TransactionList";
+import { ClienteFornecedor } from "@/types/clienteFornecedor.tsx"; // Importar tipo
 import { useStores } from "@/hooks/useStores"; // Importar useStores
 
 interface TransactionManagerProps {
@@ -16,6 +17,8 @@ interface TransactionManagerProps {
     transaction: Partial<Transaction> | null
   ) => void;
   onDeleteTransaction: (id: string) => void;
+  clientesFornecedores: ClienteFornecedor[]; // Adicionar prop
+  carregandoCF: boolean; // Adicionar prop
 }
 
 interface LastUsedTransactionFields {
@@ -30,6 +33,8 @@ export const TransactionManager = ({
   onAddTransaction,
   onUpdateTransaction,
   onDeleteTransaction,
+  clientesFornecedores, // Receber prop
+  carregandoCF, // Receber prop
 }: TransactionManagerProps) => {
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
@@ -71,6 +76,8 @@ export const TransactionManager = ({
           onUpdateTransaction={handleUpdateTransaction}
           editingTransaction={editingTransaction}
           lastUsedFields={lastUsedFields} // Passa os campos para o formulário
+          clientesFornecedores={clientesFornecedores} // Passar para o TransactionForm
+          carregandoCF={carregandoCF} // Passar para o TransactionForm
         />
 
         <TransactionList
@@ -78,6 +85,7 @@ export const TransactionManager = ({
           onDeleteTransaction={onDeleteTransaction}
           onEditTransaction={setEditingTransaction}
           stores={stores} // Passar a lista de lojas
+          clientesFornecedores={clientesFornecedores} // Adicionar esta linha
         />
       </CardContent>
     </Card>
