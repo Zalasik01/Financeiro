@@ -123,6 +123,59 @@ export const StoreClosingManager = ({
     }
   }, [stores, newClosing.storeId]);
 
+  useEffect(() => {
+    // Garante que temos uma data válida para filtrar as transações pessoais
+    if (!newClosing.closingDate || !newClosing.storeId) {
+      // Se não houver data ou loja, não podemos calcular as transações relevantes
+      // Poderia-se definir o saldo final como igual ao inicial ou zerar, dependendo da preferência.
+      // Por ora, apenas não prosseguiremos se não houver data/loja.
+      // Ou, alternativamente, calcular apenas com base nos movimentos manuais e saldo inicial.
+      // Para este exemplo, vamos calcular com o que temos.
+    }
+
+    const [year, month, day] = newClosing.closingDate.split("-").map(Number);
+    const closingDateObj = new Date(year, month - 1, day);
+
+    const relevantPersonalTransactions = personalTransactions.filter((t) => {
+      const transactionDate = new Date(t.date);
+      return (
+        t.storeId === newClosing.storeId &&
+        transactionDate.getFullYear() === closingDateObj.getFullYear() &&
+        transactionDate.getMonth() === closingDateObj.getMonth() &&
+        transactionDate.getDate() === closingDateObj.getDate()
+      );
+    });
+
+    const movementsFromPersonalTransactions: MovementItem[] =
+      relevantPersonalTransactions.map((t) => ({
+        id: `mov-from-trans-${t.id}`,
+        description: t.description,
+        amount: Math.abs(t.amount),
+        discount: t.discount || 0,
+        transactionType: t.type, // t.type já é "Receita" ou "Despesa"
+        paymentMethodId: "N/A",
+        createdAt: t.createdAt,
+      }));
+
+    const allMovementsForSuggestion = [...newClosing.movements, ...movementsFromPersonalTransactions];
+
+    const totalEntradas = allMovementsForSuggestion
+      .filter((m) => m.transactionType === "Receita")
+      .reduce((sum, m) => sum + m.amount - (m.discount || 0), 0);
+
+    const totalSaidas = allMovementsForSuggestion
+      .filter((m) => m.transactionType === "Despesa")
+      .reduce((sum, m) => sum + m.amount, 0);
+
+    const suggestedFinalBalance = newClosing.initialBalance + totalEntradas - totalSaidas;
+    
+    setNewClosing(prev => ({
+      ...prev,
+      finalBalance: suggestedFinalBalance
+    }));
+
+  }, [newClosing.initialBalance, newClosing.movements, personalTransactions, newClosing.storeId, newClosing.closingDate]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -209,7 +262,7 @@ export const StoreClosingManager = ({
     });
 
     // 3. Remover as transações pessoais que foram movidas
-    // removeTransactionsByDateAndStore(closingDateObj, newClosing.storeId);
+    removeTransactionsByDateAndStore(closingDateObj, newClosing.storeId);
 
     toast({
       title: "Sucesso",
