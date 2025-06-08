@@ -3,21 +3,52 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { HelpModal } from "./HelpModal";
-import { Menu, X, Database } from "lucide-react";
+import { Menu, X, Database, Contact, ChevronDown, Home, ListChecks, Tag, Briefcase, Archive, BarChart3, Target, CreditCard } from "lucide-react"; // Adicionado ChevronDown e outros ícones
 import { InstallPWAButton } from "./InstallPWAButton";
 import { UserMenu } from "./UserMenu";
 import { useStores } from "@/hooks/useStores"; // Adicionar useStores
 import { useAuth } from "@/hooks/useAuth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"; // Para desktop
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"; // Para mobile
 
-const navItems = [
-  { href: "/", label: "Visão Geral" },
-  { href: "/transacao", label: "Transações" },
-  { href: "/categoria", label: "Categorias" },
-  { href: "/loja", label: "Lojas" },
-  { href: "/fechamento", label: "Fechamentos" },
-  { href: "/dre", label: "DRE" },
-  { href: "/meta", label: "Metas" },
-  { href: "/forma-pagamento", label: "Formas de Pagamento" },
+interface NavSubItem {
+  href: string;
+  label: string;
+  icon?: React.ElementType;
+}
+
+interface NavItemConfig {
+  href?: string;
+  label: string;
+  icon?: React.ElementType;
+  submenu?: NavSubItem[];
+}
+
+const navItems: NavItemConfig[] = [
+  { href: "/", label: "Visão Geral", icon: Home },
+  { href: "/transacao", label: "Transações", icon: ListChecks },
+  { href: "/categoria", label: "Categorias", icon: Tag },
+  { href: "/loja", label: "Lojas", icon: Briefcase },
+  {
+    label: "Clientes",
+    icon: Contact,
+    submenu: [
+      { href: "/clientes-fornecedores", label: "Cadastrar Cliente/Fornecedor" },
+    ],
+  },
+  { href: "/fechamento", label: "Fechamentos", icon: Archive },
+  { href: "/dre", label: "DRE", icon: BarChart3 },
+  { href: "/meta", label: "Metas", icon: Target },
+  { href: "/forma-pagamento", label: "Formas de Pagamento", icon: CreditCard },
 ];
 
 const Navbar: React.FC = () => {
@@ -27,6 +58,7 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [openMobileSubmenu, setOpenMobileSubmenu] = useState<string | null>(null);
 
   // Encontrar os detalhes da base selecionada
   const selectedBaseDetails = selectedBaseId ? bases.find(b => b.id === selectedBaseId) : null;
@@ -47,6 +79,13 @@ const Navbar: React.FC = () => {
   }, [navigate]);
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
+  const toggleMobileSubmenu = (label: string) => {
+    if (openMobileSubmenu === label) {
+      setOpenMobileSubmenu(null);
+    } else {
+      setOpenMobileSubmenu(label);
+    }
+  };
 
   return (
     <nav className="bg-gray-800 text-white shadow-lg">
@@ -62,21 +101,52 @@ const Navbar: React.FC = () => {
           {/* Menu Desktop (visível em telas grandes) */}
           <div className="hidden lg:flex lg:items-center lg:space-x-4">
             {/* Links de Navegação */}
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700",
-                  location.pathname === item.href
-                    ? "bg-gray-900 text-white"
-                    : "text-gray-300 hover:text-white"
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-
+            {navItems.map((item) =>
+              item.submenu ? (
+                <DropdownMenu key={item.label}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"
+                    >
+                      {item.icon && <item.icon className="mr-2 h-4 w-4" />}
+                      {item.label}
+                      <ChevronDown className="ml-1 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="bg-gray-800 border-gray-700 text-white">
+                    {item.submenu.map((subItem) => (
+                      <DropdownMenuItem key={subItem.href} asChild>
+                        <Link
+                          to={subItem.href}
+                          className={cn(
+                            "px-3 py-2 text-sm hover:bg-gray-700 w-full flex items-center",
+                            location.pathname === subItem.href ? "bg-gray-900" : ""
+                          )}
+                        >
+                          {subItem.icon && <subItem.icon className="mr-2 h-4 w-4" />}
+                          {subItem.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link
+                  key={item.href}
+                  to={item.href!}
+                  className={cn(
+                    "px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 flex items-center",
+                    location.pathname === item.href
+                      ? "bg-gray-900 text-white"
+                      : "text-gray-300 hover:text-white"
+                  )}
+                >
+                  {item.icon && <item.icon className="mr-2 h-4 w-4" />}
+                  {item.label}
+                </Link>
+              )
+            )}
             {/* Ações e Menu do Usuário */}
             <div className="flex items-center space-x-2">
               <Button
@@ -121,21 +191,57 @@ const Navbar: React.FC = () => {
       {isMobileMenuOpen && (
         <div className="lg:hidden border-t border-gray-700">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                onClick={closeMobileMenu}
-                className={cn(
-                  "block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700",
-                  location.pathname === item.href
-                    ? "bg-gray-900 text-white"
-                    : "text-gray-300 hover:text-white"
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) =>
+              item.submenu ? (
+                <Collapsible key={item.label} open={openMobileSubmenu === item.label} onOpenChange={() => toggleMobileSubmenu(item.label)}>
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-between px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"
+                    >
+                      <div className="flex items-center">
+                        {item.icon && <item.icon className="mr-2 h-5 w-5" />}
+                        {item.label}
+                      </div>
+                      <ChevronDown className={`h-5 w-5 transition-transform ${openMobileSubmenu === item.label ? "rotate-180" : ""}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-6 space-y-1 mt-1">
+                    {item.submenu.map((subItem) => (
+                      <Link
+                        key={subItem.href}
+                        to={subItem.href}
+                        onClick={closeMobileMenu}
+                        className={cn(
+                          "block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700 flex items-center",
+                          location.pathname === subItem.href
+                            ? "bg-gray-900 text-white"
+                            : "text-gray-300 hover:text-white"
+                        )}
+                      >
+                        {subItem.icon && <subItem.icon className="mr-2 h-5 w-5" />}
+                        {subItem.label}
+                      </Link>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              ) : (
+                <Link
+                  key={item.href}
+                  to={item.href!}
+                  onClick={closeMobileMenu}
+                  className={cn(
+                    "block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700 flex items-center",
+                    location.pathname === item.href
+                      ? "bg-gray-900 text-white"
+                      : "text-gray-300 hover:text-white"
+                  )}
+                >
+                  {item.icon && <item.icon className="mr-2 h-5 w-5" />}
+                  {item.label}
+                </Link>
+              )
+            )}
           </div>
           <div className="border-t border-gray-700 px-2 pt-2 pb-3 space-y-2">
             {/* Informação da Base de Dados para consistência com o desktop */}

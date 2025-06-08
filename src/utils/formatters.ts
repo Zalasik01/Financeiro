@@ -15,6 +15,31 @@ export const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
+export const maskCPF = (value: string): string => {
+  if (!value) return "";
+  value = value.replace(/\D/g, ""); // Remove tudo o que não é dígito
+  value = value.replace(/(\d{3})(\d)/, "$1.$2"); // Coloca um ponto entre o terceiro e o quarto dígitos
+  value = value.replace(/(\d{3})(\d)/, "$1.$2"); // Coloca um ponto entre o terceiro e o quarto dígitos novamente (para o segundo bloco de 3)
+  value = value.replace(/(\d{3})(\d{1,2})$/, "$1-$2"); // Coloca um hífen entre o terceiro e o quarto dígitos (para os dois últimos)
+  return value.slice(0, 14); // Limita a 14 caracteres (XXX.XXX.XXX-XX)
+};
+
+
+export const maskCEP = (value: string): string => {
+  if (!value) return "";
+  value = value.replace(/\D/g, "");
+  value = value.replace(/^(\d{5})(\d)/, "$1-$2");
+  return value.slice(0, 9); // XXXXX-XXX
+};
+
+export const maskPhone = (value: string): string => {
+  if (!value) return "";
+  value = value.replace(/\D/g, "");
+  value = value.replace(/^(\d{2})(\d)/g, "($1) $2"); // Coloca parênteses em volta dos dois primeiros dígitos
+  value = value.replace(/(\d)(\d{4})$/, "$1-$2"); // Coloca hífen antes dos últimos 4 dígitos
+  return value.slice(0, 15); // (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
+};
+
 export const parseCurrency = (value: string): number => {
   const cleanValue = value.replace(/[^\d,]/g, "").replace(",", ".");
   return parseFloat(cleanValue) || 0;

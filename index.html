@@ -90,8 +90,12 @@
 
     <!-- Script para registrar o Service Worker -->
     <script>
-      // Registra o Service Worker apenas se não estiver em ambiente de desenvolvimento (DEV)
-      if ("serviceWorker" in navigator && !import.meta.env.DEV) {
+      // Verifica se estamos em um ambiente que suporta import.meta e se VITE_DEV_SERVER_URL está definido (indicativo do dev server do Vite)
+      // ou se estamos em produção (onde import.meta.env.DEV seria false ou undefined).
+      // Uma forma mais simples é verificar se a URL é localhost, que geralmente é desenvolvimento.
+      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+      if ("serviceWorker" in navigator && !isDevelopment) {
         window.addEventListener("load", () => {
           navigator.serviceWorker
             .register("/sw.js")

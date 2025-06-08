@@ -26,8 +26,8 @@ import MetaPage from "./pages/MetaPage";
 import GerenciarFormaPagamentoPage from "./pages/GerenciarFormaPagamentoPage";
 import GerenciarUsuarioPage from "./pages/GerenciarUsuarioPage";
 import GerenciarTipoMovimentacaoPage from "./pages/GerenciarTipoMovimentacaoPage";
-import { useEffect, useState } from "react";
-import Navbar from "./components/Navbar";
+import { useEffect, useState, useMemo } from "react"; // Adicionado useMemo
+import Navbar from "./components/Navbar"; // Corrigido: Navbar já estava importado
 import Footer from "./components/Footer";
 import EditarPerfilPage from "./pages/EditarPerfilPage";
 import AdminPage from "./pages/AdminPage";
@@ -35,7 +35,9 @@ import AdminLayout from "./components/AdminLayout";
 import GerenciarUsuariosGlobalPage from "./pages/AdminPage/GerenciarUsuariosGlobalPage"; // Certifique-se que a importação está correta
 import { AccessSelectionModal } from "./components/AccessSelectionModal";
 import InvitePage from "./pages/InvitePage";
-import { useStores } from "./hooks/useStores";import { useMemo } from "react";
+import { useStores } from "./hooks/useStores";
+import { PaginaClienteFornecedor } from "./pages/PaginaClienteFornecedor";
+import { GerenciarClientesFornecedoresPage } from "./pages/GerenciarClientesFornecedoresPage"; // Importar a nova página
 
 const queryClient = new QueryClient();
 
@@ -75,15 +77,22 @@ const AppContent = () => {
     "/gerenciar-tipo-movimentacao": "Gerenciar Tipos de Movimentação",
     "/editar-perfil": "Editar Perfil",
     "/settings": "Configurações",
+    "/clientes-fornecedores/editar/:id": "Editar Cliente/Fornecedor", 
+    "/clientes-fornecedores/novo": "Novo Cliente/Fornecedor", // Título para a página de novo cadastro
+    "/clientes-fornecedores": "Clientes e Fornecedores", // Adicionar título para a nova rota
     "/login": "Login",
     "/signup": "Criar Conta",
     "*": "Página Não Encontrada",
   }), []);
 
   useEffect(() => {
-    const pageTitle = routeTitles[location.pathname] || routeTitles["*"];
+    const pageTitle = routeTitles[location.pathname] || 
+                      (location.pathname.startsWith("/clientes-fornecedores/editar/") 
+                        ? routeTitles["/clientes-fornecedores/editar/:id"] 
+                        : routeTitles["*"]);
     document.title = `Financeiro App - ${pageTitle}`;
   }, [location.pathname, routeTitles]); // routeTitles is now stable due to useMemo
+
 
   useEffect(() => {
     if (
@@ -154,6 +163,9 @@ const AppContent = () => {
                 />
                 <Route path="/editar-perfil" element={<EditarPerfilPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/clientes-fornecedores" element={<GerenciarClientesFornecedoresPage />} />
+                <Route path="/clientes-fornecedores/novo" element={<PaginaClienteFornecedor />} />
+                <Route path="/clientes-fornecedores/editar/:id" element={<PaginaClienteFornecedor />} /> 
               </Route>
             </Route>
             {/* Agrupar todas as rotas de admin sob /admin */}
