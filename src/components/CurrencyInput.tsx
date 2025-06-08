@@ -2,6 +2,7 @@ import React, { useState, useEffect, forwardRef } from "react"; // Importar forw
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { maskCurrency } from "@/utils/formatters";
+import { HelpTooltip } from "@/components/ui/HelpToolTip"; // Importar
 
 interface CurrencyInputProps {
   label?: string;
@@ -11,6 +12,7 @@ interface CurrencyInputProps {
   id?: string;
   placeholder?: string;
   required?: boolean; // Manter required
+  helpTooltipDicaKey?: keyof typeof import("@/lib/dicas").DICAS; // Chave para a dica
 }
 
 export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
@@ -23,6 +25,7 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
       className,
       id,
       required,
+      helpTooltipDicaKey, // Receber a prop
     },
     ref // Ref encaminhada
   ) => {
@@ -78,10 +81,13 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
     return (
       <div className="space-y-1">
         {label && (
-          <Label htmlFor={id}>
-            {label}
-            {required ? " *" : ""}
-          </Label>
+          <div className="flex items-center">
+            <Label htmlFor={id}>
+              {label}
+              {required ? " *" : ""}
+            </Label>
+            {helpTooltipDicaKey && <HelpTooltip dicaKey={helpTooltipDicaKey} />}
+          </div>
         )}
         <Input
           ref={ref} // Atribuir a ref ao Input interno

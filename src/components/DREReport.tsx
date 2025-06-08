@@ -33,6 +33,7 @@ import {
 import { DREData, Store } from "@/types/store";
 import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
+import { HelpTooltip } from "@/components/ui/HelpToolTip"; // Importar
 
 interface DREReportProps {
   onGenerateDRE: (startDate: Date, endDate: Date, storeId?: string) => DREData;
@@ -243,15 +244,21 @@ export const DREReport = ({ onGenerateDRE, stores }: DREReportProps) => {
   return (
     <Card className="animate-fade-in">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          📊 DRE - Demonstrativo de Resultado
+        <CardTitle className="flex items-center gap-1">
+          <span>
+            📊 DRE - Demonstrativo de Resultado
+          </span>
+          <HelpTooltip dicaKey="relatorioDRE" side="bottom" />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Filter controls */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
           <div>
-            <Label>Loja</Label>
+            <div className="flex items-center">
+              <Label>Loja</Label>
+              <HelpTooltip dicaKey="dreLoja" />
+            </div>
             <Select value={selectedStoreId} onValueChange={setSelectedStoreId}>
               <SelectTrigger>
                 <SelectValue placeholder="Todas as lojas" />
@@ -268,7 +275,10 @@ export const DREReport = ({ onGenerateDRE, stores }: DREReportProps) => {
           </div>
 
           <div>
-            <Label>Período</Label>
+            <div className="flex items-center">
+              <Label>Período</Label>
+              <HelpTooltip dicaKey="drePeriodo" />
+            </div>
             <div className="flex gap-2">
               <Select
                 value={monthYear.month.toString()}

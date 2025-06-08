@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { PaymentMethod } from "@/types/store";
 import { useToast } from "@/hooks/use-toast";
+import { HelpTooltip } from "@/components/ui/HelpToolTip"; // Importar
 
 interface PaymentMethodManagerProps {
   paymentMethods: PaymentMethod[];
@@ -69,8 +70,11 @@ export const PaymentMethodManager = ({
       {/* Payment Methods */}
       <Card className="animate-fade-in">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            💳 Cadastrar formas de Pagamento
+          <CardTitle className="flex items-center gap-1">
+            <span>
+              💳 Cadastrar formas de Pagamento
+            </span>
+            <HelpTooltip dicaKey="formasPagamento" side="bottom" />
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -79,7 +83,10 @@ export const PaymentMethodManager = ({
             className="space-y-4 p-4 bg-gray-50 rounded-lg"
           >
             <div>
-              <Label htmlFor="paymentName">Nome *</Label>
+              <div className="flex items-center">
+                <Label htmlFor="paymentName">Nome *</Label>
+                {/* <HelpTooltip dicaKey="formaPagamentoNome" /> // DicaKey 'formaPagamentoNome' não existe, comentar ou criar */}
+              </div>
               <Input
                 id="paymentName"
                 value={newPaymentMethod.name}
@@ -96,7 +103,10 @@ export const PaymentMethodManager = ({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="paymentType">Tipo</Label>
+                <div className="flex items-center">
+                  <Label htmlFor="paymentType">Tipo</Label>
+                  {/* <HelpTooltip dicaKey="formaPagamentoTipo" /> // DicaKey 'formaPagamentoTipo' não existe, comentar ou criar */}
+                </div>
                 <Select
                   value={newPaymentMethod.type}
                   onValueChange={(value: PaymentMethod["type"]) =>

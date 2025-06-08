@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Category } from "@/types/finance";
 import { useToast } from "@/hooks/use-toast";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react"; // Importar o seletor de emojis
+import { HelpTooltip } from "@/components/ui/HelpToolTip"; // Importar
 
 interface CategoryManagerProps {
   categories: Category[];
@@ -107,7 +108,10 @@ export const CategoryManager = ({
     <Card className="animate-fade-in">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          🏷️ Gerenciar Categorias
+          <span>
+            🏷️ Gerenciar Categorias
+          </span>
+          <HelpTooltip dicaKey="gerenciarCategorias" side="bottom" />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -118,7 +122,10 @@ export const CategoryManager = ({
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name">Nome da Categoria *</Label>
+              <div className="flex items-center">
+                <Label htmlFor="name">Nome da Categoria *</Label>
+                <HelpTooltip dicaKey="categoriaNome" />
+              </div>
               <Input
                 id="name"
                 value={newCategory.name}
@@ -131,7 +138,10 @@ export const CategoryManager = ({
             </div>
 
             <div>
-              <Label htmlFor="type">Tipo</Label>
+              <div className="flex items-center">
+                <Label htmlFor="type">Tipo</Label>
+                <HelpTooltip dicaKey="categoriaTipo" />
+              </div>
               <Select
                 value={newCategory.type}
                 onValueChange={(value: "Receita" | "Despesa") => // Padronizado

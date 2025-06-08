@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { MovementType } from "@/types/store";
 import { useToast } from "@/hooks/use-toast";
+import { HelpTooltip } from "@/components/ui/HelpToolTip"; // Importar
 
 interface MovementTypeManagerProps {
   movementTypes: MovementType[];
@@ -77,8 +78,11 @@ export const MovementTypeManager: React.FC<MovementTypeManagerProps> = ({
   return (
     <Card className="animate-fade-in">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          🔄 Gerenciar Tipos de Movimentação (Loja)
+        <CardTitle className="flex items-center gap-1">
+          <span>
+            🔄 Gerenciar Tipos de Movimentação (Loja)
+          </span>
+          <HelpTooltip dicaKey="tiposMovimentacaoLoja" side="bottom" />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -87,7 +91,10 @@ export const MovementTypeManager: React.FC<MovementTypeManagerProps> = ({
           className="space-y-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
         >
           <div>
-            <Label htmlFor="movementTypeName">Nome *</Label>
+            <div className="flex items-center">
+              <Label htmlFor="movementTypeName">Nome *</Label>
+              {/* <HelpTooltip dicaKey="tipoMovimentacaoNome" /> // DicaKey 'tipoMovimentacaoNome' não existe, comentar ou criar */}
+            </div>
             <Input
               id="movementTypeName"
               value={newMovementType.name}
@@ -102,7 +109,10 @@ export const MovementTypeManager: React.FC<MovementTypeManagerProps> = ({
             />
           </div>
           <div>
-            <Label htmlFor="movementTypeCategory">Categoria</Label>
+            <div className="flex items-center">
+              <Label htmlFor="movementTypeCategory">Categoria</Label>
+              {/* <HelpTooltip dicaKey="tipoMovimentacaoCategoria" /> // DicaKey 'tipoMovimentacaoCategoria' não existe, comentar ou criar */}
+            </div>
             <Select
               value={newMovementType.category}
               onValueChange={(value: MovementType["category"]) =>

@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "./ImageUpload";
 import { maskCNPJ, onlyNumbers } from "@/utils/formatters";
 import { Star } from "lucide-react"; // Ícone de estrela
+import { HelpTooltip } from "@/components/ui/HelpToolTip"; // Importar
 
 interface StoreManagerProps {
   stores: Store[];
@@ -158,7 +159,10 @@ export const StoreManager = ({
     <Card className="animate-fade-in">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          🏪 Gerenciar Lojas
+          <span>
+            🏪 Gerenciar Lojas
+          </span>
+          <HelpTooltip dicaKey="gerenciarLojas" side="bottom" />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -170,7 +174,10 @@ export const StoreManager = ({
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="name">Nome da Loja *</Label>
+                <div className="flex items-center">
+                  <Label htmlFor="name">Nome da Loja *</Label>
+                  <HelpTooltip dicaKey="lojaNome" />
+                </div>
                 <Input
                   id="name"
                   value={newStore.name}
@@ -183,7 +190,10 @@ export const StoreManager = ({
               </div>
 
               <div>
-                <Label htmlFor="cnpj">CNPJ *</Label>
+                <div className="flex items-center">
+                  <Label htmlFor="cnpj">CNPJ *</Label>
+                  <HelpTooltip dicaKey="lojaCNPJ" />
+                </div>
                 <Input
                   id="cnpj"
                   value={displayCNPJ}
@@ -197,7 +207,10 @@ export const StoreManager = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="nickname">Apelido</Label>
+                <div className="flex items-center">
+                  <Label htmlFor="nickname">Apelido</Label>
+                  <HelpTooltip dicaKey="lojaApelido" />
+                </div>
                 <Input
                   id="nickname"
                   value={newStore.nickname}
@@ -212,7 +225,10 @@ export const StoreManager = ({
               </div>
 
               <div>
-                <Label htmlFor="code">Código da Loja</Label>
+                <div className="flex items-center">
+                  <Label htmlFor="code">Código da Loja</Label>
+                  <HelpTooltip dicaKey="lojaCodigo" />
+                </div>
                 <Input
                   id="code"
                   value={newStore.code}
@@ -230,6 +246,7 @@ export const StoreManager = ({
                 setNewStore((prev) => ({ ...prev, icon }))
               }
               placeholder="Ícone da Loja"
+              helpTooltipDicaKey="lojaIcone" // Adicionando dica ao ImageUpload
             />
 
             <Button type="submit" className="w-full">
@@ -311,6 +328,7 @@ export const StoreManager = ({
                 setEditingStore({ ...editingStore, icon })
               }
               currentIsDefault={editingStore.isDefault} // Passar o estado de isDefault
+              helpTooltipDicaKey="lojaIcone"
               placeholder="Ícone da Loja"
             />
 

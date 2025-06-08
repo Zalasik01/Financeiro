@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CurrencyInput } from "./CurrencyInput";
 import { useAuth } from "@/hooks/useAuth"; // Adicionar useAuth
 import { useStores } from "@/hooks/useStores"; // Importar o hook de lojas
+import { HelpTooltip } from "@/components/ui/HelpToolTip"; // Importar o componente de dica
 
 interface TransactionFormProps {
   categories: Category[];
@@ -220,7 +221,10 @@ export const TransactionForm = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="description">Descrição *</Label>
+          <div className="flex items-center">
+            <Label htmlFor="description">Descrição *</Label>
+            <HelpTooltip dicaKey="transacaoDescricao" />
+          </div>
           <Input
             ref={descriptionRef}
             id="description"
@@ -241,7 +245,7 @@ export const TransactionForm = ({
 
         <div>
           <CurrencyInput
-            label="Valor (R$)"
+            label="Valor (R$)" // O tooltip será adicionado dentro do CurrencyInput ou ao lado dele
             id="amount"
             ref={amountInputRef} // Adicionar ref
             value={newTransaction.amount}
@@ -250,6 +254,7 @@ export const TransactionForm = ({
             }
             placeholder="R$ 0,00"
             required
+            helpTooltipDicaKey="transacaoValor" // Passando a chave da dica
             onKeyDown={(e) => handleKeyDown(e, discountInputRef)} // Adicionar onKeyDown
           />
         </div>
@@ -258,7 +263,7 @@ export const TransactionForm = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <CurrencyInput
-            label="Desconto (R$)"
+            label="Desconto (R$)" // Opcional: adicionar tooltip aqui também se necessário
             id="discount"
             ref={discountInputRef} // Adicionar ref
             value={newTransaction.discount}
@@ -271,7 +276,10 @@ export const TransactionForm = ({
         </div>
 
         <div>
-          <Label htmlFor="type">Tipo *</Label>
+          <div className="flex items-center">
+            <Label htmlFor="type">Tipo *</Label>
+            <HelpTooltip dicaKey="transacaoTipo" />
+          </div>
           <Select
             value={newTransaction.type}
             required
@@ -297,7 +305,10 @@ export const TransactionForm = ({
         </div>
 
         <div>
-          <Label htmlFor="category">Categoria *</Label>
+          <div className="flex items-center">
+            <Label htmlFor="category">Categoria *</Label>
+            <HelpTooltip dicaKey="transacaoCategoria" />
+          </div>
           <Select
             value={newTransaction.categoryId}
             onValueChange={(value) =>
@@ -323,7 +334,10 @@ export const TransactionForm = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="date">Data *</Label>
+          <div className="flex items-center">
+            <Label htmlFor="date">Data *</Label>
+            <HelpTooltip dicaKey="transacaoData" />
+          </div>
           <Input
             ref={dateInputRef}
             id="date"
@@ -337,7 +351,10 @@ export const TransactionForm = ({
         </div>
 
         <div>
-          <Label htmlFor="transaction-store">Loja *</Label>
+          <div className="flex items-center">
+            <Label htmlFor="transaction-store">Loja *</Label>
+            <HelpTooltip dicaKey="transacaoLoja" />
+          </div>
           <Select
             value={newTransaction.storeId || ""}
             onValueChange={(value) =>

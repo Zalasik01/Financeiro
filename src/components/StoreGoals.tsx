@@ -16,6 +16,7 @@ import { formatCurrency } from "@/utils/formatters";
 import { Label } from "@/components/ui/label"; // 1. Importar o Label
 import { cn } from "@/lib/utils"; // Importar cn
 import { useToast } from "@/hooks/use-toast";
+import { HelpTooltip } from "@/components/ui/HelpToolTip"; // Importar
 
 interface StoreGoalsProps {
   stores: Store[];
@@ -140,8 +141,11 @@ export const StoreGoals = ({
   return (
     <Card className="animate-fade-in">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          🎯 Metas das Lojas
+        <CardTitle className="flex items-center gap-1">
+          <span>
+            🎯 Metas das Lojas
+          </span>
+          <HelpTooltip dicaKey="metasLojas" side="bottom" />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -152,7 +156,10 @@ export const StoreGoals = ({
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="store-select">Selecione a loja *</Label>{" "}
+              <div className="flex items-center">
+                <Label htmlFor="store-select">Selecione a loja *</Label>
+                {/* <HelpTooltip dicaKey="metaLoja" />  // DicaKey 'metaLoja' não existe, comentar ou criar */}
+              </div>
               {/* 2. Adicionar o Label aqui */}
               <Select
                 value={newGoal.storeId}
@@ -191,6 +198,7 @@ export const StoreGoals = ({
                   setNewGoal((prev) => ({ ...prev, targetRevenue: value }))
                 }
                 placeholder="R$ 0,00"
+                // helpTooltipDicaKey="metaFaturamento" // DicaKey 'metaFaturamento' não existe, comentar ou criar
                 required
               />
             </div>
@@ -198,7 +206,10 @@ export const StoreGoals = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Select
+              <div className="flex items-center">
+                <Label className="mb-1 block">Mês da Meta</Label> {/* Label adicionado para clareza */}
+                {/* <HelpTooltip dicaKey="metaPeriodo" /> // DicaKey 'metaPeriodo' não existe, comentar ou criar */}
+              </div>              <Select
                 value={newGoal.month.toString()}
                 onValueChange={(value) =>
                   setNewGoal((prev) => ({ ...prev, month: parseInt(value) }))
@@ -218,7 +229,10 @@ export const StoreGoals = ({
             </div>
 
             <div>
-              <Select
+              <div className="flex items-center">
+                <Label className="mb-1 block">Ano da Meta</Label> {/* Label adicionado para clareza */}
+                {/* <HelpTooltip dicaKey="metaPeriodo" /> // DicaKey 'metaPeriodo' não existe, comentar ou criar */}
+              </div>              <Select
                 value={newGoal.year.toString()}
                 onValueChange={(value) =>
                   setNewGoal((prev) => ({ ...prev, year: parseInt(value) }))

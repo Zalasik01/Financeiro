@@ -2,12 +2,14 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { HelpTooltip } from "@/components/ui/HelpToolTip"; // Importar
 
 interface ImageUploadProps {
   currentIcon?: string;
   onIconChange: (icon: string) => void;
   currentIsDefault?: boolean; // Adicionado para consistência, mas não usado diretamente aqui
   placeholder?: string;
+  helpTooltipDicaKey?: keyof typeof import("@/lib/dicas").DICAS; // Chave para a dica
 }
 
 export const ImageUpload = ({
@@ -15,6 +17,7 @@ export const ImageUpload = ({
   onIconChange,
   currentIsDefault, // Recebe, mas não usa diretamente para a lógica de upload
   placeholder = "Escolher ícone",
+  helpTooltipDicaKey,
 }: ImageUploadProps) => {
   const [previewUrl, setPreviewUrl] = useState<string>(currentIcon || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -52,7 +55,12 @@ export const ImageUpload = ({
 
   return (
     <div className="space-y-3">
-      <Label>{placeholder}</Label>
+      <div className="flex items-center">
+        <Label>{placeholder}</Label>
+        {helpTooltipDicaKey && (
+          <HelpTooltip dicaKey={helpTooltipDicaKey} />
+        )}
+      </div>
       <div className="flex items-center gap-2">
         {previewUrl && (
           <div className="w-12 h-12 border rounded-lg flex items-center justify-center bg-gray-50">

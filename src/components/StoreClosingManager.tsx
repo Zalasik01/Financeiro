@@ -29,6 +29,7 @@ import { CurrencyInput } from "./CurrencyInput";
 import { formatCurrency } from "@/utils/formatters";
 import { ChevronDown } from "lucide-react";
 import { useFinance } from "@/hooks/useFinance"; // Importar useFinance
+import { HelpTooltip } from "@/components/ui/HelpToolTip"; // Importar
 
 interface StoreClosingManagerProps {
   stores: Store[];
@@ -365,7 +366,10 @@ export const StoreClosingManager = ({
     <Card className="animate-fade-in">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          📊 Fazer Fechamento
+          <span>
+            📊 Fazer Fechamento
+          </span>
+          <HelpTooltip dicaKey="fazerFechamento" side="bottom"/>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -376,7 +380,10 @@ export const StoreClosingManager = ({
           {/* Store and Date Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="store">Loja *</Label>
+              <div className="flex items-center">
+                <Label htmlFor="store">Loja *</Label>
+                <HelpTooltip dicaKey="fechamentoLoja" />
+              </div>
               <Select
                 value={newClosing.storeId}
                 onValueChange={(value) =>
@@ -398,7 +405,10 @@ export const StoreClosingManager = ({
             </div>
 
             <div>
-              <Label htmlFor="closingDate">Data do Fechamento *</Label>
+              <div className="flex items-center">
+                <Label htmlFor="closingDate">Data do Fechamento *</Label>
+                <HelpTooltip dicaKey="fechamentoData" />
+              </div>
               <Input
                 id="closingDate"
                 type="date"
@@ -425,6 +435,7 @@ export const StoreClosingManager = ({
                 }
                 placeholder="R$ 0,00"
                 required
+                helpTooltipDicaKey="fechamentoSaldoInicial"
               />
             </div>
 
@@ -438,6 +449,7 @@ export const StoreClosingManager = ({
                 }
                 placeholder="R$ 0,00"
                 required
+                helpTooltipDicaKey="fechamentoSaldoFinal"
               />
             </div>
           </div>
