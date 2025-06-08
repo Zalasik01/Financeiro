@@ -45,7 +45,7 @@ export interface PaymentMethod {
 export interface MovementType {
   id: string;
   name: string;
-  category: "entrada" | "saida" | "outros";
+  category: "Receita" | "Despesa" | "outros"; // Padronizar se MovementTypeManager ainda for usado para movimentações manuais
   color: string;
   icon: string;
   createdAt: Date;
@@ -56,11 +56,10 @@ export interface MovementItem {
   description: string;
   amount: number;
   discount?: number; // Campo de desconto opcional
-  movementTypeId: string;
+  transactionType: "Receita" | "Despesa"; // Usaremos este para identificar o tipo
   paymentMethodId: string;
   updateAt?: Date; // Data de atualização opcional
   createdAt: Date;
-  movementType?: MovementType;
   paymentMethod?: PaymentMethod;
 }
 

@@ -1,7 +1,7 @@
 export interface Category {
   id: string;
   name: string;
-  type: "income" | "expense";
+  type: "Receita" | "Despesa"; // Padronizado
   color: string;
   icon: string;
   createdAt: Date;
@@ -14,7 +14,7 @@ export interface Transaction {
   discount?: number;
   categoryId: string;
   date: Date;
-  type: "income" | "expense";
+  type: "Receita" | "Despesa"; // Padronizado
   category?: Category;
   storeId?: string;
   createdAt: Date;

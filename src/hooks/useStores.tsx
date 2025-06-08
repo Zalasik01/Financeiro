@@ -37,9 +37,6 @@ export const useStores = () => {
   const [goals, setGoals] = useState<StoreMeta[]>([]);
   const { currentUser, selectedBaseId } = useAuth(); // Obter o usuário atual e o selectedBaseId
   const { toast } = useToast(); // Inicializar o hook de toast
-
-  console.log("[useStores] Hook useStores inicializado/re-renderizado. currentUser:", currentUser ? { email: currentUser.email, clientBaseId: currentUser.clientBaseId, isAdmin: currentUser.isAdmin } : null, "selectedBaseId:", selectedBaseId);
-
   // Carregar Bases (appBases para o usuário logado ou clientBases filtradas para não-admins)
   useEffect(() => {
     // Esta linha de log já deve existir no seu arquivo, conforme seus logs anteriores.
@@ -254,9 +251,11 @@ export const useStores = () => {
           closingDate: new Date(data[key].closingDate),
           createdAt: new Date(data[key].createdAt),
           // movements são armazenados como objetos, precisam ser convertidos para array se necessário
-          movements: data[key].movements
-            ? Object.values(data[key].movements)
-            : [],
+          movements: data[key].movements // Firebase RTDB normalmente retorna um array se um array foi salvo.
+            ? Array.isArray(data[key].movements)
+              ? data[key].movements // Usa diretamente se for um array
+              : Object.values(data[key].movements) // Fallback para objetos que se parecem com arrays (ex: chaves "0", "1")
+            : [], // Define como array vazio se não houver movements
         }));
         setClosings(list);
       } else {
@@ -661,36 +660,26 @@ export const useStores = () => {
     }
   };
 
-  const movementTypeMap = useMemo(() => {
-    return new Map(movementTypes.map((type) => [type.id, type]));
-  }, [movementTypes]);
+  // movementTypeMap não é mais necessário para este fluxo se MovementItem usa transactionType
+  // const movementTypeMap = useMemo(() => {
+  //   return new Map(movementTypes.map((type) => [type.id, type]));
+  // }, [movementTypes]);
 
   const calculateTotals = useCallback(
     (movements: MovementItem[]) => {
       const totalEntradas = movements
-        .filter((m) => {
-          const type = movementTypeMap.get(m.movementTypeId);
-          return type?.category === "entrada";
-        })
+        .filter((m) => m.transactionType === "Receita")
         .reduce((sum, m) => sum + m.amount - (m.discount || 0), 0);
 
       const totalSaidas = movements
-        .filter((m) => {
-          const type = movementTypeMap.get(m.movementTypeId);
-          return type?.category === "saida";
-        })
+        .filter((m) => m.transactionType === "Despesa")
         .reduce((sum, m) => sum + m.amount, 0);
 
-      const totalOutros = movements
-        .filter((m) => {
-          const type = movementTypeMap.get(m.movementTypeId);
-          return type?.category === "outros";
-        })
-        .reduce((sum, m) => sum + m.amount, 0);
+      const totalOutros = 0; // Movimentações de transações financeiras não geram "outros"
 
       return { totalEntradas, totalSaidas, totalOutros };
     },
-    [movementTypeMap]
+    [] // Removida dependência de movementTypeMap
   );
 
   const addStoreClosing = async (
@@ -879,15 +868,12 @@ export const useStores = () => {
       movements: (closing.movements || []).map((movement: MovementItem) => ({
         // Garante que movements seja um array e tipa movement
         ...movement,
-        movementType: movementTypes.find(
-          (type) => type.id === movement.movementTypeId
-        ),
         paymentMethod: paymentMethods.find(
           (method) => method.id === movement.paymentMethodId
         ),
       })),
     }));
-  }, [closings, stores, movementTypes, paymentMethods]);
+  }, [closings, stores, paymentMethods]); // Removido movementTypes da dependência
 
   // Função auxiliar para obter detalhes de fechamento, caso precise fora do retorno principal
   // const getClosingsWithDetails = closingsWithDetails;

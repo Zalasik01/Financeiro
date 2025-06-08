@@ -21,7 +21,7 @@ import {
   Store,
   StoreClosing,
   PaymentMethod,
-  MovementType,
+  // MovementType, // Removido se não for mais usado aqui
   MovementItem,
 } from "@/types/store";
 import { useToast } from "@/hooks/use-toast";
@@ -34,7 +34,7 @@ interface StoreClosingManagerProps {
   stores: Store[];
   closings: StoreClosing[];
   paymentMethods: PaymentMethod[];
-  movementTypes: MovementType[];
+  // movementTypes: MovementType[]; // Removido
   onAddClosing: (
     closing: Omit<
       StoreClosing,
@@ -54,12 +54,12 @@ export const StoreClosingManager = ({
   stores,
   closings,
   paymentMethods,
-  movementTypes,
+  // movementTypes, // Removido
   onAddClosing,
   onUpdateClosing,
   onDeleteClosing,
 }: // transactions, // Adicionar transactions se for passado como prop
-StoreClosingManagerProps) => {
+  StoreClosingManagerProps) => {
   const [newClosing, setNewClosing] = useState({
     storeId: "",
     closingDate: new Date().toISOString().split("T")[0],
@@ -157,37 +157,37 @@ StoreClosingManagerProps) => {
 
     // 2. Mapear Transaction para MovementItem
     const movementsFromPersonalTransactions: MovementItem[] =
-      relevantPersonalTransactions
-        .map((t) => {
-          // Encontra um tipo de movimento pela categoria correspondente (entrada/saida)
-          const movementTypeForTransfer = movementTypes.find(
-            (mt) => mt.category === (t.type === "income" ? "entrada" : "saida")
-          );
+      relevantPersonalTransactions.map((t) => {
+        const transactionTypeForMovement: "Receita" | "Despesa" =
+          t.type === "Receita" ? "Receita" : "Despesa";
+        return {
+          id: `mov-from-trans-${t.id}`, // ID único para o movimento
+          description: t.description,
+          amount: Math.abs(t.amount), // Valor sempre positivo
+          discount: t.discount || 0,
+          transactionType: transactionTypeForMovement,
+          paymentMethodId: "N/A", // Ou um método padrão se aplicável
+          createdAt: t.createdAt, // Herda da transação original
+          // updateAt: t.updatedAt, // Herda se existir e for relevante
+        };
+      });
 
-          if (!movementTypeForTransfer) {
-            toast({
-              title: "Erro de Configuração",
-              description: `Nenhum tipo de movimento com categoria "${
-                t.type === "income" ? "entrada" : "saida"
-              }" foi encontrado. Cadastre um tipo de movimento com esta categoria para prosseguir.`,
-              variant: "destructive",
-              duration: 7000,
-            });
-            return null; // Retorna null para esta transação, será filtrado depois.
-          }
+    console.log(
+      "Movimentos gerados a partir das transações:",
+      movementsFromPersonalTransactions
+    );
 
-          return {
-            id: `mov-from-trans-${t.id}`,
-            description: `${t.description}`,
-            amount: Math.abs(t.amount),
-            discount: t.discount || 0,
-            movementTypeId: movementTypeForTransfer.id, // ID de um MovementType existente
-            paymentMethodId: "N/A", // Ou um método padrão
-            storeClosingId: "", // Será preenchido por addStoreClosing
-            // Não embutir o objeto movementType aqui; será populado por getClosingsWithDetails
-          };
-        })
-        .filter(Boolean) as MovementItem[]; // Filtra quaisquer transações que não puderam ser mapeadas
+    // ADICIONE ESTE LOG:
+    console.log("Fechamento enviado para onAddClosing:", {
+      storeId: newClosing.storeId,
+      closingDate: closingDateObj,
+      initialBalance: newClosing.initialBalance,
+      finalBalance: newClosing.finalBalance,
+      movements: [
+        ...newClosing.movements,
+        ...movementsFromPersonalTransactions,
+      ],
+    });
 
     onAddClosing({
       storeId: newClosing.storeId,
@@ -209,18 +209,13 @@ StoreClosingManagerProps) => {
     });
 
     // 3. Remover as transações pessoais que foram movidas
-    removeTransactionsByDateAndStore(closingDateObj, newClosing.storeId);
+    // removeTransactionsByDateAndStore(closingDateObj, newClosing.storeId);
 
     toast({
       title: "Sucesso",
       description: "Fechamento registrado com sucesso!",
       variant: "success",
     });
-  };
-
-  const getMovementTypeColor = (typeId: string) => {
-    const type = movementTypes.find((t) => t.id === typeId);
-    return type?.color || "#6B7280";
   };
 
   const toggleClosingDetails = (closingId: string) => {
@@ -481,11 +476,10 @@ StoreClosingManagerProps) => {
                             className="p-1 h-8 w-8"
                           >
                             <ChevronDown
-                              className={`h-4 w-4 transition-transform ${
-                                expandedClosingId === closing.id
-                                  ? "transform rotate-180"
-                                  : ""
-                              }`}
+                              className={`h-4 w-4 transition-transform ${expandedClosingId === closing.id
+                                ? "transform rotate-180"
+                                : ""
+                                }`}
                             />
                           </Button>
                         </CollapsibleTrigger>
@@ -496,11 +490,10 @@ StoreClosingManagerProps) => {
                             onDeleteClosing(closing.id);
                             toast({
                               title: "Fechamento Removido",
-                              description: `O fechamento da loja "${
-                                closing.store?.name || "Desconhecida"
-                              }" de ${new Date(
-                                closing.closingDate
-                              ).toLocaleDateString("pt-BR")} foi removido.`,
+                              description: `O fechamento da loja "${closing.store?.name || "Desconhecida"
+                                }" de ${new Date(
+                                  closing.closingDate
+                                ).toLocaleDateString("pt-BR")} foi removido.`,
                               variant: "success",
                             });
                           }}
@@ -539,11 +532,10 @@ StoreClosingManagerProps) => {
                       <div>
                         <span className="text-gray-500">Resultado:</span>
                         <p
-                          className={`font-medium ${
-                            closing.netResult >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
+                          className={`font-medium ${closing.netResult >= 0
+                            ? "text-green-600"
+                            : "text-red-600"
+                            }`}
                         >
                           {formatCurrency(closing.netResult)}
                         </p>
@@ -560,46 +552,23 @@ StoreClosingManagerProps) => {
                     <div className="px-4 pb-4 space-y-2 bg-gray-50 rounded-b-lg">
                       <h5 className="font-medium text-sm text-gray-600 pt-2">
                         Movimentações:
+                        <span className="ml-2 font-normal text-gray-500">
+                          {closing.movements.length} movimento(s)
+                        </span>
                       </h5>
                       {closing.movements && closing.movements.length > 0 ? (
                         closing.movements.map((movement) => {
-                          const type = movement.movementType; // Detalhes populados por getClosingsWithDetails
-                          const method = movement.paymentMethod; // Detalhes populados por getClosingsWithDetails
+                          const method = movement.paymentMethod; // paymentMethod já vem populado de closingsWithDetails
                           return (
-                            <div
-                              key={movement.id}
-                              className="flex items-center justify-between p-2 bg-white rounded border"
-                            >
+                            <div key={movement.id} className="flex items-center justify-between p-2 bg-white rounded border">
                               <div className="flex items-center gap-2">
-                                <span>{type?.icon || "📝"}</span>
+                                <span>{movement.transactionType === "Receita" ? "➡️" : "⬅️"}</span>
                                 <span className="text-sm">
                                   {movement.description}
-                                  {type && (
-                                    <span
-                                      className={`text-xs ml-1 ${
-                                        type.category === "saida"
-                                          ? "text-red-500"
-                                          : "text-green-500"
-                                      }`}
-                                    >
-                                      (
-                                      {type.category === "saida"
-                                        ? "Despesa"
-                                        : type.category === "entrada"
-                                        ? "Receita"
-                                        : "Outro"}
-                                      )
-                                    </span>
-                                  )}
+                                  <span className={`text-xs ml-1 ${movement.transactionType === "Despesa" ? "text-red-500" : "text-green-500"}`}>
+                                    ({movement.transactionType})
+                                  </span>
                                 </span>
-                                {type && (
-                                  <Badge
-                                    style={{ backgroundColor: type.color }}
-                                    className="text-white text-xs"
-                                  >
-                                    {type.name}
-                                  </Badge>
-                                )}
                                 {method && (
                                   <Badge variant="outline" className="text-xs">
                                     {method.icon} {method.name}
@@ -612,8 +581,7 @@ StoreClosingManagerProps) => {
                                 </span>
                                 {movement.discount > 0 && (
                                   <span className="text-xs text-red-500 block">
-                                    Desconto:{" "}
-                                    {formatCurrency(movement.discount)}
+                                    Desconto: {formatCurrency(movement.discount)}
                                   </span>
                                 )}
                               </div>

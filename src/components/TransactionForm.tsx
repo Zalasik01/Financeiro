@@ -27,7 +27,7 @@ interface TransactionFormProps {
   ) => void;
   editingTransaction?: Transaction | null;
   lastUsedFields?: { // Prop para campos da última transação
-    type?: "income" | "expense";
+    type?: "Receita" | "Despesa"; // Ajustado para consistência
     storeId?: string;
     categoryId?: string;
   } | null;
@@ -46,7 +46,7 @@ export const TransactionForm = ({
     discount: 0,
     categoryId: "",
     date: new Date().toISOString().split("T")[0],
-    type: "expense" as "income" | "expense",
+    type: "Despesa" as "Receita" | "Despesa", // Ajustado para consistência
     storeId: undefined as string | undefined, // Adicionar storeId ao estado
   });
   const { toast } = useToast();
@@ -91,7 +91,7 @@ export const TransactionForm = ({
         discount: 0,     // Limpa desconto
         categoryId: lastUsedFields?.categoryId || "", // Usa último usado ou vazio
         date: new Date().toISOString().split("T")[0], // Reseta data
-        type: lastUsedFields?.type || "expense",     // Usa último usado ou padrão
+        type: lastUsedFields?.type || "Despesa",     // Usa último usado ou padrão
         storeId: lastUsedFields?.storeId || initialStoreId, // Usa último usado ou inicial
       });
     }
@@ -135,7 +135,7 @@ export const TransactionForm = ({
 
     const baseTransactionData = {
       description: newTransaction.description,
-      amount: newTransaction.type === "expense" ? -finalAmount : finalAmount,
+      amount: newTransaction.type === "Despesa" ? -finalAmount : finalAmount, // Ajustado
       // Se o desconto for 0 ou não definido, passamos null.
       // O hook useFinance tratará se deve incluir o campo ou não.
       discount: newTransaction.discount > 0 ? newTransaction.discount : null,
@@ -275,7 +275,7 @@ export const TransactionForm = ({
           <Select
             value={newTransaction.type}
             required
-            onValueChange={(value: "income" | "expense") =>
+            onValueChange={(value: "Receita" | "Despesa") => // Ajustado
               setNewTransaction((prev) => ({
                 ...prev,
                 type: value,
@@ -290,8 +290,8 @@ export const TransactionForm = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="income">Receita</SelectItem>
-              <SelectItem value="expense">Despesa</SelectItem>
+              <SelectItem value="Receita">Receita</SelectItem>
+              <SelectItem value="Despesa">Despesa</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -397,7 +397,7 @@ export const TransactionForm = ({
                 discount: 0,
                 categoryId: "",
                 date: new Date().toISOString().split("T")[0],
-                type: "expense",
+                type: "Despesa", // Ajustado
                 storeId: undefined,
               });
               onUpdateTransaction(editingTransaction.id, null);

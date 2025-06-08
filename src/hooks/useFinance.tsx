@@ -42,9 +42,19 @@ export const useFinance = () => {
       if (data) {
         const categoriesList: Category[] = Object.keys(data).map((key) => {
           const categoryEntry = data[key];
+          // Mapear 'income' para 'Receita' e 'expense' para 'Despesa' ao carregar categorias
+          let mappedCategoryType: "Receita" | "Despesa";
+          if (categoryEntry.type === "income") {
+            mappedCategoryType = "Receita";
+          } else if (categoryEntry.type === "expense") {
+            mappedCategoryType = "Despesa";
+          } else {
+            mappedCategoryType = categoryEntry.type; // Assume que já está no formato correto
+          }
           return {
             id: key,
             ...categoryEntry,
+            type: mappedCategoryType,
             createdAt: new Date(categoryEntry.createdAt),
           };
         });
@@ -74,14 +84,25 @@ export const useFinance = () => {
     const unsubscribe = onValue(transactionsQuery, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        const transactionsList: Transaction[] = Object.keys(data).map(
-          (key) => ({
+        const transactionsList: Transaction[] = Object.keys(data).map((key) => {
+          const entry = data[key];
+          // Mapear 'income' para 'Receita' e 'expense' para 'Despesa'
+          let mappedType: "Receita" | "Despesa";
+          if (entry.type === "income") {
+            mappedType = "Receita";
+          } else if (entry.type === "expense") {
+            mappedType = "Despesa";
+          } else {
+            mappedType = entry.type; // Assume que já está no formato correto
+          }
+          return {
             id: key,
-            ...data[key],
-            date: new Date(data[key].date), // Converter string de data para objeto Date
-            createdAt: new Date(data[key].createdAt), // Converter string de data para objeto Date
-          })
-        );
+            ...entry,
+            type: mappedType,
+            date: new Date(entry.date), 
+            createdAt: new Date(entry.createdAt), 
+          };
+        });
         setTransactions(transactionsList);
       } else {
         setTransactions([]);
@@ -216,7 +237,7 @@ export const useFinance = () => {
         description: transactionData.description,
         amount: transactionData.amount,
         categoryId: transactionData.categoryId,
-        date: transactionData.date.toISOString(), // Salvar data como string ISO
+        date: transactionData.date.toISOString(), 
         type: transactionData.type,
         storeId: transactionData.storeId, // Assumindo que storeId é obrigatório e validado no formulário
         createdAt: serverTimestamp(), // Usar timestamp do servidor para createdAt
@@ -339,11 +360,11 @@ export const useFinance = () => {
   // Calcular o resumo financeiro
   const summary = useMemo((): FinancialSummary => {
     const income = transactions
-      .filter((t) => t.type === "income")
+      .filter((t) => t.type === "Receita") // Ajustado para "Receita"
       .reduce((sum, t) => sum + t.amount, 0);
 
     const expense = transactions
-      .filter((t) => t.type === "expense")
+      .filter((t) => t.type === "Despesa") // Ajustado para "Despesa"
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
     let startDate: Date | null = null;

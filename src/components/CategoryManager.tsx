@@ -53,7 +53,7 @@ export const CategoryManager = ({
 }: CategoryManagerProps) => {
   const [newCategory, setNewCategory] = useState({
     name: "",
-    type: "expense" as "income" | "expense",
+    type: "Despesa" as "Receita" | "Despesa", // Padronizado
     icon: "💰",
     color: "#10B981",
   });
@@ -81,7 +81,7 @@ export const CategoryManager = ({
     });
     setNewCategory({
       name: "",
-      type: "expense",
+      type: "Despesa",
       icon: "💰",
       color: "#10B981",
     });
@@ -134,16 +134,19 @@ export const CategoryManager = ({
               <Label htmlFor="type">Tipo</Label>
               <Select
                 value={newCategory.type}
-                onValueChange={(value: "income" | "expense") =>
-                  setNewCategory((prev) => ({ ...prev, type: value }))
+                onValueChange={(value: "Receita" | "Despesa") => // Padronizado
+                  setNewCategory((prev) => ({
+                    ...prev,
+                    type: value,
+                  }))
                 }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="income">Receita</SelectItem>
-                  <SelectItem value="expense">Despesa</SelectItem>
+                  <SelectItem value="Receita">Receita</SelectItem>
+                  <SelectItem value="Despesa">Despesa</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -157,11 +160,10 @@ export const CategoryManager = ({
                   <button
                     key={icon}
                     type="button"
-                    className={`p-2 rounded-lg border-2 hover:scale-110 transition-transform ${
-                      newCategory.icon === icon && !showEmojiPicker // Destaca se for o ícone selecionado E o picker não estiver aberto
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200"
-                    }`}
+                    className={`p-2 rounded-lg border-2 hover:scale-110 transition-transform ${newCategory.icon === icon && !showEmojiPicker // Destaca se for o ícone selecionado E o picker não estiver aberto
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200"
+                      }`}
                     onClick={() => {
                       setNewCategory((prev) => ({ ...prev, icon }));
                       setShowEmojiPicker(false); // Fecha o picker se um ícone predefinido for clicado
@@ -189,7 +191,7 @@ export const CategoryManager = ({
                       autoFocusSearch={false}
                       theme={Theme.AUTO} // Ou Theme.LIGHT, Theme.DARK
                       height={350}
-                      // width="300px" // Pode definir uma largura fixa se desejar
+                    // width="300px" // Pode definir uma largura fixa se desejar
                     />
                   </div>
                 )}
@@ -203,11 +205,10 @@ export const CategoryManager = ({
                   <button
                     key={color}
                     type="button"
-                    className={`w-8 h-8 rounded-full border-2 hover:scale-110 transition-transform ${
-                      newCategory.color === color
-                        ? "ring-2 ring-offset-1 ring-gray-800"
-                        : "border-gray-300"
-                    }`}
+                    className={`w-8 h-8 rounded-full border-2 hover:scale-110 transition-transform ${newCategory.color === color
+                      ? "ring-2 ring-offset-1 ring-gray-800"
+                      : "border-gray-300"
+                      }`}
                     style={{ backgroundColor: color }}
                     onClick={() =>
                       setNewCategory((prev) => ({ ...prev, color }))
@@ -254,7 +255,7 @@ export const CategoryManager = ({
                       style={{ backgroundColor: category.color }}
                       className="text-xs text-white"
                     >
-                      {category.type === "income" ? "Receita" : "Despesa"}
+                      {category.type} {/* Exibe diretamente, pois já é "Receita" ou "Despesa" vindo do useFinance */}
                     </Badge>
                   </div>
                 </div>

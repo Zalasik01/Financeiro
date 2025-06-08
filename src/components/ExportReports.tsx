@@ -20,7 +20,7 @@ export const ExportReports = ({
       new Date(transaction.date).toLocaleDateString("pt-BR"),
       transaction.description,
       transaction.category?.name || "Sem categoria",
-      transaction.type === "income" ? "Receita" : "Despesa",
+      transaction.type, // Agora type já é "Receita" ou "Despesa"
       transaction.amount.toFixed(2).replace(".", ","),
     ]);
 
@@ -51,9 +51,9 @@ export const ExportReports = ({
   const exportSummaryReport = () => {
     const summary = transactions.reduce(
       (acc, transaction) => {
-        if (transaction.type === "income") {
+        if (transaction.type === "Receita") { // Ajustado
           acc.totalIncome += transaction.amount;
-        } else {
+        } else { // Assumindo que o outro tipo é "Despesa"
           acc.totalExpenses += Math.abs(transaction.amount);
         }
         return acc;
@@ -80,7 +80,7 @@ ${Object.entries(
   transactions.reduce((acc, t) => {
     const cat = t.category?.name || "Sem categoria";
     if (!acc[cat]) acc[cat] = { income: 0, expenses: 0, count: 0 };
-    if (t.type === "income") acc[cat].income += t.amount;
+    if (t.type === "Receita") acc[cat].income += t.amount; // Ajustado
     else acc[cat].expenses += Math.abs(t.amount);
     acc[cat].count++;
     return acc;

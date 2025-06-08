@@ -76,7 +76,7 @@ export const TransactionList = ({
                         style={{
                           backgroundColor:
                             transaction.category?.color ||
-                            (transaction.type === "income"
+                            (transaction.type === "Receita"
                               ? "#10B981"
                               : "#EF4444"),
                         }}
@@ -113,12 +113,12 @@ export const TransactionList = ({
                 <div className="flex items-center gap-2">
                   <span
                     className={`font-bold ${
-                      transaction.type === "income"
+                      transaction.type === "Receita"
                         ? "text-green-600"
                         : "text-red-600"
                     }`}
                   >
-                    {transaction.type === "income" ? "+" : "-"}
+                    {transaction.type === "Receita" ? "+" : "-"}
                     {formatCurrency(Math.abs(transaction.amount))}
                   </span>
                   <div className="flex gap-1">
