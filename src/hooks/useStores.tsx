@@ -40,7 +40,7 @@ export const useStores = () => {
   // Carregar Bases (appBases para o usuário logado ou clientBases filtradas para não-admins)
   useEffect(() => {
     // Esta linha de log já deve existir no seu arquivo, conforme seus logs anteriores.
-        console.log("[useStores] Entrando no useEffect de carregamento de Bases. currentUser:", currentUser ? { email: currentUser.email, clientBaseId: currentUser.clientBaseId, isAdmin: currentUser.isAdmin } : null);
+    console.log("[useStores] Entrando no useEffect de carregamento de Bases. currentUser:", currentUser ? { email: currentUser.email, clientBaseId: currentUser.clientBaseId, isAdmin: currentUser.isAdmin } : null);
 
     if (!currentUser) {
       console.log("[useStores] useEffect para bases: currentUser é null, limpando bases e retornando.");
@@ -81,7 +81,7 @@ export const useStores = () => {
               return match; // Mantido para depuração, pode ser comentado depois
             }
           );
-          console.log("[useStores] Bases acessíveis após filtro por clientBaseId:", accessibleClientBases.map(b => ({id: b.id, name: b.name, numberId: b.numberId })));
+          console.log("[useStores] Bases acessíveis após filtro por clientBaseId:", accessibleClientBases.map(b => ({ id: b.id, name: b.name, numberId: b.numberId })));
         } else {
           // Usuário não-admin SEM clientBaseId definido:
           // Vê todas as clientBases às quais tem acesso via authorizedUIDs.
@@ -92,7 +92,7 @@ export const useStores = () => {
               currentUser.uid &&    // Garante que currentUser.uid exista
               cb.authorizedUIDs[currentUser.uid]
           );
-          console.log("[useStores] Bases acessíveis após filtro por authorizedUIDs:", accessibleClientBases.map(b => ({id: b.id, name: b.name })));
+          console.log("[useStores] Bases acessíveis após filtro por authorizedUIDs:", accessibleClientBases.map(b => ({ id: b.id, name: b.name })));
         }
         // Mapear ClientBase para Base para o modal
         setBases(
@@ -100,11 +100,11 @@ export const useStores = () => {
             (
               cb: ClientBase
             ): Base => ({
-                id: cb.id, // UUID
-                name: cb.name,
-                createdAt: cb.createdAt,
-                numberId: cb.numberId as number, // Assuming Base.numberId is number and cb.numberId might be any
-              })
+              id: cb.id, // UUID
+              name: cb.name,
+              createdAt: cb.createdAt,
+              numberId: cb.numberId as number, // Assuming Base.numberId is number and cb.numberId might be any
+            })
           )
         );
       } else { // Adicionado ponto e vírgula
@@ -112,8 +112,8 @@ export const useStores = () => {
         setBases([]);
       }
     }, (error) => {
-        console.error("[useStores] Erro ao carregar clientBases do Firebase:", error);
-        setBases([]); // Limpa as bases em caso de erro
+      console.error("[useStores] Erro ao carregar clientBases do Firebase:", error);
+      setBases([]); // Limpa as bases em caso de erro
     });
 
     return () => unsubscribeBases();
@@ -156,7 +156,7 @@ export const useStores = () => {
             createdAtValue = new Date(storeEntry.createdAt);
           } else {
             // Fallback para data atual se createdAt for inválido ou ausente
-            createdAtValue = new Date(); 
+            createdAtValue = new Date();
           }
           return {
             id: key,
@@ -375,7 +375,7 @@ export const useStores = () => {
       const storeRef = ref(db, `clientBases/${clientBaseId}/appStores/${id}`); // Caminho atualizado
       await update(storeRef, storeUpdates);
       // Opcional: toast de sucesso
-      toast({ title: "Sucesso!", description: "Loja atualizada." });
+      toast({ title: "Sucesso!", description: "Loja atualizada.", variant: "success", });
     } catch (errorUnknown: unknown) {
       const error = errorUnknown as Error;
       const errorMessage = error.message || "Não foi possível atualizar a loja.";
@@ -787,7 +787,7 @@ export const useStores = () => {
 
       if (closingUpdates.closingDate) {
         (updatesToSave as Record<string, unknown>).closingDate =
-  closingUpdates.closingDate.toISOString();
+          closingUpdates.closingDate.toISOString();
       }
 
       // Se movements forem atualizados, recalcular totais

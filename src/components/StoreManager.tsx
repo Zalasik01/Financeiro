@@ -148,11 +148,6 @@ export const StoreManager = ({
       });
     }
     onUpdateStore(storeId, { ...currentStore, isDefault: newIsDefault });
-    toast({
-      title: newIsDefault
-        ? "Loja definida como padrão"
-        : "Loja não é mais padrão",
-    });
   };
 
   return (
