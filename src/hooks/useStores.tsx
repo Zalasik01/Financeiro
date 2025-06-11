@@ -842,7 +842,6 @@ export const useStores = () => {
         `clientBases/${selectedBaseId}/appClosings/${id}`
       ); // Caminho atualizado
       await remove(closingRef);
-      toast({ title: "Sucesso!", description: "Fechamento deletado." });
     } catch (errorUnknown: unknown) {
       const error = errorUnknown as Error;
       const errorMessage = error.message || "Não foi possível deletar o fechamento.";
