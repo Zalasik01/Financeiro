@@ -8,6 +8,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Importar Avatar
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,18 @@ export const UserMenu = () => {
 
   if (!currentUser) {
     return null;
+  }
+
+  const buildTimestamp = import.meta.env.VITE_BUILD_TIMESTAMP;
+  let formattedBuildDate = "N/A";
+  if (buildTimestamp) {
+    const date = new Date(buildTimestamp);
+    if (!isNaN(date.getTime())) {
+      formattedBuildDate = date.toLocaleString("pt-BR", {
+        day: "2-digit", month: "2-digit", year: "numeric",
+        hour: "2-digit", minute: "2-digit", second: "2-digit"
+      });
+    }
   }
 
   const handleLogout = async () => {
@@ -75,6 +88,9 @@ export const UserMenu = () => {
             <Edit3 className="mr-2 h-4 w-4" />
             <span>Editar Perfil</span>
           </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled className="text-xs text-muted-foreground justify-center pt-2 pb-1">
+            Compilação: {formattedBuildDate}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
