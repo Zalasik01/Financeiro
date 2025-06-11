@@ -14,7 +14,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog"; // Corrigido: AlertDialogDescription já estava importado
 import { httpsCallable } from "firebase/functions"; // Importar httpsCallable
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Loader2, Users, Search, Building2, KeyRound, ShieldCheck, ShieldOff, MoreHorizontal, Link2, Edit3, UserX, Trash2, Power, PowerOff } from "lucide-react";
@@ -45,44 +45,50 @@ const GerenciarUsuariosGlobalPage: React.FC = () => {
   const [userToLink, setUserToLink] = useState<UserWithBaseInfo | null>(null);
   const [baseNumberIdToLink, setBaseNumberIdToLink] = useState<string>("");
   const [userToDelete, setUserToDelete] = useState<UserWithBaseInfo | null>(null);
+  const [userToToggleAdmin, setUserToToggleAdmin] = useState<UserWithBaseInfo | null>(null);
+  const [userToSetDefaultBase, setUserToSetDefaultBase] = useState<UserWithBaseInfo | null>(null);
+  const [defaultBaseNumberIdInput, setDefaultBaseNumberIdInput] = useState<string>("");
+  const [unlinkInfo, setUnlinkInfo] = useState<{ user: UserWithBaseInfo; base: UserWithBaseInfo["associatedBases"][0] } | null>(null);
 
-  useEffect(() => {
+  const fetchData = async () => { // Função fetchData simplificada
     setLoading(true);
+    setError(null);
     const usersRef = ref(db, "users");
     const clientBasesRef = ref(db, "clientBases");
 
-    const fetchData = async () => {
-      try {
-        const usersSnapshot = await get(usersRef);
-        const basesSnapshot = await get(clientBasesRef);
+    try {
+      const usersSnapshot = await get(usersRef);
+      const basesSnapshot = await get(clientBasesRef);
 
-        const usersData = usersSnapshot.val();
-        const basesData = basesSnapshot.val();
+      const usersData = usersSnapshot.val();
+      const basesData = basesSnapshot.val();
 
-        const loadedUsers: UserProfile[] = usersData
-          ? Object.keys(usersData).map((uid) => ({
-              uid,
-              ...usersData[uid].profile,
-            }))
-          : [];
-        setAllUsers(loadedUsers);
+      const loadedUsers: UserProfile[] = usersData
+        ? Object.keys(usersData).map((uid) => ({
+            uid,
+            ...usersData[uid].profile,
+          }))
+        : [];
+      setAllUsers(loadedUsers);
 
-        const loadedBases: ClientBase[] = basesData
-          ? Object.keys(basesData).map((id) => ({
-              id,
-              ...basesData[id],
-            }))
-          : [];
-        setAllClientBases(loadedBases);
-        setError(null);
-      } catch (err) {
-        console.error("Erro ao buscar dados globais de usuários e bases:", err);
-        setError("Falha ao carregar dados. Tente novamente mais tarde.");
-      } finally {
-        setLoading(false);
-      }
-    };
+      const loadedBases: ClientBase[] = basesData
+        ? Object.keys(basesData).map((id) => ({
+            id,
+            ...basesData[id],
+          }))
+        : [];
+      setAllClientBases(loadedBases);
+    } catch (err) {
+      console.error("Erro ao buscar dados globais de usuários e bases:", err);
+      setError("Falha ao carregar dados. Tente novamente mais tarde.");
+      setAllUsers([]); // Limpar em caso de erro
+      setAllClientBases([]); // Limpar em caso de erro
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -182,6 +188,118 @@ const GerenciarUsuariosGlobalPage: React.FC = () => {
     }
   };
 
+  const handleToggleAdminStatus = async () => {
+    if (!userToToggleAdmin) return;
+
+    const newAdminStatus = !userToToggleAdmin.isAdmin;
+    const actionText = newAdminStatus ? "promover a" : "remover de";
+
+    try {
+      const toggleAdminFunction = httpsCallable(firebaseFunctions, 'toggleUserAdminStatus');
+      const result = await toggleAdminFunction({ targetUid: userToToggleAdmin.uid, isAdmin: newAdminStatus });
+      const resultData = result.data as { success: boolean; message: string };
+
+      if (resultData.success) {
+        toast({ title: "Sucesso!", description: resultData.message, variant: "success" });
+        setAllUsers(prevUsers =>
+          prevUsers.map(u =>
+            u.uid === userToToggleAdmin.uid ? { ...u, isAdmin: newAdminStatus } : u
+          )
+        );
+      } else {
+        toast({ title: `Erro ao ${actionText} admin`, description: resultData.message || "Ocorreu um erro.", variant: "destructive" });
+      }
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as { message?: string };
+      console.error(`Erro ao chamar Cloud Function toggleUserAdminStatus:`, error.message || error);
+      toast({ title: "Erro na Operação", description: error.message || `Não foi possível ${actionText} o status de admin.`, variant: "destructive" });
+    } finally {
+      setUserToToggleAdmin(null);
+    }
+  };
+
+  const handleSetDefaultBase = async () => {
+    if (!userToSetDefaultBase || !defaultBaseNumberIdInput.trim()) {
+      toast({ title: "Erro", description: "ID da base padrão é obrigatório.", variant: "destructive" });
+      return;
+    }
+    const targetBaseNumberId = parseInt(defaultBaseNumberIdInput, 10);
+    if (isNaN(targetBaseNumberId)) {
+      toast({ title: "Erro", description: "ID da base deve ser um número.", variant: "destructive" });
+      return;
+    }
+
+    const baseExists = allClientBases.some(b => b.numberId === targetBaseNumberId);
+    if (!baseExists) {
+      toast({ title: "Erro", description: `Nenhuma base encontrada com o ID numérico: ${targetBaseNumberId}.`, variant: "destructive" });
+      return;
+    }
+
+    try {
+      const setDefaultBaseFunction = httpsCallable(firebaseFunctions, 'setUserDefaultClientBase');
+      const result = await setDefaultBaseFunction({ targetUid: userToSetDefaultBase.uid, baseNumberId: targetBaseNumberId });
+      const resultData = result.data as { success: boolean; message: string };
+
+      if (resultData.success) {
+        toast({ title: "Sucesso!", description: resultData.message, variant: "success" });
+        setAllUsers(prevUsers =>
+          prevUsers.map(u =>
+            u.uid === userToSetDefaultBase.uid ? { ...u, clientBaseId: targetBaseNumberId } : u
+          )
+        );
+      } else {
+        toast({ title: "Erro ao definir base padrão", description: resultData.message || "Ocorreu um erro.", variant: "destructive" });
+      }
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as { message?: string };
+      console.error(`Erro ao chamar Cloud Function setUserDefaultClientBase:`, error.message || error);
+      toast({ title: "Erro na Operação", description: error.message || "Não foi possível definir a base padrão.", variant: "destructive" });
+    } finally {
+      setUserToSetDefaultBase(null);
+      setDefaultBaseNumberIdInput("");
+    }
+  };
+
+  const handleUnlinkFromBase = async () => {
+    if (!unlinkInfo) return;
+    const { user, base } = unlinkInfo;
+
+    // Não permitir desvincular da base padrão diretamente por este método.
+    // O usuário teria que primeiro alterar a base padrão.
+    if (user.clientBaseId === base.numberId && base.role === "default") {
+      toast({ title: "Ação não permitida", description: "Não é possível desvincular da base padrão. Altere a base padrão primeiro.", variant: "destructive" });
+      setUnlinkInfo(null);
+      return;
+    }
+
+    try {
+      const unlinkFunction = httpsCallable(firebaseFunctions, 'unlinkUserFromClientBase');
+      const result = await unlinkFunction({ targetUid: user.uid, clientBaseId: base.id });
+      const resultData = result.data as { success: boolean; message: string };
+
+      if (resultData.success) {
+        toast({ title: "Sucesso!", description: resultData.message, variant: "success" });
+        // Atualizar localmente
+        setAllClientBases(prevBases => prevBases.map(b => {
+          if (b.id === base.id && b.authorizedUIDs) {
+            const { [user.uid]: _, ...remainingAuthUIDs } = b.authorizedUIDs;
+            return { ...b, authorizedUIDs: remainingAuthUIDs };
+          }
+          return b;
+        }));
+      } else {
+        toast({ title: "Erro ao desvincular", description: resultData.message || "Ocorreu um erro.", variant: "destructive" });
+      }
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as { message?: string };
+      console.error(`Erro ao chamar Cloud Function unlinkUserFromClientBase:`, error.message || error);
+      toast({ title: "Erro na Operação", description: error.message || `Não foi possível desvincular o usuário da base ${base.name}.`, variant: "destructive" });
+    } finally {
+      setUnlinkInfo(null);
+    }
+  };
+
+
   // Placeholder functions for other actions
   const handleEditUser = (user: UserWithBaseInfo) => toast({ title: "Ação: Editar Usuário", description: `TODO: Implementar edição para ${user.displayName}.`, duration: 5000 });
   
@@ -268,24 +386,31 @@ const GerenciarUsuariosGlobalPage: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Buscar por nome, email, UID ou base..."
-                className="pl-8 w-full"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+            <div className="relative flex-grow w-full sm:w-auto">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Buscar por nome, email, UID ou base..."
+                  className="pl-8 w-full"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
             </div>
+            <Button onClick={fetchData} variant="outline" className="w-full sm:w-auto">
+              <Loader2 className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : 'hidden'}`} /> Atualizar Dados
+            </Button>
           </div>
 
           {filteredUsers.length === 0 ? (
             <p className="text-center text-muted-foreground">Nenhum usuário encontrado.</p>
           ) : (
-            <ul className="space-y-3">
-              {filteredUsers.map((user) => (
+            <> {/* Adicionado Fragment para agrupar o <p> e <ul> */}
+              <p className="text-sm text-muted-foreground mb-4">
+                Exibindo {filteredUsers.length} de {allUsers.length} usuários.
+              </p>
+              <ul className="space-y-3">
+                {filteredUsers.map((user) => (
                 <li key={user.uid} className="p-4 border rounded-lg bg-card shadow-sm">
                   <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-2">
                     <div>
@@ -313,6 +438,13 @@ const GerenciarUsuariosGlobalPage: React.FC = () => {
                           <DropdownMenuItem onClick={() => handleOpenLinkModal(user)}>
                             <Link2 className="mr-2 h-4 w-4" /> Vincular à Base
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setUserToSetDefaultBase(user)}>
+                            <KeyRound className="mr-2 h-4 w-4" /> Definir Base Padrão
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setUserToToggleAdmin(user)}>
+                            {user.isAdmin ? <ShieldOff className="mr-2 h-4 w-4 text-orange-600" /> : <ShieldCheck className="mr-2 h-4 w-4 text-green-600" />}
+                            {user.isAdmin ? "Remover Admin" : "Tornar Admin"}
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleToggleUserStatus(user)}>
                             {user.authDisabled ? <Power className="mr-2 h-4 w-4 text-green-600" /> : <PowerOff className="mr-2 h-4 w-4 text-orange-600" />} 
                             {user.authDisabled ? "Ativar" : "Inativar"} Conta
@@ -330,10 +462,21 @@ const GerenciarUsuariosGlobalPage: React.FC = () => {
                       <h4 className="text-sm font-medium mb-1">Bases Associadas:</h4>
                       <div className="flex flex-wrap gap-2">
                         {user.associatedBases.map((base) => (
-                          <Badge key={base.id} variant={base.role === 'default' ? "default" : "secondary"} className="text-xs">
-                            {base.role === 'default' ? <KeyRound className="h-3 w-3 mr-1" /> : <Building2 className="h-3 w-3 mr-1" />}
-                            {base.name} (ID: {base.numberId})
-                          </Badge>
+                          <Button
+                            key={base.id}
+                            variant="outline"
+                            size="sm"
+                            className={`h-auto text-xs px-2 py-1 ${base.role === 'default' ? 'border-primary text-primary hover:bg-primary/10' : 'hover:bg-accent'}`}
+                            onClick={() => {
+                              if (base.role === 'authorized') { // Só permite desvincular de 'authorized' por aqui
+                                setUnlinkInfo({ user, base });
+                              }
+                            }}
+                            title={base.role === 'authorized' ? `Clique para desvincular ${user.displayName} de ${base.name}` : `Base padrão de ${user.displayName}`}
+                          >
+                            {base.role === 'default' ? <KeyRound className="h-3 w-3 mr-1.5" /> : <Building2 className="h-3 w-3 mr-1.5" />}
+                            {base.name} (ID: {base.numberId}) {base.role === 'authorized' && <UserX className="h-3 w-3 ml-1.5 text-muted-foreground hover:text-destructive" />}
+                          </Button>
                         ))}
                       </div>
                     </div>
@@ -341,7 +484,8 @@ const GerenciarUsuariosGlobalPage: React.FC = () => {
                   {user.associatedBases.length === 0 && <p className="text-sm text-muted-foreground italic">Nenhuma base associada diretamente.</p>}
                 </li>
               ))}
-            </ul>
+              </ul>
+            </>
           )}
         </CardContent>
       </Card>
@@ -385,6 +529,71 @@ const GerenciarUsuariosGlobalPage: React.FC = () => {
               <AlertDialogCancel onClick={() => setUserToLink(null)}>Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={handleConfirmLinkToBase} disabled={!baseNumberIdToLink.trim()}>
                 Vincular Usuário
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {userToToggleAdmin && (
+        <AlertDialog open={!!userToToggleAdmin} onOpenChange={(open) => !open && setUserToToggleAdmin(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Alteração de Admin</AlertDialogTitle>
+              <AlertDialogDescription>
+                Você deseja {userToToggleAdmin.isAdmin ? "remover os privilégios de administrador de" : "promover a administrador"} "{userToToggleAdmin.displayName || userToToggleAdmin.uid}"?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setUserToToggleAdmin(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleToggleAdminStatus} className={userToToggleAdmin.isAdmin ? buttonVariants({variant: "destructive"}) : ""}>
+                {userToToggleAdmin.isAdmin ? "Remover Admin" : "Tornar Admin"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {userToSetDefaultBase && (
+        <AlertDialog open={!!userToSetDefaultBase} onOpenChange={(open) => !open && setUserToSetDefaultBase(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Definir Base Padrão para "{userToSetDefaultBase.displayName || userToSetDefaultBase.uid}"</AlertDialogTitle>
+              <AlertDialogDescription>
+                Digite o ID numérico da base que será a padrão para este usuário. A base padrão atual é: {userToSetDefaultBase.clientBaseId || "Nenhuma"}.
+              </AlertDialogDescription>
+              <Input
+                type="number"
+                placeholder="ID Numérico da Base (Ex: 1, 2, 3...)"
+                value={defaultBaseNumberIdInput}
+                onChange={(e) => setDefaultBaseNumberIdInput(e.target.value)}
+                className="mt-2"
+              />
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setUserToSetDefaultBase(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleSetDefaultBase} disabled={!defaultBaseNumberIdInput.trim()}>
+                Definir Base Padrão
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {unlinkInfo && (
+        <AlertDialog open={!!unlinkInfo} onOpenChange={(open) => !open && setUnlinkInfo(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Desvincular Usuário da Base</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja desvincular "{unlinkInfo.user.displayName || unlinkInfo.user.uid}" da base "{unlinkInfo.base.name} (ID: {unlinkInfo.base.numberId})"?
+                O usuário perderá o acesso autorizado a esta base.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setUnlinkInfo(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleUnlinkFromBase} className={buttonVariants({ variant: "destructive" })}>
+                Desvincular
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
