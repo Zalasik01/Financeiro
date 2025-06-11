@@ -86,6 +86,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [_selectedBaseId, _setSelectedBaseId] = useState<string | null>(null); // Estado para a base selecionada
   const { toast } = useToast();
 
+  const getLocalStorageKeyForSelectedBase = (uid: string) => `financeiroApp_lastSelectedBaseId_${uid}`;
   const setSelectedBaseId = useCallback(async (baseId: string | null): Promise<void> => {
     // currentUser é uma dependência implícita aqui, mas como está no escopo do provider,
     // e o hook useAuth garante que o contexto existe, não precisamos passá-lo explicitamente
@@ -95,10 +96,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Para este caso, a lógica atual parece segura sem currentUser no array de dependências do useCallback.
     // A função toast também é estável.
     if (!auth.currentUser) { // Usar auth.currentUser para a verificação mais direta
+      // Se não há usuário, não deve haver base selecionada e limpamos o localStorage
+      // (embora o localStorage deva ser limpo no logout ou quando o UID não estiver disponível)
       _setSelectedBaseId(null);
       return;
     }
+    const localStorageKey = getLocalStorageKeyForSelectedBase(auth.currentUser.uid);
+
     if (!baseId) {
+      localStorage.removeItem(localStorageKey);
       _setSelectedBaseId(null);
       return;
     }
@@ -113,6 +119,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           description: "A base selecionada não foi encontrada.",
           variant: "destructive",
         });
+        localStorage.removeItem(localStorageKey);
         _setSelectedBaseId(null);
         return;
       }
@@ -124,14 +131,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           description: `A base "${baseData.name}" está temporariamente inativa. Motivo: ${baseData.motivo_inativo || "Não especificado."}`,
           variant: "destructive",
         });
+        localStorage.removeItem(localStorageKey);
         _setSelectedBaseId(null); // Não define a base se estiver inativa
         return;
       }
       // Base está ativa e existe
+      localStorage.setItem(localStorageKey, baseId);
       _setSelectedBaseId(baseId);
     } catch (err) {
       console.error("Erro ao verificar status da base:", err);
       toast({ title: "Erro ao Acessar Base", description: "Não foi possível verificar o status da base selecionada.", variant: "destructive" });
+      localStorage.removeItem(localStorageKey);
       _setSelectedBaseId(null);
     }
   }, [toast]); // currentUser e toast são dependências. toast é estável.
@@ -274,6 +284,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       sessionStorage.removeItem("adminModalDismissed"); // Limpa a flag do modal admin
       hasJustLoggedInRef.current = false; 
       setSelectedBaseId(null); 
+      if (auth.currentUser) { // Limpa o localStorage da base selecionada para o usuário que está deslogando
+        localStorage.removeItem(getLocalStorageKeyForSelectedBase(auth.currentUser.uid));
+      }
       await signOut(auth);
       const description = "Usuário deslogado com sucesso!";
       toast({
@@ -481,8 +494,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               isAdmin,
               clientBaseId: userClientBaseId,
             });
-            // selectedBaseId (UUID) será definido em AppContent
-            // setSelectedBaseId(null); // Comentado pois AppContent já lida com isso e pode causar loop se não memoizado corretamente
+
+            // Tentar restaurar a última base selecionada do localStorage
+            const localStorageKey = getLocalStorageKeyForSelectedBase(user.uid);
+            const lastSelectedBaseIdFromStorage = localStorage.getItem(localStorageKey);
+
+            if (lastSelectedBaseIdFromStorage) {
+              // A função setSelectedBaseId já valida se a base existe e está ativa.
+              // E se o usuário tem permissão (implicitamente, pois se não tiver, o modal abrirá)
+              setSelectedBaseId(lastSelectedBaseIdFromStorage);
+            } else if (userClientBaseId) {
+              // Se não houver no localStorage, tenta definir a base padrão do usuário.
+              // A conversão de numberId para UUID e a chamada a setSelectedBaseId
+              // geralmente ocorrem no AppContent ou lógica similar.
+              // Por enquanto, apenas garantimos que o estado local não tenha uma base antiga.
+              // Se AppContent não definir, o modal de seleção deve abrir.
+            }
           })
           .catch((error) => {
             console.error("Erro ao buscar perfil do usuário no RTDB:", error);
@@ -497,6 +524,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       } else {
         setCurrentUser(null);
         setLoading(false);
+        // Se não há usuário, não há base selecionada.
+        // O localStorage será limpo no logout ou se o UID não estiver disponível
+        // ao tentar definir/remover a chave.
         setSelectedBaseId(null);
         hasJustLoggedInRef.current = false; 
       }
