@@ -13,6 +13,18 @@ const AdminHeader: React.FC = () => {
     navigate("/login");
   };
 
+  const buildTimestamp = import.meta.env.VITE_BUILD_TIMESTAMP;
+  let formattedBuildDate = "N/A";
+  if (buildTimestamp) {
+    const date = new Date(buildTimestamp);
+    if (!isNaN(date.getTime())) {
+      formattedBuildDate = date.toLocaleString("pt-BR", {
+        day: "2-digit", month: "2-digit", year: "numeric",
+        hour: "2-digit", minute: "2-digit", second: "2-digit"
+      });
+    }
+  }
+
   return (
     <header className="bg-slate-800 text-white shadow-md">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -51,14 +63,19 @@ const AdminHeader: React.FC = () => {
               Configurações Admin
             </Link> */}
             {currentUser && (
-              <Button
-                variant="ghost"
-                onClick={handleLogout}
-                className="flex items-center gap-1 text-sm font-medium hover:bg-red-700 hover:text-white"
-              >
-                <LogOut size={16} />
-                Sair
-              </Button>
+              <div className="flex flex-col items-end"> {/* Container para alinhar o botão e o texto */}
+                <Button
+                  variant="ghost"
+                  onClick={handleLogout}
+                  className="flex items-center gap-1 text-sm font-medium hover:bg-red-700 hover:text-white"
+                >
+                  <LogOut size={16} />
+                  Sair
+                </Button>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Compilação: {formattedBuildDate}
+                </p>
+              </div>
             )}
           </nav>
         </div>

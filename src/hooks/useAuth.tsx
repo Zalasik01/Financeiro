@@ -53,7 +53,7 @@ interface AuthContextType {
     isAdminOverride?: boolean // Novo parâmetro
   ) => Promise<User | null>;
   login: (email: string, password: string) => Promise<User | null>;
-  logout: () => Promise<void>;
+  logout: (customMessage?: { title: string; description: string, variant?: "default" | "destructive" | "success" }) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfileData: (updates: {
     displayName?: string;
@@ -278,24 +278,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return null;
     }
   };
-  const logout = async () => {
+  const logout = async (customMessage?: { title: string; description: string, variant?: "default" | "destructive" | "success" }) => {
     try {
       setError(null); // Limpa erros anteriores
       sessionStorage.removeItem("adminModalDismissed"); // Limpa a flag do modal admin
       hasJustLoggedInRef.current = false; 
-      setSelectedBaseId(null); 
-      if (auth.currentUser) { // Limpa o localStorage da base selecionada para o usuário que está deslogando
-        localStorage.removeItem(getLocalStorageKeyForSelectedBase(auth.currentUser.uid));
-      }
+      const currentUid = auth.currentUser?.uid; // Captura UID antes do signOut
+
       await signOut(auth);
-      const description = "Usuário deslogado com sucesso!";
+      // Após o signOut, onAuthStateChanged será chamado, que limpará currentUser.
+      // Limpamos o selectedBaseId localmente e no localStorage aqui.
+      _setSelectedBaseId(null);
+      if (currentUid) {
+        localStorage.removeItem(getLocalStorageKeyForSelectedBase(currentUid));
+      }
+
+      const toastTitle = customMessage?.title || "Logout realizado";
+      const toastDescription = customMessage?.description || "Usuário deslogado com sucesso!";
+      const toastVariant = customMessage?.variant || "success";
+      
       toast({
-        title: "Logout realizado",
-        description,
-        variant: "success",
+        title: toastTitle,
+        description: toastDescription,
+        variant: toastVariant,
       });
     } catch (err) { // Corrigido para usar err como nome da variável de erro
-      // Não costuma dar erro, mas se der:
       const authError = err as AuthError; // Tipar o erro
       const errorMessage = authError.message || "Não foi possível fazer logout.";
       setError(errorMessage);
@@ -524,15 +531,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       } else {
         setCurrentUser(null);
         setLoading(false);
-        // Se não há usuário, não há base selecionada.
-        // O localStorage será limpo no logout ou se o UID não estiver disponível
-        // ao tentar definir/remover a chave.
-        setSelectedBaseId(null);
+        // Quando o usuário é deslogado (user é null), selectedBaseId deve ser limpo.
+        _setSelectedBaseId(null); // Limpa o estado local
         hasJustLoggedInRef.current = false; 
       }
     });
-    return unsubscribe;
-  }, [setSelectedBaseId]); // Adicionado setSelectedBaseId
+    return unsubscribe; // setSelectedBaseId não é uma dependência direta aqui, pois _setSelectedBaseId é usado.
+  }, []); 
 
   // Efeito para exibir o toast "Bem-vindo(a) de volta!" após o login e seleção da base
   useEffect(() => {
