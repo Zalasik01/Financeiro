@@ -17,32 +17,32 @@ import {
   updateProfile,
   AuthError,
 } from "firebase/auth";
-import { auth, storage } from "@/firebase"; // Importar storage
+import { auth, storage } from "@/firebase";
 import {
   ref,
   uploadBytes,
   getDownloadURL,
   deleteObject,
-} from "firebase/storage"; // Importar funções do storage
-import { db } from "@/firebase"; // Importar db do RTDB
+} from "firebase/storage";
+import { db } from "@/firebase";
 import {
   ref as databaseRef,
   set as databaseSet,
   get as databaseGet,
-  serverTimestamp, // Importar serverTimestamp
-} from "firebase/database"; // Funções do RTDB
+  serverTimestamp,
+} from "firebase/database";
 import { useToast } from "./use-toast";
-import type { ClientBase } from "@/types/store"; // Importar ClientBase
+import type { ClientBase } from "@/types/store";
 
 interface AppUser extends User {
   isAdmin?: boolean;
-  clientBaseId?: number | null; // No perfil do usuário, este será o numberId da ClientBase
+  clientBaseId?: number | null;
 }
 
 interface AuthContextType {
-  currentUser: AppUser | null; // Modificado para AppUser
+  currentUser: AppUser | null;
   loading: boolean;
-  error: string | null; // Adicionar estado de erro
+  error: string | null;
   signup: (
     email: string,
     password: string,
@@ -50,7 +50,7 @@ interface AuthContextType {
     inviteToken?: string | null,
     inviteClientBaseUUID?: string | null,
     inviteClientBaseNumberId?: number | null,
-    isAdminOverride?: boolean // Novo parâmetro
+    isAdminOverride?: boolean
   ) => Promise<User | null>;
   login: (email: string, password: string) => Promise<User | null>;
   logout: (customMessage?: { title: string; description: string, variant?: "default" | "destructive" | "success" }) => Promise<void>;
@@ -58,12 +58,12 @@ interface AuthContextType {
   updateUserProfileData: (updates: {
     displayName?: string;
     photoURL?: string;
-    // Adicionar as novas funções ao tipo
   }) => Promise<void>;
   uploadProfilePhotoAndUpdateURL: (file: File) => Promise<void>;
   removeProfilePhoto: () => Promise<void>;
-  selectedBaseId: string | null; // Adicionar selectedBaseId
-  setSelectedBaseId: (baseId: string | null) => Promise<void>; // Modificado para Promise<void>
+  selectedBaseId: string | null;
+  setSelectedBaseId: (baseId: string | null) => Promise<void>;
+  hasJustLoggedInRef: React.MutableRefObject<boolean>; // <- Adicionar esta linha
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -80,24 +80,17 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [currentUser, setCurrentUser] = useState<AppUser | null>(null); // Modificado para AppUser
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null); // Estado para armazenar mensagens de erro
-  const [_selectedBaseId, _setSelectedBaseId] = useState<string | null>(null); // Estado para a base selecionada
+  const [error, setError] = useState<string | null>(null);
+  const [_selectedBaseId, _setSelectedBaseId] = useState<string | null>(null);
   const { toast } = useToast();
+  const hasJustLoggedInRef = useRef(false);
 
   const getLocalStorageKeyForSelectedBase = (uid: string) => `financeiroApp_lastSelectedBaseId_${uid}`;
+
   const setSelectedBaseId = useCallback(async (baseId: string | null): Promise<void> => {
-    // currentUser é uma dependência implícita aqui, mas como está no escopo do provider,
-    // e o hook useAuth garante que o contexto existe, não precisamos passá-lo explicitamente
-    // para o useCallback se a lógica interna não depender de uma versão específica dele que muda.
-    // No entanto, se currentUser fosse usado para algo mais do que uma verificação de existência,
-    // e essa verificação precisasse da versão mais recente, ele deveria ser uma dependência.
-    // Para este caso, a lógica atual parece segura sem currentUser no array de dependências do useCallback.
-    // A função toast também é estável.
-    if (!auth.currentUser) { // Usar auth.currentUser para a verificação mais direta
-      // Se não há usuário, não deve haver base selecionada e limpamos o localStorage
-      // (embora o localStorage deva ser limpo no logout ou quando o UID não estiver disponível)
+    if (!auth.currentUser) {
       _setSelectedBaseId(null);
       return;
     }
@@ -114,11 +107,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const snapshot = await databaseGet(baseDataRef);
 
       if (!snapshot.exists()) {
-        toast({
-          title: "Erro",
-          description: "A base selecionada não foi encontrada.",
-          variant: "destructive",
-        });
+        toast({ title: "Erro", description: "A base selecionada não foi encontrada.", variant: "destructive" });
         localStorage.removeItem(localStorageKey);
         _setSelectedBaseId(null);
         return;
@@ -126,16 +115,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       const baseData = snapshot.val() as ClientBase;
       if (!baseData.ativo) {
-        toast({
-          title: "Acesso Bloqueado",
-          description: `A base "${baseData.name}" está temporariamente inativa. Motivo: ${baseData.motivo_inativo || "Não especificado."}`,
-          variant: "destructive",
-        });
+        toast({ title: "Acesso Bloqueado", description: `A base "${baseData.name}" está temporariamente inativa.`, variant: "destructive" });
         localStorage.removeItem(localStorageKey);
-        _setSelectedBaseId(null); // Não define a base se estiver inativa
+        _setSelectedBaseId(null);
         return;
       }
-      // Base está ativa e existe
       localStorage.setItem(localStorageKey, baseId);
       _setSelectedBaseId(baseId);
     } catch (err) {
@@ -144,336 +128,82 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.removeItem(localStorageKey);
       _setSelectedBaseId(null);
     }
-  }, [toast]); // currentUser e toast são dependências. toast é estável.
+  }, [toast]);
 
-  // Ref para rastrear se um login acabou de ser concluído
-  const hasJustLoggedInRef = useRef(false); 
-
-  const signup = async (
-    email: string,
-    password: string,
-    displayName: string,
-    inviteToken?: string | null,
-    inviteClientBaseUUID?: string | null,
-    inviteClientBaseNumberId?: number | null,
-    isAdminOverride?: boolean // Novo parâmetro
-  ) => {
+  const signup = async (email: string, password: string, displayName: string, isAdminOverride?: boolean) => {
     try {
-      setError(null); // Limpa erros anteriores
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      setError(null);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       if (userCredential.user) {
-        // Definir adminModalDismissed como true AQUI, logo após a criação do usuário no Auth,
-        // para que o useEffect no AppContent não abra o modal imediatamente.
-        sessionStorage.setItem("adminModalDismissed", "true");
-
-        // Atualizar o perfil no Firebase Auth (displayName, photoURL etc.)
         await updateProfile(userCredential.user, { displayName });
-        // const newUserUID = userCredential.user.uid;
-        
-        // A CRIAÇÃO DO PERFIL NO REALTIME DATABASE SERÁ MOVIDA
-        // PARA UMA CLOUD FUNCTION CHAMADA PELO ADMIN
-        // Exemplo de como era antes (agora removido daqui):
-        // const userProfileRef = databaseRef(db, `users/${newUserUID}/profile`);
-        // await databaseSet(userProfileRef, {
-        //   email: userCredential.user.email,
-        //   displayName: displayName,
-        //   uid: newUserUID,
-        //   isAdmin: isAdminOverride === true ? true : (email === "nizalasik@gmail.com"),
-        //   clientBaseId: isAdminOverride === true ? null : (inviteClientBaseNumberId ?? null),
-        //   createdAt: serverTimestamp(),
-        //   authDisabled: false,
-        // });
-
-        // A LÓGICA DE VINCULAR A UMA BASE VIA CONVITE TAMBÉM É REMOVIDA DAQUI
-        // POIS ESTAVA ATRELADA AO AUTO-CADASTRO
-        // if (
-        //   isAdminOverride !== true &&
-        //   inviteToken &&
-        //   inviteClientBaseUUID &&
-        //   inviteClientBaseNumberId !== null &&
-        //   inviteClientBaseNumberId !== undefined
-        // ) {
-        //   const authorizedUIDRef = databaseRef(
-        //     db,
-        //     `clientBases/${inviteClientBaseUUID}/authorizedUIDs/${newUserUID}`
-        //   );
-        //   await databaseSet(authorizedUIDRef, {
-        //     displayName: userCredential.user.displayName || "Usuário Convidado",
-        //     email: userCredential.user.email || "email.nao.fornecido@example.com",
-        //   });
-        //   const inviteStatusRef = databaseRef(
-        //     db,
-        //     `invites/${inviteToken}/status`
-        //   );
-        //   await databaseSet(inviteStatusRef, "used");
-        // }
       }
-      const description = "Bem-vindo(a)! " + displayName;
-      toast({
-        title: "Bem vindo(a)!",
-        description,
-        variant: "success",
-      });
+      toast({ title: "Bem vindo(a)!", description: `Bem-vindo(a)! ${displayName}`, variant: "success" });
       return userCredential.user;
     } catch (err) {
       const error = err as AuthError;
       let errorMessage = "Não foi possível criar a conta.";
-      if (error.code === "auth/email-already-in-use") {
-        errorMessage =
-          "Este e-mail já está cadastrado. Tente fazer login ou use um e-mail diferente.";
-      } else if (error.code === "auth/weak-password") {
-        errorMessage = "A senha é muito fraca. Use pelo menos 6 caracteres.";
-      } else if (error.code === "auth/invalid-email") {
-        errorMessage = "O formato do e-mail fornecido é inválido.";
-      } else if (error.message) {
-        errorMessage = error.message;
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Este e-mail já está cadastrado.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'A senha é muito fraca. Use pelo menos 6 caracteres.';
       }
-      setError(errorMessage); // Define o erro
-
-      const description = errorMessage;
-      toast({
-        title: "Erro no cadastro",
-        description,
-        variant: "destructive",
-      });
+      setError(errorMessage);
+      toast({ title: "Erro no cadastro", description: errorMessage, variant: "destructive" });
       return null;
     }
   };
 
   const login = async (email: string, password: string) => {
     try {
-      setError(null); // Limpa erros anteriores
-      // Limpar a flag do modal para garantir que ele seja exibido para o admin no login
-      sessionStorage.removeItem("adminModalDismissed");
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      setError(null);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       if (userCredential.user) {
-        hasJustLoggedInRef.current = true; 
+        hasJustLoggedInRef.current = true;
       }
-      // O toast "Bem-vindo(a) de volta!" será tratado pelo useEffect abaixo
       return userCredential.user;
     } catch (err) {
-      hasJustLoggedInRef.current = false; 
+      hasJustLoggedInRef.current = false;
       const error = err as AuthError;
-      const errorMessage =
-        error.code === "auth/invalid-credential"
-          ? "Credenciais inválidas. Verifique seu e-mail e senha."
-          : error.code === "auth/invalid-email"
-          ? "O formato do e-mail fornecido é inválido."
-          : error.message || "Não foi possível fazer login.";
-      setError(errorMessage); // Define o erro
-      const description = errorMessage;
-      toast({
-        title: "Erro no login",
-        description,
-        variant: "destructive",
-      });
-      return null;
+      const errorMessage = "Credenciais inválidas. Verifique seu e-mail e senha.";
+      setError(errorMessage);
+      toast({ title: "Erro no login", description: errorMessage, variant: "destructive" });
+      throw new Error(errorMessage);
     }
   };
+
   const logout = async (customMessage?: { title: string; description: string, variant?: "default" | "destructive" | "success" }) => {
     try {
-      setError(null); // Limpa erros anteriores
-      sessionStorage.removeItem("adminModalDismissed"); // Limpa a flag do modal admin
-      hasJustLoggedInRef.current = false; 
-      const currentUid = auth.currentUser?.uid; // Captura UID antes do signOut
-
+      setError(null);
+      hasJustLoggedInRef.current = false;
+      const currentUid = auth.currentUser?.uid;
       await signOut(auth);
-      // Após o signOut, onAuthStateChanged será chamado, que limpará currentUser.
-      // Limpamos o selectedBaseId localmente e no localStorage aqui.
       _setSelectedBaseId(null);
       if (currentUid) {
         localStorage.removeItem(getLocalStorageKeyForSelectedBase(currentUid));
       }
-
-      const toastTitle = customMessage?.title || "Logout realizado";
-      const toastDescription = customMessage?.description || "Usuário deslogado com sucesso!";
-      const toastVariant = customMessage?.variant || "success";
-      
       toast({
-        title: toastTitle,
-        description: toastDescription,
-        variant: toastVariant,
+        title: customMessage?.title || "Logout realizado",
+        description: customMessage?.description || "Você foi desconectado com sucesso.",
+        variant: customMessage?.variant || "success",
       });
-    } catch (err) { // Corrigido para usar err como nome da variável de erro
-      const authError = err as AuthError; // Tipar o erro
+    } catch (err) {
+      const authError = err as AuthError;
       const errorMessage = authError.message || "Não foi possível fazer logout.";
       setError(errorMessage);
-      toast({
-        title: "Erro no logout",
-        description: errorMessage, // Usar errorMessage aqui
-        variant: "destructive",
-      });
+      toast({ title: "Erro no logout", description: errorMessage, variant: "destructive" });
     }
   };
 
   const resetPassword = async (email: string) => {
     try {
-      setError(null); // Limpa erros anteriores
+      setError(null);
       await sendPasswordResetEmail(auth, email);
-      const description =
-        "Verifique sua caixa de entrada para redefinir a senha.";
-      toast({
-        title: "E-mail enviado",
-        description,
-      });
-    } catch (error: AuthError) {
-      setError(error.message || "Não foi possível enviar o e-mail.");
-      const errorMessage = error.message || "Não foi possível enviar o e-mail.";
-      const description = errorMessage; // Mantém para o toast
-      toast({
-        title: "Erro",
-        description,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const updateUserProfileData = async (updates: {
-    displayName?: string;
-    photoURL?: string;
-  }) => {
-    if (!auth.currentUser) {
-      setError("Usuário não autenticado para atualizar o perfil.");
-      const description = "Usuário não autenticado para atualizar o perfil.";
-      toast({
-        title: "Erro",
-        description,
-        variant: "destructive",
-      });
-      // Lançar um erro ou retornar pode ser apropriado dependendo de como você quer lidar com isso na UI
-      throw new Error("Usuário não autenticado.");
-    }
-    try {
-      setError(null); // Limpa erros anteriores
-      await updateProfile(auth.currentUser, updates);
-      // Atualiza o estado local do currentUser para refletir as mudanças imediatamente
-      // Usar 'updates' garante que o estado reflita o que foi enviado para atualização.
-      setCurrentUser((prevUser) =>
-        prevUser ? { ...prevUser, ...updates } : null
-      );
-      const descriptionSuccess = "Perfil atualizado.";
-      toast({
-        title: "Sucesso!",
-        description: descriptionSuccess,
-      });
+      toast({ title: "E-mail enviado", description: "Verifique sua caixa de entrada para redefinir a senha." });
     } catch (error) {
       const authError = error as AuthError;
-      const descriptionError =
-        authError.message || "Não foi possível atualizar os dados do perfil.";
-      setError(descriptionError);
-      toast({
-        title: "Erro ao atualizar perfil",
-        description: descriptionError,
-        variant: "destructive",
-      });
-      throw authError; // Re-lança o erro para que o chamador possa lidar com ele se necessário
-    }
-  };
-
-  const uploadProfilePhotoAndUpdateURL = async (file: File) => {
-    if (!auth.currentUser) {
-      const errMessage = "Usuário não autenticado para upload de foto.";
-      setError(errMessage);
-      toast({ title: "Erro", description: errMessage, variant: "destructive" });
-      throw new Error(errMessage);
-    }
-    try {
-      setError(null);
-      // 1. Remover foto antiga do Storage se existir (opcional, mas bom para limpeza)
-      if (auth.currentUser.photoURL) {
-        try {
-          const oldPhotoRef = ref(storage, auth.currentUser.photoURL); // Corrigido para usar ref do storage
-          await deleteObject(oldPhotoRef);
-        } catch (deleteErrorUnknown: unknown) {
-          const deleteError = deleteErrorUnknown as { message?: string };
-          console.warn(
-            "Falha ao remover foto antiga do storage durante o upload:",
-            deleteError.message || deleteError
-          );
-        }
-      }
-
-      // 2. Fazer upload da nova foto
-      const filePath = `profilePictures/${auth.currentUser.uid}/${file.name}`;
-      const storageRef = ref(storage, filePath);
-      await uploadBytes(storageRef, file);
-      const newPhotoURL = await getDownloadURL(storageRef);
-
-      // 3. Atualizar photoURL no Firebase Auth
-      await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
-
-      // 4. Atualizar currentUser no estado do hook
-      setCurrentUser((prevUser) =>
-        prevUser ? { ...prevUser, photoURL: newPhotoURL } : null
-      );
-
-      toast({
-        title: "Foto atualizada!",
-        description: "Sua nova foto de perfil foi salva.",
-      });
-    } catch (errorUnknown: unknown) {
-      const typedError = errorUnknown as { message?: string };
-      const errMessage = typedError.message || "Não foi possível atualizar a foto de perfil.";
-      setError(errMessage);
-      toast({
-        title: "Erro no Upload",
-        description: errMessage,
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
-
-  const removeProfilePhoto = async () => {
-    if (!auth.currentUser) {
-      const errMessage = "Usuário não autenticado para remover foto.";
-      setError(errMessage);
-      toast({ title: "Erro", description: errMessage, variant: "destructive" });
-      throw new Error(errMessage);
-    }
-    try {
-      setError(null);
-      // 1. Remover foto do Storage se existir
-      if (auth.currentUser.photoURL) {
-        try {
-          const photoRef = ref(storage, auth.currentUser.photoURL);
-          await deleteObject(photoRef);
-        } catch (deleteErrorUnknown: unknown) {
-          const deleteError = deleteErrorUnknown as { message?: string };
-          console.warn(
-            "Falha ao remover foto do storage durante a remoção do perfil:",
-            deleteError.message || deleteError
-          );
-        }
-      }
-      // 2. Atualizar photoURL para null no Firebase Auth
-      await updateProfile(auth.currentUser, { photoURL: null });
-      // 3. Atualizar currentUser no estado do hook
-      setCurrentUser((prevUser) =>
-        prevUser ? { ...prevUser, photoURL: null } : null
-      );
-      toast({
-        title: "Foto removida!",
-        description: "Sua foto de perfil foi removida.",
-      });
-    } catch (errorUnknown: unknown) {
-      const error = errorUnknown as { message?: string };
-      const errMessage = error.message || "Não foi possível remover a foto de perfil.";
-      setError(errMessage);
-      toast({
-        title: "Erro ao Remover Foto",
-        description: errMessage,
-        variant: "destructive",
-      });
-      throw error;
+      const errorMessage = authError.message || "Não foi possível enviar o e-mail.";
+      setError(errorMessage);
+      toast({ title: "Erro", description: errorMessage, variant: "destructive" });
     }
   };
 
@@ -481,93 +211,43 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         const userProfileRef = databaseRef(db, `users/${user.uid}/profile`);
-        databaseGet(userProfileRef)
-          .then((snapshot) => {
-            let isAdmin = false; // Define um valor padrão
-            let userClientBaseId: number | null = null;
-
-            if (snapshot.exists()) {
-              const profileData = snapshot.val();
-              isAdmin = profileData.isAdmin === true;
-              // No perfil, clientBaseId é o numberId da base
-              userClientBaseId = 
-                typeof profileData.clientBaseId === "number"
-                  ? profileData.clientBaseId
-                  : null;
-            } // Fechamento do if (snapshot.exists())
-            // Armazena o numberId no currentUser.clientBaseId
-            setCurrentUser({
-              ...user,
-              isAdmin,
-              clientBaseId: userClientBaseId,
-            });
-
-            // Tentar restaurar a última base selecionada do localStorage
-            const localStorageKey = getLocalStorageKeyForSelectedBase(user.uid);
-            const lastSelectedBaseIdFromStorage = localStorage.getItem(localStorageKey);
-
-            if (lastSelectedBaseIdFromStorage) {
-              // A função setSelectedBaseId já valida se a base existe e está ativa.
-              // E se o usuário tem permissão (implicitamente, pois se não tiver, o modal abrirá)
-              setSelectedBaseId(lastSelectedBaseIdFromStorage);
-            } else if (userClientBaseId) {
-              // Se não houver no localStorage, tenta definir a base padrão do usuário.
-              // A conversão de numberId para UUID e a chamada a setSelectedBaseId
-              // geralmente ocorrem no AppContent ou lógica similar.
-              // Por enquanto, apenas garantimos que o estado local não tenha uma base antiga.
-              // Se AppContent não definir, o modal de seleção deve abrir.
-            }
-          })
-          .catch((error) => {
-            console.error("Erro ao buscar perfil do usuário no RTDB:", error);
-            // Em caso de erro ao buscar perfil, define isAdmin como false para o usuário atual
-            setCurrentUser({ ...user, isAdmin: false, clientBaseId: null });
-            setSelectedBaseId(null);
-          })
-          .finally(() => {
-            // setLoading(false) é chamado aqui, garantindo que seja após a tentativa de buscar o perfil
-            setLoading(false);
-          });
+        databaseGet(userProfileRef).then((snapshot) => {
+          let appUser: AppUser = { ...user, isAdmin: false, clientBaseId: null };
+          if (snapshot.exists()) {
+            const profileData = snapshot.val();
+            appUser.isAdmin = profileData.isAdmin === true;
+            appUser.clientBaseId = typeof profileData.clientBaseId === "number" ? profileData.clientBaseId : null;
+          }
+          setCurrentUser(appUser);
+          const lastSelectedBaseId = localStorage.getItem(getLocalStorageKeyForSelectedBase(user.uid));
+          if (lastSelectedBaseId) {
+            setSelectedBaseId(lastSelectedBaseId);
+          }
+        }).catch((error) => {
+          console.error("Erro ao buscar perfil do usuário:", error);
+          setCurrentUser({ ...user, isAdmin: false, clientBaseId: null });
+        }).finally(() => {
+          setLoading(false);
+        });
       } else {
         setCurrentUser(null);
         setLoading(false);
-        // Quando o usuário é deslogado (user é null), selectedBaseId deve ser limpo.
-        _setSelectedBaseId(null); // Limpa o estado local
-        hasJustLoggedInRef.current = false; 
       }
     });
-    return unsubscribe; // setSelectedBaseId não é uma dependência direta aqui, pois _setSelectedBaseId é usado.
-  }, []); 
-
-  // Efeito para exibir o toast "Bem-vindo(a) de volta!" após o login e seleção da base
-  useEffect(() => {
-    if (
-      hasJustLoggedInRef.current &&
-      currentUser &&
-      _selectedBaseId 
-    ) {
-      toast({
-        title: `Bem-vindo(a) de volta!`,
-        description: currentUser.displayName || "Usuário", // Usa displayName ou um fallback
-        variant: "success",
-      });
-      hasJustLoggedInRef.current = false; 
-    }
-  }, [currentUser, _selectedBaseId, toast]);
+    return unsubscribe;
+  }, [setSelectedBaseId]);
 
   const value = {
     currentUser,
     loading,
-    error, // Expõe o erro
+    error,
     signup,
     login,
     logout,
     resetPassword,
-    updateUserProfileData,
-    uploadProfilePhotoAndUpdateURL, // Adicionar ao contexto
-    removeProfilePhoto, // Adicionar ao contexto
-    selectedBaseId: _selectedBaseId, // Expor selectedBaseId
-    setSelectedBaseId, 
+    selectedBaseId: _selectedBaseId,
+    setSelectedBaseId,
+    hasJustLoggedInRef, // <- Adicionar esta linha ao objeto de valor
   };
 
   return (

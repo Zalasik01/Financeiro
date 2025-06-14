@@ -1,9 +1,8 @@
-import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useStores } from "@/hooks/useStores";
-import { Outlet, Navigate, useNavigate } from "react-router-dom";
+import { Outlet, Navigate } from "react-router-dom";
 import { AccessSelectionModal } from "@/components/AccessSelectionModal";
 import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const FullScreenLoader = () => (
   <div 
@@ -18,63 +17,41 @@ const FullScreenLoader = () => (
 );
 
 export const AppLayout = () => {
-  const { currentUser, loading: authLoading, selectedBaseId, logout } = useAuth();
-  const { bases: allBases, loading: basesLoading } = useStores();
-  const navigate = useNavigate();
+  const { currentUser, loading, selectedBaseId, logout, hasJustLoggedInRef } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleLogoutAndRedirect = async () => {
+  useEffect(() => {
+    if (loading) return;
+
+    if (currentUser && !selectedBaseId && hasJustLoggedInRef.current) {
+      setIsModalOpen(true);
+      hasJustLoggedInRef.current = false;
+    }
+  }, [currentUser, selectedBaseId, loading, hasJustLoggedInRef]);
+
+  const handleCloseModal = () => {
     setIsModalOpen(false);
-    await logout();
-    navigate('/login', { replace: true });
+    logout();
   };
 
-  const basesParaUsuario = useMemo(() => {
-    if (!currentUser || !allBases) return [];
-    if (currentUser.isAdmin) {
-      return allBases;
-    }
-    return allBases.filter(
-      (base) =>
-        base.ativo &&
-        ((base.authorizedUIDs && base.authorizedUIDs[currentUser.uid]) ||
-          base.createdBy === currentUser.uid)
-    );
-  }, [allBases, currentUser]);
-
-  useEffect(() => {
-    if (authLoading || (currentUser && basesLoading)) {
-      return;
-    }
-
-    if (currentUser && !selectedBaseId) {
-      const isAdmin = !!currentUser.isAdmin;
-      const hasBases = basesParaUsuario.length > 0;
-      if (isAdmin || hasBases) {
-        setIsModalOpen(true);
-      } else {
-        handleLogoutAndRedirect();
-      }
-    } else {
-      setIsModalOpen(false);
-    }
-  }, [currentUser, selectedBaseId, authLoading, basesLoading, basesParaUsuario]);
-
-  if (authLoading || (currentUser && basesLoading && !selectedBaseId)) {
+  if (loading) {
     return <FullScreenLoader />;
   }
 
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
+
+  if (selectedBaseId) {
+    return <Outlet />;
+  }
   
   return (
     <>
-      <Outlet />
+      <FullScreenLoader />
       <AccessSelectionModal
         isOpen={isModalOpen}
-        onClose={handleLogoutAndRedirect}
-        bases={basesParaUsuario}
+        onClose={handleCloseModal}
         isAdmin={!!currentUser?.isAdmin}
       />
     </>

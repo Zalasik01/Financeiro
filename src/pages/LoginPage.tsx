@@ -54,9 +54,9 @@ export default function LoginPage() {
     try {
       await login(email, password);
       navigate("/", { replace: true });
-    } catch (error) {
-      console.error("Falha no login:", error);
-      setError("E-mail ou senha inválidos. Verifique suas credenciais.");
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || "E-mail ou senha inválidos.");
     } finally {
       setIsLoading(false);
     }
