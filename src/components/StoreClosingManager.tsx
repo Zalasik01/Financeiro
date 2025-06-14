@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react"; // Adicionado useEffect
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,21 +21,19 @@ import {
   Store,
   StoreClosing,
   PaymentMethod,
-  // MovementType, // Removido se não for mais usado aqui
   MovementItem,
 } from "@/types/store";
 import { useToast } from "@/hooks/use-toast";
 import { CurrencyInput } from "./CurrencyInput";
 import { formatCurrency } from "@/utils/formatters";
 import { ChevronDown } from "lucide-react";
-import { useFinance } from "@/hooks/useFinance"; // Importar useFinance
-import { HelpTooltip } from "@/components/ui/HelpToolTip"; // Importar
+import { useFinance } from "@/hooks/useFinance";
+import { HelpTooltip } from "@/components/ui/HelpToolTip";
 
 interface StoreClosingManagerProps {
   stores: Store[];
   closings: StoreClosing[];
   paymentMethods: PaymentMethod[];
-  // movementTypes: MovementType[]; // Removido
   onAddClosing: (
     closing: Omit<
       StoreClosing,
@@ -45,7 +43,7 @@ interface StoreClosingManagerProps {
       | "totalSaidas"
       | "totalOutros"
       | "netResult"
-    > & { movements: MovementItem[] } // Garantir que movements seja esperado
+    > & { movements: MovementItem[] }
   ) => void;
   onUpdateClosing: (id: string, closing: Partial<StoreClosing>) => void;
   onDeleteClosing: (id: string) => void;
@@ -55,12 +53,10 @@ export const StoreClosingManager = ({
   stores,
   closings,
   paymentMethods,
-  // movementTypes, // Removido
   onAddClosing,
   onUpdateClosing,
   onDeleteClosing,
-}: // transactions, // Adicionar transactions se for passado como prop
-  StoreClosingManagerProps) => {
+}: StoreClosingManagerProps) => {
   const [newClosing, setNewClosing] = useState({
     storeId: "",
     closingDate: new Date().toISOString().split("T")[0],
@@ -82,7 +78,7 @@ export const StoreClosingManager = ({
     null
   );
 
-  const [sortBy, setSortBy] = useState<string>("date-desc"); // Estado para critério de ordenação
+  const [sortBy, setSortBy] = useState<string>("date-desc");
 
   const sortOptions = [
     { value: "date-desc", label: "Data (Mais Recente)" },
@@ -124,16 +120,11 @@ export const StoreClosingManager = ({
     }
   }, [stores, newClosing.storeId]);
 
-  useEffect(() => {
-    // Garante que temos uma data válida para filtrar as transações pessoais
-    if (!newClosing.closingDate || !newClosing.storeId) {
-      // Se não houver data ou loja, não podemos calcular as transações relevantes
-      // Poderia-se definir o saldo final como igual ao inicial ou zerar, dependendo da preferência.
-      // Por ora, apenas não prosseguiremos se não houver data/loja.
-      // Ou, alternativamente, calcular apenas com base nos movimentos manuais e saldo inicial.
-      // Para este exemplo, vamos calcular com o que temos.
-    }
+  const [finalBalanceEdited, setFinalBalanceEdited] = useState(false);
 
+  const [suggestedFinalBalance, setSuggestedFinalBalance] = useState(0);
+
+  useEffect(() => {
     const [year, month, day] = newClosing.closingDate.split("-").map(Number);
     const closingDateObj = new Date(year, month - 1, day);
 
@@ -153,12 +144,15 @@ export const StoreClosingManager = ({
         description: t.description,
         amount: Math.abs(t.amount),
         discount: t.discount || 0,
-        transactionType: t.type, // t.type já é "Receita" ou "Despesa"
+        transactionType: t.type,
         paymentMethodId: "N/A",
         createdAt: t.createdAt,
       }));
 
-    const allMovementsForSuggestion = [...newClosing.movements, ...movementsFromPersonalTransactions];
+    const allMovementsForSuggestion = [
+      ...newClosing.movements,
+      ...movementsFromPersonalTransactions,
+    ];
 
     const totalEntradas = allMovementsForSuggestion
       .filter((m) => m.transactionType === "Receita")
@@ -168,14 +162,33 @@ export const StoreClosingManager = ({
       .filter((m) => m.transactionType === "Despesa")
       .reduce((sum, m) => sum + m.amount, 0);
 
-    const suggestedFinalBalance = newClosing.initialBalance + totalEntradas - totalSaidas;
-    
-    setNewClosing(prev => ({
-      ...prev,
-      finalBalance: suggestedFinalBalance
-    }));
+    const suggestion = newClosing.initialBalance + totalEntradas - totalSaidas;
+    setSuggestedFinalBalance(suggestion);
 
-  }, [newClosing.initialBalance, newClosing.movements, personalTransactions, newClosing.storeId, newClosing.closingDate]);
+    if (!finalBalanceEdited) {
+      setNewClosing((prev) => ({
+        ...prev,
+        finalBalance: suggestion,
+      }));
+    }
+  }, [
+    newClosing.initialBalance,
+    newClosing.movements,
+    personalTransactions,
+    newClosing.storeId,
+    newClosing.closingDate,
+    finalBalanceEdited,
+  ]);
+
+  useEffect(() => {
+    setFinalBalanceEdited(false);
+  }, [
+    newClosing.initialBalance,
+    newClosing.movements,
+    personalTransactions,
+    newClosing.storeId,
+    newClosing.closingDate,
+  ]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,12 +206,9 @@ export const StoreClosingManager = ({
       return;
     }
 
-    // Ajuste para garantir que a data seja interpretada corretamente no fuso horário local
     const [year, month, day] = newClosing.closingDate.split("-").map(Number);
-    // O mês no construtor Date é 0-indexado (0 para Janeiro, 11 para Dezembro)
     const closingDateObj = new Date(year, month - 1, day);
 
-    // 1. Filtrar transações pessoais pela data e loja do fechamento
     const relevantPersonalTransactions = personalTransactions.filter((t) => {
       const transactionDate = new Date(t.date);
       return (
@@ -209,30 +219,22 @@ export const StoreClosingManager = ({
       );
     });
 
-    // 2. Mapear Transaction para MovementItem
     const movementsFromPersonalTransactions: MovementItem[] =
       relevantPersonalTransactions.map((t) => {
         const transactionTypeForMovement: "Receita" | "Despesa" =
           t.type === "Receita" ? "Receita" : "Despesa";
         return {
-          id: `mov-from-trans-${t.id}`, // ID único para o movimento
+          id: `mov-from-trans-${t.id}`,
           description: t.description,
-          amount: Math.abs(t.amount), // Valor sempre positivo
+          amount: Math.abs(t.amount),
           discount: t.discount || 0,
           transactionType: transactionTypeForMovement,
-          paymentMethodId: "N/A", // Ou um método padrão se aplicável
-          createdAt: t.createdAt, // Herda da transação original
-          // updateAt: t.updatedAt, // Herda se existir e for relevante
+          paymentMethodId: "N/A",
+          createdAt: t.createdAt,
         };
       });
 
-    console.log(
-      "Movimentos gerados a partir das transações:",
-      movementsFromPersonalTransactions
-    );
-
-    // ADICIONE ESTE LOG:
-    console.log("Fechamento enviado para onAddClosing:", {
+    onAddClosing({
       storeId: newClosing.storeId,
       closingDate: closingDateObj,
       initialBalance: newClosing.initialBalance,
@@ -243,17 +245,6 @@ export const StoreClosingManager = ({
       ],
     });
 
-    onAddClosing({
-      storeId: newClosing.storeId,
-      closingDate: closingDateObj,
-      initialBalance: newClosing.initialBalance,
-      finalBalance: newClosing.finalBalance,
-      movements: [
-        ...newClosing.movements,
-        ...movementsFromPersonalTransactions,
-      ], // Combina movimentos manuais com os de transações
-    });
-
     setNewClosing({
       storeId: "",
       closingDate: new Date().toISOString().split("T")[0],
@@ -262,7 +253,6 @@ export const StoreClosingManager = ({
       movements: [],
     });
 
-    // 3. Remover as transações pessoais que foram movidas
     removeTransactionsByDateAndStore(closingDateObj, newClosing.storeId);
 
     toast({
@@ -276,8 +266,6 @@ export const StoreClosingManager = ({
     setExpandedClosingId((prevId) => (prevId === closingId ? null : closingId));
   };
 
-  // Mapeia o ID do fechamento para um número sequencial (ex: 1, 2, 3...)
-  // O fechamento mais antigo terá o número 1.
   const closingNumbersMap = useMemo(() => {
     const sortedClosingsForNumbering = [...closings].sort(
       (a, b) =>
@@ -310,66 +298,63 @@ export const StoreClosingManager = ({
           (b.store?.name || "").localeCompare(a.store?.name || "")
         );
         break;
-      case "netResult-positive-priority-desc": // Positivos primeiro (maior para menor), depois negativos (mais próximo de zero para mais distante)
+      case "netResult-positive-priority-desc":
         sorted.sort((a, b) => {
           const aIsPositive = a.netResult >= 0;
           const bIsPositive = b.netResult >= 0;
           if (aIsPositive && !bIsPositive) return -1;
           if (!aIsPositive && bIsPositive) return 1;
-          if (aIsPositive && bIsPositive) return b.netResult - a.netResult; // Positivos: maior primeiro
-          return b.netResult - a.netResult; // Negativos: mais próximo de zero primeiro
+          if (aIsPositive && bIsPositive) return b.netResult - a.netResult;
+          return b.netResult - a.netResult;
         });
         break;
-      case "netResult-positive-priority-asc": // Positivos primeiro (menor para maior), depois negativos (mais distante de zero para mais próximo)
+      case "netResult-positive-priority-asc":
         sorted.sort((a, b) => {
           const aIsPositive = a.netResult >= 0;
           const bIsPositive = b.netResult >= 0;
           if (aIsPositive && !bIsPositive) return -1;
           if (!aIsPositive && bIsPositive) return 1;
-          if (aIsPositive && bIsPositive) return a.netResult - b.netResult; // Positivos: menor primeiro
-          return a.netResult - b.netResult; // Negativos: mais distante de zero primeiro
+          if (aIsPositive && bIsPositive) return a.netResult - b.netResult;
+          return a.netResult - b.netResult;
         });
         break;
-      case "netResult-negative-priority-desc": // Negativos primeiro (mais próximo de zero), depois positivos (maior para menor)
+      case "netResult-negative-priority-desc":
         sorted.sort((a, b) => {
           const aIsNegative = a.netResult < 0;
           const bIsNegative = b.netResult < 0;
           if (aIsNegative && !bIsNegative) return -1;
           if (!aIsNegative && bIsNegative) return 1;
-          if (aIsNegative && bIsNegative) return b.netResult - a.netResult; // Negativos: mais próximo de zero primeiro
-          return b.netResult - a.netResult; // Positivos: maior primeiro
+          if (aIsNegative && bIsNegative) return b.netResult - a.netResult;
+          return b.netResult - a.netResult;
         });
         break;
-      case "netResult-negative-priority-asc": // Negativos primeiro (mais distante de zero), depois positivos (menor para maior)
+      case "netResult-negative-priority-asc":
         sorted.sort((a, b) => {
           const aIsNegative = a.netResult < 0;
           const bIsNegative = b.netResult < 0;
           if (aIsNegative && !bIsNegative) return -1;
           if (!aIsNegative && bIsNegative) return 1;
-          if (aIsNegative && bIsNegative) return a.netResult - b.netResult; // Negativos: mais distante de zero primeiro
-          return a.netResult - b.netResult; // Positivos: menor primeiro
+          if (aIsNegative && bIsNegative) return a.netResult - b.netResult;
+          return a.netResult - b.netResult;
         });
         break;
-      case "date-desc": // Padrão
+      case "date-desc":
       default:
-        console.log("[StoreClosingManager] Ordenando por:", sortBy);
-
         sorted.sort(
           (a, b) =>
             new Date(b.closingDate).getTime() -
-            new Date(a.closingDate).getTime() // Mais recente primeiro
+            new Date(a.closingDate).getTime()
         );
     }
     return sorted;
   }, [closings, sortBy]);
+
   return (
     <Card className="animate-fade-in">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <span>
-            📊 Fazer Fechamento
-          </span>
-          <HelpTooltip dicaKey="fazerFechamento" side="bottom"/>
+          <span>📊 Fazer Fechamento</span>
+          <HelpTooltip dicaKey="fazerFechamento" side="bottom" />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -377,7 +362,6 @@ export const StoreClosingManager = ({
           onSubmit={handleSubmit}
           className="space-y-6 p-4 bg-gray-50 rounded-lg"
         >
-          {/* Store and Date Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <div className="flex items-center">
@@ -403,7 +387,6 @@ export const StoreClosingManager = ({
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <div className="flex items-center">
                 <Label htmlFor="closingDate">Data do Fechamento *</Label>
@@ -422,8 +405,6 @@ export const StoreClosingManager = ({
               />
             </div>
           </div>
-
-          {/* Balance */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <CurrencyInput
@@ -438,29 +419,29 @@ export const StoreClosingManager = ({
                 helpTooltipDicaKey="fechamentoSaldoInicial"
               />
             </div>
-
             <div>
               <CurrencyInput
                 label="Saldo Final (R$)"
                 id="finalBalance"
                 value={newClosing.finalBalance}
-                onChange={(value) =>
-                  setNewClosing((prev) => ({ ...prev, finalBalance: value }))
-                }
+                onFocus={() => {
+                  if (!finalBalanceEdited) {
+                    setNewClosing((prev) => ({ ...prev, finalBalance: 0 }));
+                  }
+                }}
+                onChange={(value) => {
+                  setFinalBalanceEdited(true);
+                  setNewClosing((prev) => ({
+                    ...prev,
+                    finalBalance: value,
+                  }));
+                }}
                 placeholder="R$ 0,00"
                 required
                 helpTooltipDicaKey="fechamentoSaldoFinal"
               />
             </div>
           </div>
-
-          {/* Remover seção de movimentos */}
-          {/*
-            <div className="border-t pt-4">
-              ... conteúdo removido ...
-            </div>
-          */}
-
           <Button
             type="submit"
             className="w-full"
@@ -471,16 +452,12 @@ export const StoreClosingManager = ({
               : "Registrar Fechamento"}
           </Button>
         </form>
-
-        {/* Closings List */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <h4 className="font-medium text-gray-700">
               Fechamentos Registrados
             </h4>
             <div className="w-56">
-              {" "}
-              {/* Ajuste a largura conforme necessário */}
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger>
                   <SelectValue placeholder="Ordenar por..." />
@@ -541,10 +518,11 @@ export const StoreClosingManager = ({
                             className="p-1 h-8 w-8"
                           >
                             <ChevronDown
-                              className={`h-4 w-4 transition-transform ${expandedClosingId === closing.id
-                                ? "transform rotate-180"
-                                : ""
-                                }`}
+                              className={`h-4 w-4 transition-transform ${
+                                expandedClosingId === closing.id
+                                  ? "transform rotate-180"
+                                  : ""
+                              }`}
                             />
                           </Button>
                         </CollapsibleTrigger>
@@ -555,10 +533,11 @@ export const StoreClosingManager = ({
                             onDeleteClosing(closing.id);
                             toast({
                               title: "Fechamento Removido",
-                              description: `O fechamento da loja "${closing.store?.name || "Desconhecida"
-                                }" de ${new Date(
-                                  closing.closingDate
-                                ).toLocaleDateString("pt-BR")} foi removido.`,
+                              description: `O fechamento da loja "${
+                                closing.store?.name || "Desconhecida"
+                              }" de ${new Date(
+                                closing.closingDate
+                              ).toLocaleDateString("pt-BR")} foi removido.`,
                               variant: "success",
                             });
                           }}
@@ -568,7 +547,6 @@ export const StoreClosingManager = ({
                         </Button>
                       </div>
                     </div>
-
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                       <div>
                         <span className="text-gray-500">Saldo Inicial:</span>
@@ -597,10 +575,11 @@ export const StoreClosingManager = ({
                       <div>
                         <span className="text-gray-500">Resultado:</span>
                         <p
-                          className={`font-medium ${closing.netResult >= 0
-                            ? "text-green-600"
-                            : "text-red-600"
-                            }`}
+                          className={`font-medium ${
+                            closing.netResult >= 0
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
                         >
                           {formatCurrency(closing.netResult)}
                         </p>
@@ -612,7 +591,6 @@ export const StoreClosingManager = ({
                       </div>
                     )}
                   </div>
-
                   <CollapsibleContent>
                     <div className="px-4 pb-4 space-y-2 bg-gray-50 rounded-b-lg">
                       <h5 className="font-medium text-sm text-gray-600 pt-2">
@@ -623,14 +601,27 @@ export const StoreClosingManager = ({
                       </h5>
                       {closing.movements && closing.movements.length > 0 ? (
                         closing.movements.map((movement) => {
-                          const method = movement.paymentMethod; // paymentMethod já vem populado de closingsWithDetails
+                          const method = movement.paymentMethod;
                           return (
-                            <div key={movement.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                            <div
+                              key={movement.id}
+                              className="flex items-center justify-between p-2 bg-white rounded border"
+                            >
                               <div className="flex items-center gap-2">
-                                <span>{movement.transactionType === "Receita" ? "➡️" : "⬅️"}</span>
+                                <span>
+                                  {movement.transactionType === "Receita"
+                                    ? "➡️"
+                                    : "⬅️"}
+                                </span>
                                 <span className="text-sm">
                                   {movement.description}
-                                  <span className={`text-xs ml-1 ${movement.transactionType === "Despesa" ? "text-red-500" : "text-green-500"}`}>
+                                  <span
+                                    className={`text-xs ml-1 ${
+                                      movement.transactionType === "Despesa"
+                                        ? "text-red-500"
+                                        : "text-green-500"
+                                    }`}
+                                  >
                                     ({movement.transactionType})
                                   </span>
                                 </span>

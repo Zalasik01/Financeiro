@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +15,7 @@ import { Shield, Building, ArrowRight, Search, Frown, LogOut } from "lucide-reac
 interface AccessSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSelectBase: (baseId: string) => void;
   bases: Base[];
   isAdmin: boolean;
 }
@@ -23,15 +23,15 @@ interface AccessSelectionModalProps {
 export const AccessSelectionModal: React.FC<AccessSelectionModalProps> = ({
   isOpen,
   onClose,
+  onSelectBase,
   bases,
   isAdmin,
 }) => {
-  const { setSelectedBaseId } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleSelectBase = (baseId: string) => {
-    setSelectedBaseId(baseId);
+    onSelectBase(baseId);
   };
 
   useEffect(() => {

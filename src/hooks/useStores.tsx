@@ -140,6 +140,19 @@ export const useStores = () => {
     return () => unsubscribe();
   }, [currentUser, selectedBaseId]);
 
+function calculateTotals(movements) {
+  let totalEntradas = 0;
+  let totalSaidas = 0;
+  let totalOutros = 0;
+  movements.forEach((m) => {
+    if (m.transactionType === "Receita") totalEntradas += m.amount - (m.discount || 0);
+    else if (m.transactionType === "Despesa") totalSaidas += m.amount;
+    else totalOutros += m.amount;
+  });
+  const netResult = totalEntradas - totalSaidas;
+  return { totalEntradas, totalSaidas, totalOutros, netResult };
+}
+
   const addStore = async (storeData: Omit<Store, "id" | "createdAt" | "baseId">) => {
     if (!currentUser || !selectedBaseId) {
       toast({ title: "Erro!", description: "Usuário não autenticado ou base não selecionada.", variant: "destructive" });

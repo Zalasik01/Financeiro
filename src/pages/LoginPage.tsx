@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useStores } from "@/hooks/useStores";
@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { AccessSelectionModal } from "@/components/AccessSelectionModal";
 
+type LoginStatus = "IDLE" | "LOADING" | "ERROR";
+
 const AppLogo = () => (
   <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
     <Building size={36} strokeWidth={1.5} />
@@ -30,24 +32,24 @@ const AppLogo = () => (
 );
 
 const FullScreenLoader = () => (
-    <div 
-        className="flex items-center justify-center min-h-screen w-full bg-cover bg-center"
-        style={{ backgroundImage: "url('/app_finance.png')" }}
-    >
-        <div className="absolute inset-0 bg-black/50 z-0" />
-        <div className="z-10">
-            <Loader2 className="h-12 w-12 animate-spin text-white" />
-        </div>
+  <div
+    className="flex items-center justify-center min-h-screen w-full bg-cover bg-center"
+    style={{ backgroundImage: "url('/app_finance.png')" }}
+  >
+    <div className="absolute inset-0 bg-black/50 z-0" />
+    <div className="z-10">
+      <Loader2 className="h-12 w-12 animate-spin text-white" />
     </div>
-  );
+  </div>
+);
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [status, setStatus] = useState<LoginStatus>("IDLE");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const {
     login,
@@ -55,17 +57,16 @@ export default function LoginPage() {
     currentUser,
     loading: authLoading,
     selectedBaseId,
+    setSelectedBaseId,
   } = useAuth();
   const { bases: allBases, loading: basesLoading } = useStores();
   const navigate = useNavigate();
-  
-  const hasHandledAuthFlow = useRef(false);
+
+  const dataIsLoading = authLoading || basesLoading;
 
   const basesParaUsuario = useMemo(() => {
     if (!currentUser || !allBases) return [];
-    if (currentUser.isAdmin) {
-      return allBases;
-    }
+    if (currentUser.isAdmin) return allBases;
     return allBases.filter(
       (base) =>
         base.ativo &&
@@ -75,73 +76,64 @@ export default function LoginPage() {
   }, [allBases, currentUser]);
 
   useEffect(() => {
-    if (authLoading) return;
-
     if (currentUser && selectedBaseId) {
       navigate("/", { replace: true });
-      return;
     }
+  }, [currentUser, selectedBaseId, navigate]);
 
-    if (currentUser && !selectedBaseId && !basesLoading && !hasHandledAuthFlow.current) {
-      const isAdmin = !!currentUser.isAdmin;
-      const hasBases = basesParaUsuario.length > 0;
-
-      if (isAdmin || hasBases) {
-        setIsModalOpen(true);
-      } else {
-        setError("Você não possui nenhuma base de dados associada.");
-        logout();
+  useEffect(() => {
+    // Este efeito só se preocupa em abrir o modal quando o carregamento termina.
+    if (status === "LOADING" && !dataIsLoading) {
+      if (currentUser) {
+        if (currentUser.isAdmin || basesParaUsuario.length > 0) {
+          setIsModalOpen(true);
+        } else {
+          setError("Você não possui nenhuma base de dados associada.");
+          setStatus("ERROR");
+          logout();
+        }
       }
-      hasHandledAuthFlow.current = true;
+      // Reseta o status para IDLE, pois a tarefa de carregar terminou.
+      setStatus("IDLE");
     }
+  }, [status, dataIsLoading, currentUser, basesParaUsuario, logout]);
+
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (status === "LOADING") return;
+
+    setError(null);
+    setStatus("LOADING"); // Apenas indica que estamos em um processo de carregamento.
     
-    if (!currentUser) {
-        hasHandledAuthFlow.current = false;
-        setIsModalOpen(false);
+    try {
+      await login(email, password);
+      // O useEffect acima cuidará do resto quando o loading terminar.
+    } catch (error) {
+      console.error("Falha no login:", error);
+      setError("E-mail ou senha inválidos. Verifique suas credenciais.");
+      setStatus("ERROR");
     }
-  }, [currentUser, selectedBaseId, authLoading, basesLoading, basesParaUsuario, navigate, logout]);
+  };
+  
+  const handleBaseSelected = (baseId: string) => {
+    setSelectedBaseId(baseId);
+    setIsModalOpen(false); // Fecha o modal
+    // A navegação será acionada pelo primeiro useEffect.
+  };
 
   const handleModalClose = () => {
     setIsModalOpen(false);
     logout();
+    setStatus("IDLE");
   };
+  
+  const isLoading = status === "LOADING";
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    hasHandledAuthFlow.current = false;
-    
-    if (!email || !password) {
-      setError("Por favor, preencha e-mail e senha.");
-      return;
-    }
-    setIsLoading(true);
-    try {
-      await login(email, password);
-    } catch (error) {
-      console.error("Falha no login:", error);
-      setError("E-mail ou senha inválidos. Verifique suas credenciais.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  if (authLoading && !isModalOpen) {
+  // Se o hook de auth ainda estiver carregando, mostre o loader de tela cheia.
+  // Isso só acontece no primeiro carregamento da página.
+  if (authLoading && !currentUser) {
     return <FullScreenLoader />;
-  }
-  
-  if (isModalOpen) {
-    return (
-      <>
-        <FullScreenLoader />
-        <AccessSelectionModal
-          isOpen={isModalOpen}
-          onClose={handleModalClose}
-          bases={basesParaUsuario}
-          isAdmin={!!currentUser?.isAdmin}
-        />
-      </>
-    );
   }
 
   return (
@@ -150,6 +142,7 @@ export default function LoginPage() {
       style={{ backgroundImage: "url('/app_finance.png')" }}
     >
       <div className="absolute inset-0 bg-black/50 z-0" />
+
       <Card className="z-10 w-full max-w-md bg-card shadow-2xl rounded-lg animate-fade-in">
         <CardHeader className="text-center p-8">
           <AppLogo />
@@ -174,16 +167,16 @@ export default function LoginPage() {
                 </Link>
               </div>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} required value={password} placeholder="••••••••••" autoComplete="current-password" onChange={(e) => setPassword(e.target.value)} disabled={isLoading} className="h-11 pr-10" />
+                <Input id="password" type={showPassword ? "text" : "password"} required value={password} placeholder="Digite sua senha" autoComplete="current-password" onChange={(e) => setPassword(e.target.value)} disabled={isLoading} className="h-11 pr-10" />
                 <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3 text-muted-foreground hover:text-primary" onClick={() => setShowPassword(!showPassword)} disabled={isLoading}>
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </Button>
               </div>
             </div>
-            {error && (
+            {status === "ERROR" && error && (
               <Alert variant="destructive" className="animate-fade-in">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Falha no Login</AlertTitle>
+                <AlertTitle>Falha</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
@@ -195,6 +188,15 @@ export default function LoginPage() {
           </CardFooter>
         </form>
       </Card>
+      
+      {/* O Modal agora é renderizado aqui, controlado por seu próprio estado `isOpen` */}
+      <AccessSelectionModal
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          onSelectBase={handleBaseSelected}
+          bases={basesParaUsuario}
+          isAdmin={!!currentUser?.isAdmin}
+      />
     </div>
   );
 }
