@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useStores } from "@/hooks/useStores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +21,7 @@ import {
   EyeOff,
   Building,
 } from "lucide-react";
+import { AccessSelectionModal } from "@/components/AccessSelectionModal";
 
 const AppLogo = () => (
   <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -27,25 +29,88 @@ const AppLogo = () => (
   </div>
 );
 
+const FullScreenLoader = () => (
+    <div 
+        className="flex items-center justify-center min-h-screen w-full bg-cover bg-center"
+        style={{ backgroundImage: "url('/app_finance.png')" }}
+    >
+        <div className="absolute inset-0 bg-black/50 z-0" />
+        <div className="z-10">
+            <Loader2 className="h-12 w-12 animate-spin text-white" />
+        </div>
+    </div>
+  );
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const { login, currentUser, selectedBaseId } = useAuth();
+  const {
+    login,
+    logout,
+    currentUser,
+    loading: authLoading,
+    selectedBaseId,
+  } = useAuth();
+  const { bases: allBases, loading: basesLoading } = useStores();
   const navigate = useNavigate();
+  
+  const hasHandledAuthFlow = useRef(false);
+
+  const basesParaUsuario = useMemo(() => {
+    if (!currentUser || !allBases) return [];
+    if (currentUser.isAdmin) {
+      return allBases;
+    }
+    return allBases.filter(
+      (base) =>
+        base.ativo &&
+        ((base.authorizedUIDs && base.authorizedUIDs[currentUser.uid]) ||
+          base.createdBy === currentUser.uid)
+    );
+  }, [allBases, currentUser]);
 
   useEffect(() => {
+    if (authLoading) return;
+
     if (currentUser && selectedBaseId) {
       navigate("/", { replace: true });
+      return;
     }
-  }, [currentUser, selectedBaseId, navigate]);
+
+    if (currentUser && !selectedBaseId && !basesLoading && !hasHandledAuthFlow.current) {
+      const isAdmin = !!currentUser.isAdmin;
+      const hasBases = basesParaUsuario.length > 0;
+
+      if (isAdmin || hasBases) {
+        setIsModalOpen(true);
+      } else {
+        setError("Você não possui nenhuma base de dados associada.");
+        logout();
+      }
+      hasHandledAuthFlow.current = true;
+    }
+    
+    if (!currentUser) {
+        hasHandledAuthFlow.current = false;
+        setIsModalOpen(false);
+    }
+  }, [currentUser, selectedBaseId, authLoading, basesLoading, basesParaUsuario, navigate, logout]);
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    logout();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    hasHandledAuthFlow.current = false;
+    
     if (!email || !password) {
       setError("Por favor, preencha e-mail e senha.");
       return;
@@ -53,14 +118,31 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await login(email, password);
-      navigate("/", { replace: true });
-    } catch (err) {
-      const error = err as Error;
-      setError(error.message || "E-mail ou senha inválidos.");
+    } catch (error) {
+      console.error("Falha no login:", error);
+      setError("E-mail ou senha inválidos. Verifique suas credenciais.");
     } finally {
       setIsLoading(false);
     }
   };
+  
+  if (authLoading && !isModalOpen) {
+    return <FullScreenLoader />;
+  }
+  
+  if (isModalOpen) {
+    return (
+      <>
+        <FullScreenLoader />
+        <AccessSelectionModal
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          bases={basesParaUsuario}
+          isAdmin={!!currentUser?.isAdmin}
+        />
+      </>
+    );
+  }
 
   return (
     <div

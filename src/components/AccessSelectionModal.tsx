@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -32,9 +32,13 @@ export const AccessSelectionModal: React.FC<AccessSelectionModalProps> = ({
 
   const handleSelectBase = (baseId: string) => {
     setSelectedBaseId(baseId);
-    onClose();
-    navigate("/");
   };
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchTerm("");
+    }
+  }, [isOpen]);
 
   const filteredBases = useMemo(() => {
     if (!bases) return [];
@@ -75,29 +79,29 @@ export const AccessSelectionModal: React.FC<AccessSelectionModalProps> = ({
     }
 
     return (
-        <div className="max-h-48 overflow-y-auto space-y-1 pr-2 -mr-2">
-          {filteredBases.map((base) => (
-            <button
-              key={base.id}
-              onClick={() => handleSelectBase(base.id)}
-              className="w-full group flex items-center justify-between text-left p-3 rounded-md hover:bg-muted transition-all duration-200"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted/70 group-hover:bg-background rounded-md transition-all">
-                  <Building size={18} className="text-muted-foreground group-hover:text-primary transition-all" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-foreground">
-                    {base.numberId ? `${base.numberId} - ` : ""}
-                    {base.name}
-                  </span>
-                  <span title={base.ativo ? "Ativa" : "Inativa"} className={`h-2.5 w-2.5 rounded-full ${base.ativo ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                </div>
+      <div className="max-h-48 overflow-y-auto space-y-1 pr-2 -mr-2">
+        {filteredBases.map((base) => (
+          <button
+            key={base.id}
+            onClick={() => handleSelectBase(base.id)}
+            className="w-full group flex items-center justify-between text-left p-3 rounded-md hover:bg-muted transition-all duration-200"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-muted/70 group-hover:bg-background rounded-md transition-all">
+                <Building size={18} className="text-muted-foreground group-hover:text-primary transition-all" />
               </div>
-              <ArrowRight size={16} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            </button>
-          ))}
-        </div>
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-foreground">
+                  {base.numberId ? `${base.numberId} - ` : ""}
+                  {base.name}
+                </span>
+                <span title={base.ativo ? "Ativa" : "Inativa"} className={`h-2.5 w-2.5 rounded-full ${base.ativo ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+              </div>
+            </div>
+            <ArrowRight size={16} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          </button>
+        ))}
+      </div>
     );
   };
 
