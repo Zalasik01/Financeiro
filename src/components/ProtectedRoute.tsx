@@ -1,23 +1,34 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { Loader2 } from 'lucide-react'; // Para um spinner melhor
 
 const ProtectedRoute = () => {
-  const { currentUser, loading } = useAuth();
+  // 'loading' (renomeado para authLoading) cobre o estado inicial de verificação do currentUser.
+  // selectedBaseId é carregado de forma síncrona do localStorage no hook useAuth.
+  const { currentUser, loading: authLoading, selectedBaseId } = useAuth();
   const location = useLocation();
 
-  if (loading) {
-    // Você pode exibir um spinner/indicador de carregamento aqui
-    // enquanto o estado de autenticação está sendo verificado.
-    return <div>Carregando autenticação...</div>;
+  if (authLoading) { // Se ainda está verificando o usuário
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
   }
 
   if (!currentUser) {
-    // Redireciona para a página de login, guardando a localização atual
-    // para que o usuário possa ser redirecionado de volta após o login.
+    // Usuário não logado, redireciona para login, guardando a rota de origem.
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return <Outlet />; // Renderiza o conteúdo da rota filha se autenticado
+  // Usuário logado, mas precisa selecionar uma base
+  if (!selectedBaseId) {
+    // Redireciona para /login, onde o modal de seleção de base deve aparecer.
+    return <Navigate to="/login" replace />;
+  }
+
+  // Usuário logado E com base selecionada, permite acesso à rota protegida.
+  return <Outlet />;
 };
 
 export default ProtectedRoute;
