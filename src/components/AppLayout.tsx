@@ -1,6 +1,6 @@
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useStores } from "@/hooks/useStores";
-import { useMemo } from "react";
 import { Outlet, Navigate, useNavigate } from "react-router-dom";
 import { AccessSelectionModal } from "@/components/AccessSelectionModal";
 import { Loader2 } from "lucide-react";
@@ -21,9 +21,11 @@ export const AppLayout = () => {
   const { currentUser, loading: authLoading, selectedBaseId, logout } = useAuth();
   const { bases: allBases, loading: basesLoading } = useStores();
   const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleLogoutAndRedirect = () => {
-    logout();
+  const handleLogoutAndRedirect = async () => {
+    setIsModalOpen(false);
+    await logout();
     navigate('/login', { replace: true });
   };
 
@@ -40,35 +42,41 @@ export const AppLayout = () => {
     );
   }, [allBases, currentUser]);
 
-  if (authLoading || (currentUser && basesLoading)) {
+  useEffect(() => {
+    if (authLoading || (currentUser && basesLoading)) {
+      return;
+    }
+
+    if (currentUser && !selectedBaseId) {
+      const isAdmin = !!currentUser.isAdmin;
+      const hasBases = basesParaUsuario.length > 0;
+      if (isAdmin || hasBases) {
+        setIsModalOpen(true);
+      } else {
+        handleLogoutAndRedirect();
+      }
+    } else {
+      setIsModalOpen(false);
+    }
+  }, [currentUser, selectedBaseId, authLoading, basesLoading, basesParaUsuario]);
+
+  if (authLoading || (currentUser && basesLoading && !selectedBaseId)) {
     return <FullScreenLoader />;
   }
 
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
-
-  if (currentUser && !selectedBaseId) {
-    const isAdmin = !!currentUser.isAdmin;
-    const hasBases = basesParaUsuario.length > 0;
-
-    if (isAdmin || hasBases) {
-      return (
-        <>
-          <FullScreenLoader />
-          <AccessSelectionModal
-            isOpen={true}
-            onClose={handleLogoutAndRedirect}
-            bases={basesParaUsuario}
-            isAdmin={isAdmin}
-          />
-        </>
-      );
-    } else {
-       handleLogoutAndRedirect();
-       return null; 
-    }
-  }
-
-  return <Outlet />;
+  
+  return (
+    <>
+      <Outlet />
+      <AccessSelectionModal
+        isOpen={isModalOpen}
+        onClose={handleLogoutAndRedirect}
+        bases={basesParaUsuario}
+        isAdmin={!!currentUser?.isAdmin}
+      />
+    </>
+  );
 };

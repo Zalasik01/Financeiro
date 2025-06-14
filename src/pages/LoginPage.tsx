@@ -62,20 +62,6 @@ export default function LoginPage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div 
-        className="flex items-center justify-center min-h-screen w-full bg-cover bg-center"
-        style={{ backgroundImage: "url('/app_finance.png')" }}
-      >
-        <div className="absolute inset-0 bg-black/50 z-0" />
-        <div className="z-10">
-            <Loader2 className="h-12 w-12 animate-spin text-white" />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
       className="relative flex items-center justify-center min-h-screen p-4 w-full bg-cover bg-center"
