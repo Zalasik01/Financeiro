@@ -5,20 +5,29 @@ export interface ClientBase {
   ativo: boolean;
   limite_acesso?: number | null;
   motivo_inativo?: string | null; // Novo campo para o motivo da inativação
-  authorizedUIDs: { 
-  [uid: string]: {
-    displayName: string;
-    email: string;
+  cnpj?: string; // CNPJ da loja principal
+  responsaveis?: Responsavel[]; // Lista de responsáveis
+  authorizedUIDs: {
+    [uid: string]: {
+      displayName: string;
+      email: string;
+    };
   };
-};
   createdAt: number; // Timestamp (Firebase serverTimestamp)
   createdBy: string; // UID do admin
+}
+
+export interface Responsavel {
+  nome: string;
+  telefone: string;
+  isFinanceiro: boolean; // Responsável financeiro
+  isSistema: boolean; // Responsável pelo sistema
 }
 
 export interface Base {
   id: string; // Será "1", "2", "3", etc.
   name: string;
-  numberId?: number
+  numberId?: number;
   createdAt: number; // Usaremos timestamp do Firebase
 }
 export interface Store {

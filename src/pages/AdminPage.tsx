@@ -11,8 +11,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { db } from "@/firebase";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/lib/toast";
 import type { ClientBase } from "@/types/store";
 import {
   DatabaseReference,
@@ -47,7 +47,7 @@ interface UserToRemoveData {
 const AdminPage: React.FC = () => {
   // Adicionar tipo de retorno React.FC
   const { currentUser } = useAuth();
-  const { toast } = useToast();
+  // Remove useToast hook since we're now using direct import
 
   // Renomear ClientBase para ClientBaseType para evitar conflito de nome se ClientBase for usado em outro lugar
   const [clientBases, setClientBases] = useState<ClientBase[]>([]);
@@ -160,10 +160,9 @@ const AdminPage: React.FC = () => {
     const inviteToken = newInviteRef.key;
 
     if (!inviteToken) {
-      toast({
+      toast.error({
         title: "Erro",
         description: "Não foi possível gerar o token do convite.",
-        variant: "destructive",
       });
       return;
     }
@@ -181,17 +180,14 @@ const AdminPage: React.FC = () => {
       // Incluir o UUID da base no link para torná-lo único e específico
       const inviteLink = `${window.location.origin}/convite/${inviteToken}?baseId=${base.id}`;
       setGeneratedInviteLink(inviteLink);
-      toast({
+      toast.success({
         title: "Link de Convite Gerado!",
         description: `Convite específico para a base "${base.name}" (ID: ${base.numberId})`,
-        variant: "success",
       });
     } catch (error) {
-      console.error("Erro ao criar convite:", error);
-      toast({
+      toast.error({
         title: "Erro",
         description: "Não foi possível salvar o convite.",
-        variant: "destructive",
       });
     }
   };
@@ -202,16 +198,14 @@ const AdminPage: React.FC = () => {
 
     try {
       await set(ref(db, `users/${userToRevoke.uid}/profile/isAdmin`), false);
-      toast({
+      toast.success({
         title: "Sucesso",
         description: `Privilégios de admin revogados para ${userToRevoke.displayName}.`,
-        variant: "success",
       });
     } catch (error) {
-      toast({
+      toast.error({
         title: "Erro",
         description: "Não foi possível revogar os privilégios.",
-        variant: "destructive",
       });
     } finally {
       setUserToRevoke(null);
@@ -221,10 +215,9 @@ const AdminPage: React.FC = () => {
   // Definição da função que estava faltando
   const confirmRemoveUserFromBase = async () => {
     if (!userToRemove) {
-      toast({
+      toast.error({
         title: "Erro",
         description: "Nenhum usuário selecionado para remoção.",
-        variant: "destructive",
       });
       return;
     }
@@ -239,10 +232,9 @@ const AdminPage: React.FC = () => {
       );
       await remove(authorizedUserRef);
 
-      toast({
+      toast.success({
         title: "Sucesso!",
         description: `Usuário "${user.displayName}" removido da base "${base.name}".`,
-        variant: "success",
       });
 
       // Atualizar o estado local clientBases para refletir a remoção
@@ -256,13 +248,11 @@ const AdminPage: React.FC = () => {
         })
       );
     } catch (error) {
-      console.error("Erro ao remover usuário da base:", error);
       const typedError = error as Error;
-      toast({
+      toast.error({
         title: "Erro ao Remover",
         description:
           typedError.message || "Não foi possível remover o usuário da base.",
-        variant: "destructive",
       });
     } finally {
       setUserToRemove(null); // Fecha o diálogo
@@ -278,17 +268,14 @@ const AdminPage: React.FC = () => {
 
     try {
       await remove(ref(db, `clientBases/${baseToDelete.id}`));
-      toast({
+      toast.success({
         title: "Sucesso!",
         description: `Base "${baseToDelete.name}" excluída com sucesso.`,
-        variant: "success",
       });
     } catch (error) {
-      console.error("Erro ao excluir base:", error);
-      toast({
+      toast.error({
         title: "Erro ao excluir",
         description: `Não foi possível excluir a base "${baseToDelete.name}".`,
-        variant: "destructive",
       });
     } finally {
       setBaseToDelete(null); // Fecha o diálogo
@@ -321,30 +308,26 @@ const AdminPage: React.FC = () => {
     };
 
     if (!newStatus && !inactivationReason.trim() && !selectedPredefinedReason) {
-      toast({
+      toast.warning({
         title: "Atenção",
         description:
           "Por favor, selecione ou forneça um motivo para inativar a base.",
-        variant: "destructive",
       });
       return;
     }
 
     try {
       await update(ref(db, `clientBases/${baseToToggleStatus.id}`), updates);
-      toast({
+      toast.success({
         title: "Sucesso!",
         description: `Base "${baseToToggleStatus.name}" foi ${
           newStatus ? "ativada" : "inativada"
         }.`,
-        variant: "success",
       });
     } catch (error) {
-      console.error("Erro ao alterar status da base:", error);
-      toast({
+      toast.error({
         title: "Erro",
         description: "Não foi possível alterar o status da base.",
-        variant: "destructive",
       });
     } finally {
       setBaseToToggleStatus(null);

@@ -5,17 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { db } from "@/firebase";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/lib/toast";
 import type { ClientBase } from "@/types/store";
-import {
-  get,
-  push,
-  ref,
-  serverTimestamp,
-  set,
-  update,
-} from "firebase/database";
+import { push, ref, serverTimestamp, set, update } from "firebase/database";
 import {
   Copy,
   Info,
@@ -59,7 +52,6 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
   onSetBaseToToggleStatus,
 }) => {
   const { currentUser } = useAuth();
-  const { toast } = useToast();
   const [newBaseName, setNewBaseName] = useState("");
   const [newBaseLimit, setNewBaseLimit] = useState<string>(""); // Estado para o limite da nova base
   const [isLoading, setIsLoading] = useState(false);
@@ -90,52 +82,14 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
   const handleAddClientBase = async (e: FormEvent) => {
     e.preventDefault();
     if (!newBaseName.trim() || !currentUser || nextNumberId === null) {
-      toast({
-        title: "Erro",
-        description: "Nome da base é obrigatório.",
-        variant: "destructive",
-      });
+      toast.validationError("Nome da base é obrigatório.");
       return;
-    }
-
-    console.log("🔧 [BaseManagement] Tentando criar base:", {
-      user: {
-        uid: currentUser.uid,
-        email: currentUser.email,
-        isAdmin: currentUser.isAdmin,
-      },
-      baseName: newBaseName,
-      nextNumberId,
-    });
-
-    // Verificação adicional: testar se conseguimos ler nosso próprio perfil
-    try {
-      const userProfileRef = ref(db, `users/${currentUser.uid}/profile`);
-      const profileSnapshot = await get(userProfileRef);
-      console.log("🔧 [BaseManagement] Verificação de perfil admin:", {
-        uid: currentUser.uid,
-        profileExists: profileSnapshot.exists(),
-        profileData: profileSnapshot.exists() ? profileSnapshot.val() : null,
-        isAdminInProfile: profileSnapshot.exists()
-          ? profileSnapshot.val()?.isAdmin
-          : null,
-      });
-    } catch (profileError) {
-      console.error(
-        "🔧 [BaseManagement] Erro ao verificar perfil:",
-        profileError
-      );
     }
 
     setIsLoading(true);
 
     const clientBasesRef = ref(db, "clientBases");
     const newClientBaseRef = push(clientBasesRef);
-
-    console.log("🔧 [BaseManagement] Referência Firebase criada:", {
-      path: `clientBases/${newClientBaseRef.key}`,
-      key: newClientBaseRef.key,
-    });
 
     // Admins não precisam estar na lista de usuários autorizados
     // A base será criada sem usuários autorizados inicialmente
@@ -145,12 +99,9 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
     if (newBaseLimit.trim() !== "" && newBaseLimit.trim() !== "0") {
       const parsedLimit = parseInt(newBaseLimit, 10);
       if (isNaN(parsedLimit) || parsedLimit <= 0) {
-        toast({
-          title: "Valor Inválido para Limite",
-          description:
-            "O limite de acesso deve ser um número inteiro positivo (maior que zero), ou 0/vazio para ilimitado.",
-          variant: "destructive",
-        });
+        toast.validationError(
+          "O limite de acesso deve ser um número inteiro positivo (maior que zero), ou 0/vazio para ilimitado."
+        );
         setIsLoading(false);
         return;
       }
@@ -169,36 +120,18 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
       motivo_inativo: null,
     };
 
-    console.log("🔧 [BaseManagement] Dados da base a serem salvos:", baseData);
-
     try {
-      console.log("🔧 [BaseManagement] Tentando salvar no Firebase...");
       await set(newClientBaseRef, baseData);
-      console.log("🔧 [BaseManagement] Base salva com sucesso!");
 
-      toast({
-        title: "Sucesso!",
-        description: `Base "${newBaseName}" criada com ID ${nextNumberId}.`,
-        variant: "success",
-      });
+      toast.createSuccess(
+        `Base "${newBaseName}" criada com ID ${nextNumberId}`
+      );
       setNewBaseName("");
       setNewBaseLimit(""); // Limpar o campo de limite
     } catch (error) {
-      console.error("🔧 [BaseManagement] Erro detalhado ao criar base:", {
-        error,
-        errorMessage: (error as Error).message,
-        errorCode: (error as { code?: string }).code,
-        user: currentUser.uid,
-        path: `clientBases/${newClientBaseRef.key}`,
-      });
-
-      toast({
-        title: "Erro ao criar base",
-        description: `${
-          (error as Error).message
-        } - Verifique as permissões do Firebase.`,
-        variant: "destructive",
-      });
+      toast.createError(
+        `${(error as Error).message} - Verifique as permissões do Firebase.`
+      );
     } finally {
       setIsLoading(false);
     }
@@ -224,12 +157,9 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
     } else {
       const parsedLimit = parseInt(newLimitString, 10);
       if (isNaN(parsedLimit) || parsedLimit <= 0) {
-        toast({
-          title: "Valor Inválido",
-          description:
-            "O limite deve ser um número inteiro positivo (maior que zero), ou 0/vazio para ilimitado.",
-          variant: "destructive",
-        });
+        toast.validationError(
+          "O limite deve ser um número inteiro positivo (maior que zero), ou 0/vazio para ilimitado."
+        );
         return;
       }
       newLimitValue = parsedLimit;
@@ -239,23 +169,14 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
     try {
       const baseUpdateRef = ref(db, `clientBases/${baseId}`);
       await update(baseUpdateRef, { limite_acesso: newLimitValue });
-      toast({
-        title: "Sucesso",
-        description: `Limite de acesso para a base "${base.name}" atualizado.`,
-        variant: "success",
-      });
+      toast.updateSuccess(`Limite de acesso para a base "${base.name}"`);
       // Atualiza o estado local do input para refletir o valor salvo e desabilitar o botão "Salvar"
       setLimitInputs((prev) => ({
         ...prev,
         [baseId]: newLimitValue === null ? "" : newLimitValue.toString(),
       }));
     } catch (error) {
-      console.error("Erro ao salvar limite de acesso:", error);
-      toast({
-        title: "Erro ao Salvar",
-        description: "Não foi possível atualizar o limite de acesso.",
-        variant: "destructive",
-      });
+      toast.updateError("Não foi possível atualizar o limite de acesso.");
     } finally {
       setSavingLimitForBase(null);
     }
@@ -287,16 +208,11 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
   const handleCopyInviteLink = async (link: string) => {
     try {
       await navigator.clipboard.writeText(link);
-      toast({
-        title: "Sucesso!",
-        description: "Link copiado para a área de transferência!",
-        variant: "success",
-      });
+      toast.copySuccess("Link");
     } catch (error) {
-      toast({
-        title: "Erro",
+      toast.error({
+        title: "Erro ao copiar",
         description: "Falha ao copiar o link.",
-        variant: "destructive",
       });
     }
   };
@@ -375,16 +291,11 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
                 onClick={() =>
                   navigator.clipboard
                     .writeText(generatedInviteLink)
-                    .then(() =>
-                      toast({
-                        description: "Link copiado!",
-                        variant: "success",
-                      })
-                    )
+                    .then(() => toast.copySuccess("Link"))
                     .catch(() =>
-                      toast({
+                      toast.error({
+                        title: "Erro ao copiar",
                         description: "Falha ao copiar.",
-                        variant: "destructive",
                       })
                     )
                 }
