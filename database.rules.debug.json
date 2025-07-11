@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "users": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "clientBases": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "invites": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+}

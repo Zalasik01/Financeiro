@@ -1,4 +1,3 @@
-import React, { useState, useEffect, FormEvent } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,15 +8,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { db } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { db } from "@/firebase";
-import { ref, onValue, serverTimestamp, get, remove, set, push, update, DatabaseReference } from "firebase/database";
+import type { ClientBase } from "@/types/store";
+import {
+  DatabaseReference,
+  get,
+  onValue,
+  push,
+  ref,
+  remove,
+  serverTimestamp,
+  set,
+  update,
+} from "firebase/database";
 import { Users } from "lucide-react";
-import { BaseManagement, ClientBase as ClientBaseType } from "./AdminPage/components/BaseManagement"; // Importar ClientBase como ClientBaseType
+import React, { useEffect, useState } from "react";
 import { AdminManagement } from "./AdminPage/components/AdminManagement";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
+import { BaseManagement } from "./AdminPage/components/BaseManagement";
 
 interface AppUser {
   uid: string;
@@ -31,27 +42,36 @@ interface AppUser {
 // Definir o tipo para o estado userToRemove, que já existe no seu código
 interface UserToRemoveData {
   user: { uid: string; displayName: string };
-  base: ClientBaseType; // Usar ClientBaseType que já está importado
+  base: ClientBase;
 }
-const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
+const AdminPage: React.FC = () => {
+  // Adicionar tipo de retorno React.FC
   const { currentUser } = useAuth();
   const { toast } = useToast();
 
   // Renomear ClientBase para ClientBaseType para evitar conflito de nome se ClientBase for usado em outro lugar
-  const [clientBases, setClientBases] = useState<ClientBaseType[]>([]);
+  const [clientBases, setClientBases] = useState<ClientBase[]>([]);
   const [adminUsers, setAdminUsers] = useState<AppUser[]>([]);
-  const [baseCreatorsMap, setBaseCreatorsMap] = useState<{ [uid: string]: string }>({});
+  const [baseCreatorsMap, setBaseCreatorsMap] = useState<{
+    [uid: string]: string;
+  }>({});
 
   const [nextNumberId, setNextNumberId] = useState<number | null>(null);
-  
-  const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
+
+  const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(
+    null
+  );
 
   const [userToRevoke, setUserToRevoke] = useState<AppUser | null>(null);
-  const [userToRemove, setUserToRemove] = useState<UserToRemoveData | null>(null);
-  const [baseToDelete, setBaseToDelete] = useState<ClientBaseType | null>(null); // Estado para a base a ser excluída
-  const [baseToToggleStatus, setBaseToToggleStatus] = useState<ClientBaseType | null>(null); // Estado para ativar/inativar base
+  const [userToRemove, setUserToRemove] = useState<UserToRemoveData | null>(
+    null
+  );
+  const [baseToDelete, setBaseToDelete] = useState<ClientBase | null>(null); // Estado para a base a ser excluída
+  const [baseToToggleStatus, setBaseToToggleStatus] =
+    useState<ClientBase | null>(null); // Estado para ativar/inativar base
   const [inactivationReason, setInactivationReason] = useState<string>(""); // Estado para o motivo da inativação
-  const [selectedPredefinedReason, setSelectedPredefinedReason] = useState<string>("");
+  const [selectedPredefinedReason, setSelectedPredefinedReason] =
+    useState<string>("");
 
   const predefinedInactivationReasons = [
     "Pagamento pendente",
@@ -64,12 +84,15 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
     const clientBasesRef = ref(db, "clientBases");
     const unsubscribe = onValue(clientBasesRef, (snapshot) => {
       const data = snapshot.val();
-      const basesArray: ClientBaseType[] = data
+      const basesArray: ClientBase[] = data
         ? Object.keys(data).map((key) => ({ id: key, ...data[key] }))
         : [];
       setClientBases(basesArray);
 
-      const maxId = basesArray.length > 0 ? Math.max(...basesArray.map((b) => b.numberId || 0)) : 0;
+      const maxId =
+        basesArray.length > 0
+          ? Math.max(...basesArray.map((b) => b.numberId || 0))
+          : 0;
       setNextNumberId(maxId + 1);
     });
     return () => unsubscribe();
@@ -101,7 +124,11 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
   useEffect(() => {
     const fetchCreatorNames = async () => {
       if (clientBases.length === 0) return;
-      const uidsToFetch = new Set<string>(clientBases.map(base => base.createdBy).filter(uid => !baseCreatorsMap[uid]));
+      const uidsToFetch = new Set<string>(
+        clientBases
+          .map((base) => base.createdBy)
+          .filter((uid) => !baseCreatorsMap[uid])
+      );
       if (uidsToFetch.size === 0) return;
 
       const newCreatorsMap = { ...baseCreatorsMap };
@@ -109,9 +136,14 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
         try {
           const userProfileRef = ref(db, `users/${uid}/profile/displayName`);
           const snapshot = await get(userProfileRef);
-          newCreatorsMap[uid] = snapshot.exists() ? snapshot.val() : "Desconhecido";
+          newCreatorsMap[uid] = snapshot.exists()
+            ? snapshot.val()
+            : "Desconhecido";
         } catch (error) {
-          console.error(`Erro ao buscar nome do criador para UID ${uid}:`, error);
+          console.error(
+            `Erro ao buscar nome do criador para UID ${uid}:`,
+            error
+          );
           newCreatorsMap[uid] = "Erro ao buscar";
         }
       }
@@ -120,7 +152,7 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
     fetchCreatorNames();
   }, [clientBases, baseCreatorsMap]);
 
-  const handleGenerateInviteLinkForBase = async (base: ClientBaseType) => {
+  const handleGenerateInviteLinkForBase = async (base: ClientBase) => {
     if (!currentUser) return;
     setGeneratedInviteLink(null);
 
@@ -128,12 +160,16 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
     const inviteToken = newInviteRef.key;
 
     if (!inviteToken) {
-      toast({ title: "Erro", description: "Não foi possível gerar o token do convite.", variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: "Não foi possível gerar o token do convite.",
+        variant: "destructive",
+      });
       return;
     }
 
     const inviteData = {
-      clientBaseId: base.id,
+      clientBaseId: base.id, // UUID único da base
       clientBaseNumberId: base.numberId,
       createdBy: currentUser.uid,
       createdAt: serverTimestamp(),
@@ -142,23 +178,41 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
 
     try {
       await set(newInviteRef, inviteData);
-      const inviteLink = `${window.location.origin}/convite/${inviteToken}`;
+      // Incluir o UUID da base no link para torná-lo único e específico
+      const inviteLink = `${window.location.origin}/convite/${inviteToken}?baseId=${base.id}`;
       setGeneratedInviteLink(inviteLink);
-      toast({ title: "Link de Convite Gerado!", description: "Copie o link e envie ao usuário." });
+      toast({
+        title: "Link de Convite Gerado!",
+        description: `Convite específico para a base "${base.name}" (ID: ${base.numberId})`,
+        variant: "success",
+      });
     } catch (error) {
       console.error("Erro ao criar convite:", error);
-      toast({ title: "Erro", description: "Não foi possível salvar o convite.", variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar o convite.",
+        variant: "destructive",
+      });
     }
   };
 
   const confirmRevokeAdmin = async () => {
-    if (!userToRevoke || !currentUser || userToRevoke.uid === currentUser.uid) return;
-    
+    if (!userToRevoke || !currentUser || userToRevoke.uid === currentUser.uid)
+      return;
+
     try {
       await set(ref(db, `users/${userToRevoke.uid}/profile/isAdmin`), false);
-      toast({ title: "Sucesso", description: `Privilégios de admin revogados para ${userToRevoke.displayName}.`, variant: "success" });
+      toast({
+        title: "Sucesso",
+        description: `Privilégios de admin revogados para ${userToRevoke.displayName}.`,
+        variant: "success",
+      });
     } catch (error) {
-      toast({ title: "Erro", description: "Não foi possível revogar os privilégios.", variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: "Não foi possível revogar os privilégios.",
+        variant: "destructive",
+      });
     } finally {
       setUserToRevoke(null);
     }
@@ -167,7 +221,11 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
   // Definição da função que estava faltando
   const confirmRemoveUserFromBase = async () => {
     if (!userToRemove) {
-      toast({ title: "Erro", description: "Nenhum usuário selecionado para remoção.", variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: "Nenhum usuário selecionado para remoção.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -175,7 +233,10 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
 
     try {
       // Caminho para o UID específico dentro de authorizedUIDs da base
-      const authorizedUserRef: DatabaseReference = ref(db, `clientBases/${base.id}/authorizedUIDs/${user.uid}`);
+      const authorizedUserRef: DatabaseReference = ref(
+        db,
+        `clientBases/${base.id}/authorizedUIDs/${user.uid}`
+      );
       await remove(authorizedUserRef);
 
       toast({
@@ -185,8 +246,8 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
       });
 
       // Atualizar o estado local clientBases para refletir a remoção
-      setClientBases(prevBases =>
-        prevBases.map(b => {
+      setClientBases((prevBases) =>
+        prevBases.map((b) => {
           if (b.id === base.id && b.authorizedUIDs) {
             const { [user.uid]: _, ...remainingAuthUIDs } = b.authorizedUIDs;
             return { ...b, authorizedUIDs: remainingAuthUIDs };
@@ -194,21 +255,21 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
           return b;
         })
       );
-
     } catch (error) {
       console.error("Erro ao remover usuário da base:", error);
       const typedError = error as Error;
       toast({
         title: "Erro ao Remover",
-        description: typedError.message || "Não foi possível remover o usuário da base.",
-        variant: "destructive"
+        description:
+          typedError.message || "Não foi possível remover o usuário da base.",
+        variant: "destructive",
       });
     } finally {
       setUserToRemove(null); // Fecha o diálogo
     }
   };
 
-  const handleSetBaseToDelete = (base: ClientBaseType | null) => {
+  const handleSetBaseToDelete = (base: ClientBase | null) => {
     setBaseToDelete(base);
   };
 
@@ -234,12 +295,14 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
     }
   };
 
-  const handleSetBaseToToggleStatus = (base: ClientBaseType) => {
+  const handleSetBaseToToggleStatus = (base: ClientBase) => {
     setBaseToToggleStatus(base);
-    if (base.ativo) { // Se for inativar, limpa o motivo anterior para o input
+    if (base.ativo) {
+      // Se for inativar, limpa o motivo anterior para o input
       setInactivationReason("");
       setSelectedPredefinedReason(""); // Limpa a razão pré-definida
-    } else { // Se for ativar, pode pré-preencher com o motivo existente, ou limpar
+    } else {
+      // Se for ativar, pode pré-preencher com o motivo existente, ou limpar
       setInactivationReason(base.motivo_inativo || "");
     }
   };
@@ -250,11 +313,20 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
     const newStatus = !baseToToggleStatus.ativo;
     const updates: { ativo: boolean; motivo_inativo: string | null } = {
       ativo: newStatus,
-      motivo_inativo: newStatus ? null : (inactivationReason.trim() || selectedPredefinedReason || "Motivo não especificado"),
+      motivo_inativo: newStatus
+        ? null
+        : inactivationReason.trim() ||
+          selectedPredefinedReason ||
+          "Motivo não especificado",
     };
 
     if (!newStatus && !inactivationReason.trim() && !selectedPredefinedReason) {
-      toast({ title: "Atenção", description: "Por favor, selecione ou forneça um motivo para inativar a base.", variant: "destructive" });
+      toast({
+        title: "Atenção",
+        description:
+          "Por favor, selecione ou forneça um motivo para inativar a base.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -262,12 +334,18 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
       await update(ref(db, `clientBases/${baseToToggleStatus.id}`), updates);
       toast({
         title: "Sucesso!",
-        description: `Base "${baseToToggleStatus.name}" foi ${newStatus ? 'ativada' : 'inativada'}.`,
+        description: `Base "${baseToToggleStatus.name}" foi ${
+          newStatus ? "ativada" : "inativada"
+        }.`,
         variant: "success",
       });
     } catch (error) {
       console.error("Erro ao alterar status da base:", error);
-      toast({ title: "Erro", description: "Não foi possível alterar o status da base.", variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: "Não foi possível alterar o status da base.",
+        variant: "destructive",
+      });
     } finally {
       setBaseToToggleStatus(null);
       setInactivationReason("");
@@ -282,51 +360,86 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
 
   return (
     <>
-      <AlertDialog open={!!userToRevoke} onOpenChange={(open) => !open && setUserToRevoke(null)}>
+      <AlertDialog
+        open={!!userToRevoke}
+        onOpenChange={(open) => !open && setUserToRevoke(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Revogar privilégios de Admin?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação removerá o status de administrador de <strong>{userToRevoke?.displayName}</strong>. Ele perderá acesso a este painel. Deseja continuar?
+              Esta ação removerá o status de administrador de{" "}
+              <strong>{userToRevoke?.displayName}</strong>. Ele perderá acesso a
+              este painel. Deseja continuar?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmRevokeAdmin} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Confirmar</AlertDialogAction>
+            <AlertDialogAction
+              onClick={confirmRevokeAdmin}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirmar
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!userToRemove} onOpenChange={(open) => !open && setUserToRemove(null)}>
+      <AlertDialog
+        open={!!userToRemove}
+        onOpenChange={(open) => !open && setUserToRemove(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover Usuário da Base?</AlertDialogTitle>
             <AlertDialogDescription>
-          Você tem certeza que deseja remover <strong>{userToRemove?.user.displayName || "este usuário"}</strong> da base <strong>{userToRemove?.base.name}</strong>? O usuário perderá o acesso aos dados desta base.
+              Você tem certeza que deseja remover{" "}
+              <strong>
+                {userToRemove?.user.displayName || "este usuário"}
+              </strong>{" "}
+              da base <strong>{userToRemove?.base.name}</strong>? O usuário
+              perderá o acesso aos dados desta base.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmRemoveUserFromBase} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Confirmar Remoção</AlertDialogAction>
+            <AlertDialogAction
+              onClick={confirmRemoveUserFromBase}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirmar Remoção
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* AlertDialog para confirmar exclusão de base */}
       {baseToDelete && (
-        <AlertDialog open={!!baseToDelete} onOpenChange={(open) => !open && setBaseToDelete(null)}>
+        <AlertDialog
+          open={!!baseToDelete}
+          onOpenChange={(open) => !open && setBaseToDelete(null)}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmar Exclusão da Base</AlertDialogTitle>
               <AlertDialogDescription>
-                Tem certeza que deseja excluir a base "{baseToDelete.name}" (ID: {baseToDelete.numberId})?
-                Esta ação não pode ser desfeita. Todos os dados associados a esta base (lojas, movimentações, usuários autorizados, etc.)
-                serão afetados ou perdidos se não houver uma estratégia de arquivamento ou remoção em cascata.
+                Tem certeza que deseja excluir a base "{baseToDelete.name}" (ID:{" "}
+                {baseToDelete.numberId})? Esta ação não pode ser desfeita. Todos
+                os dados associados a esta base (lojas, movimentações, usuários
+                autorizados, etc.) serão afetados ou perdidos se não houver uma
+                estratégia de arquivamento ou remoção em cascata.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setBaseToDelete(null)}>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteBaseConfirm} className="bg-red-600 hover:bg-red-700 text-destructive-foreground">Excluir Permanentemente</AlertDialogAction>
+              <AlertDialogCancel onClick={() => setBaseToDelete(null)}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteBaseConfirm}
+                className="bg-red-600 hover:bg-red-700 text-destructive-foreground"
+              >
+                Excluir Permanentemente
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -334,29 +447,55 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
 
       {/* AlertDialog para confirmar ativação/inativação de base */}
       {baseToToggleStatus && (
-        <AlertDialog open={!!baseToToggleStatus} onOpenChange={(open) => { if (!open) { setBaseToToggleStatus(null); setInactivationReason(""); setSelectedPredefinedReason(""); }}}>
+        <AlertDialog
+          open={!!baseToToggleStatus}
+          onOpenChange={(open) => {
+            if (!open) {
+              setBaseToToggleStatus(null);
+              setInactivationReason("");
+              setSelectedPredefinedReason("");
+            }
+          }}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {baseToToggleStatus.ativo ? "Inativar" : "Ativar"} Base "{baseToToggleStatus.name}"?
+                {baseToToggleStatus.ativo ? "Inativar" : "Ativar"} Base "
+                {baseToToggleStatus.name}"?
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {baseToToggleStatus.ativo
                   ? "Ao inativar, o acesso à base será bloqueado. Por favor, selecione ou informe o motivo:"
-                  : `Deseja reativar a base "${baseToToggleStatus.name}"? O motivo da inativação anterior foi: "${baseToToggleStatus.motivo_inativo || 'Não especificado'}"`}
+                  : `Deseja reativar a base "${
+                      baseToToggleStatus.name
+                    }"? O motivo da inativação anterior foi: "${
+                      baseToToggleStatus.motivo_inativo || "Não especificado"
+                    }"`}
               </AlertDialogDescription>
               {baseToToggleStatus.ativo && (
                 <div className="mt-4 space-y-3">
-                  <RadioGroup value={selectedPredefinedReason} onValueChange={handlePredefinedReasonChange}>
+                  <RadioGroup
+                    value={selectedPredefinedReason}
+                    onValueChange={handlePredefinedReasonChange}
+                  >
                     {predefinedInactivationReasons.map((reason) => (
                       <div className="flex items-center space-x-2" key={reason}>
-                        <RadioGroupItem value={reason} id={`reason-${reason.replace(/\s+/g, '-')}`} />
-                        <Label htmlFor={`reason-${reason.replace(/\s+/g, '-')}`}>{reason}</Label>
+                        <RadioGroupItem
+                          value={reason}
+                          id={`reason-${reason.replace(/\s+/g, "-")}`}
+                        />
+                        <Label
+                          htmlFor={`reason-${reason.replace(/\s+/g, "-")}`}
+                        >
+                          {reason}
+                        </Label>
                       </div>
                     ))}
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="outro" id="reason-outro" />
-                      <Label htmlFor="reason-outro">Outro motivo (especificar abaixo)</Label>
+                      <Label htmlFor="reason-outro">
+                        Outro motivo (especificar abaixo)
+                      </Label>
                     </div>
                   </RadioGroup>
 
@@ -365,8 +504,15 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
                     onChange={(e) => {
                       setInactivationReason(e.target.value);
                       // Se o usuário começar a digitar, desmarca a opção de rádio pré-definida, exceto se for "outro"
-                      if (selectedPredefinedReason !== "outro" && selectedPredefinedReason !== e.target.value) {
-                        setSelectedPredefinedReason(predefinedInactivationReasons.includes(e.target.value) ? e.target.value : "outro");
+                      if (
+                        selectedPredefinedReason !== "outro" &&
+                        selectedPredefinedReason !== e.target.value
+                      ) {
+                        setSelectedPredefinedReason(
+                          predefinedInactivationReasons.includes(e.target.value)
+                            ? e.target.value
+                            : "outro"
+                        );
                       }
                     }}
                     placeholder="Especifique o motivo aqui se 'Outro' ou para detalhar"
@@ -376,8 +522,26 @@ const AdminPage: React.FC = () => { // Adicionar tipo de retorno React.FC
               )}
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => { setBaseToToggleStatus(null); setInactivationReason(""); }}>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleToggleBaseStatusConfirm} className={baseToToggleStatus.ativo ? "bg-yellow-500 hover:bg-yellow-600 text-black" : "bg-green-500 hover:bg-green-600"}>{baseToToggleStatus.ativo ? "Confirmar Inativação" : "Confirmar Ativação"}</AlertDialogAction>
+              <AlertDialogCancel
+                onClick={() => {
+                  setBaseToToggleStatus(null);
+                  setInactivationReason("");
+                }}
+              >
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleToggleBaseStatusConfirm}
+                className={
+                  baseToToggleStatus.ativo
+                    ? "bg-yellow-500 hover:bg-yellow-600 text-black"
+                    : "bg-green-500 hover:bg-green-600"
+                }
+              >
+                {baseToToggleStatus.ativo
+                  ? "Confirmar Inativação"
+                  : "Confirmar Ativação"}
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

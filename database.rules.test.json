@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "users": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "clientBases": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('profile').child('isAdmin').val() == true"
+    },
+    "invites": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('profile').child('isAdmin').val() == true"
+    }
+  }
+}

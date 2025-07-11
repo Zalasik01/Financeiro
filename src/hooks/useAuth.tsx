@@ -321,15 +321,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             };
             if (snapshot.exists()) {
               const profileData = snapshot.val();
+              console.log("🔧 [useAuth] Dados do perfil encontrados:", {
+                uid: user.uid,
+                email: user.email,
+                profileData,
+                isAdminValue: profileData.isAdmin,
+                isAdminCheck: profileData.isAdmin === true,
+              });
+
               appUser.isAdmin = profileData.isAdmin === true;
               appUser.clientBaseId =
                 typeof profileData.clientBaseId === "number"
                   ? profileData.clientBaseId
                   : null;
+            } else {
+              console.log(
+                "⚠️ [useAuth] Perfil não encontrado no database para:",
+                user.uid
+              );
             }
 
             console.log("👤 [useAuth] Usuário configurado:", {
               email: user.email,
+              uid: user.uid,
               isAdmin: appUser.isAdmin,
               clientBaseId: appUser.clientBaseId,
             });

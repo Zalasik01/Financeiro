@@ -8,7 +8,14 @@ import { db } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import type { ClientBase } from "@/types/store";
-import { push, ref, serverTimestamp, set, update } from "firebase/database";
+import {
+  get,
+  push,
+  ref,
+  serverTimestamp,
+  set,
+  update,
+} from "firebase/database";
 import {
   Copy,
   Info,
@@ -90,17 +97,49 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
       });
       return;
     }
+
+    console.log("🔧 [BaseManagement] Tentando criar base:", {
+      user: {
+        uid: currentUser.uid,
+        email: currentUser.email,
+        isAdmin: currentUser.isAdmin,
+      },
+      baseName: newBaseName,
+      nextNumberId,
+    });
+
+    // Verificação adicional: testar se conseguimos ler nosso próprio perfil
+    try {
+      const userProfileRef = ref(db, `users/${currentUser.uid}/profile`);
+      const profileSnapshot = await get(userProfileRef);
+      console.log("🔧 [BaseManagement] Verificação de perfil admin:", {
+        uid: currentUser.uid,
+        profileExists: profileSnapshot.exists(),
+        profileData: profileSnapshot.exists() ? profileSnapshot.val() : null,
+        isAdminInProfile: profileSnapshot.exists()
+          ? profileSnapshot.val()?.isAdmin
+          : null,
+      });
+    } catch (profileError) {
+      console.error(
+        "🔧 [BaseManagement] Erro ao verificar perfil:",
+        profileError
+      );
+    }
+
     setIsLoading(true);
 
     const clientBasesRef = ref(db, "clientBases");
     const newClientBaseRef = push(clientBasesRef);
 
-    const authorizedUIDsObject: ClientBase["authorizedUIDs"] = {
-      [currentUser.uid]: {
-        displayName: currentUser.displayName || "Admin",
-        email: currentUser.email || "Não informado",
-      },
-    };
+    console.log("🔧 [BaseManagement] Referência Firebase criada:", {
+      path: `clientBases/${newClientBaseRef.key}`,
+      key: newClientBaseRef.key,
+    });
+
+    // Admins não precisam estar na lista de usuários autorizados
+    // A base será criada sem usuários autorizados inicialmente
+    const authorizedUIDsObject: ClientBase["authorizedUIDs"] = {};
 
     let limiteAcessoParaNovaBase: number | null = null;
     if (newBaseLimit.trim() !== "" && newBaseLimit.trim() !== "0") {
@@ -130,8 +169,13 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
       motivo_inativo: null,
     };
 
+    console.log("🔧 [BaseManagement] Dados da base a serem salvos:", baseData);
+
     try {
+      console.log("🔧 [BaseManagement] Tentando salvar no Firebase...");
       await set(newClientBaseRef, baseData);
+      console.log("🔧 [BaseManagement] Base salva com sucesso!");
+
       toast({
         title: "Sucesso!",
         description: `Base "${newBaseName}" criada com ID ${nextNumberId}.`,
@@ -140,10 +184,19 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
       setNewBaseName("");
       setNewBaseLimit(""); // Limpar o campo de limite
     } catch (error) {
-      console.error("Erro ao criar base:", error);
+      console.error("🔧 [BaseManagement] Erro detalhado ao criar base:", {
+        error,
+        errorMessage: (error as Error).message,
+        errorCode: (error as { code?: string }).code,
+        user: currentUser.uid,
+        path: `clientBases/${newClientBaseRef.key}`,
+      });
+
       toast({
         title: "Erro ao criar base",
-        description: (error as Error).message,
+        description: `${
+          (error as Error).message
+        } - Verifique as permissões do Firebase.`,
         variant: "destructive",
       });
     } finally {
