@@ -116,3 +116,92 @@
 .animate-pulse-star {
   animation: pulse-star-animation 1s ease-in-out;
 }
+
+/* Configurações para tela cheia em dispositivos móveis */
+html,
+body {
+  height: 100vh;
+  height: 100dvh; /* Usa unidade de viewport dinâmica quando disponível */
+  overflow-x: hidden;
+  /* Suporte para dispositivos com notch */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Configurações específicas para PWA em tela cheia */
+@media (display-mode: fullscreen),
+  (display-mode: standalone),
+  (display-mode: minimal-ui) {
+  body {
+    /* Remove qualquer margem/padding quando em modo app */
+    margin: 0;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+      env(safe-area-inset-bottom) env(safe-area-inset-left);
+    /* Garante que o conteúdo ocupe toda a tela */
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* Adiciona padding superior para dispositivos com notch */
+  .app-header {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Para dispositivos iOS com notch */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+}
+
+/* Configurações para orientação landscape em móveis */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+  .mobile-landscape-adjust {
+    height: 100vh;
+    height: 100dvh;
+  }
+}
+
+/* Remove o zoom no iOS quando inputs são focados */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+textarea,
+select {
+  font-size: 16px !important;
+}
+
+/* Previne o bounce scroll no iOS */
+body {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Configurações para melhor performance em mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Configurações para status bar no PWA */
+.status-bar-safe-area {
+  padding-top: env(safe-area-inset-top);
+}

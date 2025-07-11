@@ -3,9 +3,14 @@
   "short_name": "Financeiro",
   "description": "Um aplicativo web moderno para gerenciar suas finanças pessoais e potenciar seu futuro.",
   "start_url": "/",
-  "display": "standalone",
+  "display": "fullscreen",
+  "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "theme_color": "#10B981",
+  "scope": "/",
+  "lang": "pt-BR",
+  "categories": ["finance", "business", "productivity"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-72x72.png",

@@ -4,7 +4,10 @@
   <head>
     <!-- Configurações essenciais de caracteres e viewport -->
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
 
     <!-- Meta Tags para SEO -->
     <title>Financeiro | Gerencie Suas Finanças</title>
@@ -31,7 +34,7 @@
     <!-- Cor do tema para a barra de status do navegador em dispositivos móveis -->
     <meta name="theme-color" content="#ffffff" />
 
-    <!-- Meta Tags para PWA em iOS e Android (fallback) -->
+    <!-- Meta Tags para PWA em iOS e Android (configurações para tela cheia) -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
@@ -39,6 +42,19 @@
     />
     <meta name="apple-mobile-web-app-title" content="Financeiro" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Financeiro" />
+    <meta name="msapplication-TileColor" content="#10B981" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+
+    <!-- Configurações para suporte a notch em dispositivos iOS -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+
+    <!-- Configurações para tela cheia no Android -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-status-bar-style" content="black-translucent" />
 
     <!-- Open Graph (para compartilhamento no Facebook, WhatsApp, etc.) -->
     <meta property="og:title" content="Financeiro | Gerencie Suas Finanças" />
@@ -93,7 +109,9 @@
       // Verifica se estamos em um ambiente que suporta import.meta e se VITE_DEV_SERVER_URL está definido (indicativo do dev server do Vite)
       // ou se estamos em produção (onde import.meta.env.DEV seria false ou undefined).
       // Uma forma mais simples é verificar se a URL é localhost, que geralmente é desenvolvimento.
-      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const isDevelopment =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1";
 
       if ("serviceWorker" in navigator && !isDevelopment) {
         window.addEventListener("load", () => {

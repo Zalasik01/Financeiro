@@ -61,11 +61,10 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
   const [newBaseResponsaveis, setNewBaseResponsaveis] = useState([
     {
       nome: "",
+      telefone: "",
       funcoes: {
         financeiro: false,
-        operacional: false,
-        comercial: false,
-        gerencial: false,
+        sistema: false,
       },
     },
   ]);
@@ -91,11 +90,10 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
   const [editingBaseResponsaveis, setEditingBaseResponsaveis] = useState<
     Array<{
       nome: string;
+      telefone: string;
       funcoes: {
         financeiro: boolean;
-        operacional: boolean;
-        comercial: boolean;
-        gerencial: boolean;
+        sistema: boolean;
       };
     }>
   >([]);
@@ -115,6 +113,23 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
     e.preventDefault();
     if (!newBaseName.trim() || !currentUser || nextNumberId === null) {
       toast.validationError("Nome da base é obrigatório.");
+      return;
+    }
+
+    if (!newBaseCNPJ.trim()) {
+      toast.validationError("CNPJ da loja principal é obrigatório.");
+      return;
+    }
+
+    // Validar se pelo menos um responsável tem nome e telefone
+    const responsaveisValidos = newBaseResponsaveis.filter(
+      (r) => r.nome.trim() !== "" && r.telefone.trim() !== ""
+    );
+
+    if (responsaveisValidos.length === 0) {
+      toast.validationError(
+        "É necessário informar pelo menos um responsável com nome e telefone."
+      );
       return;
     }
 
@@ -149,11 +164,13 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
       createdBy: currentUser.uid,
       ativo: true,
       motivo_inativo: null,
-      cnpj: newBaseCNPJ.trim() || null,
-      responsaveis:
-        newBaseResponsaveis.filter((r) => r.nome.trim() !== "").length > 0
-          ? newBaseResponsaveis.filter((r) => r.nome.trim() !== "")
-          : null,
+      cnpj: newBaseCNPJ.trim(),
+      responsaveis: responsaveisValidos.map((r) => ({
+        nome: r.nome.trim(),
+        telefone: r.telefone.trim(),
+        isFinanceiro: r.funcoes.financeiro,
+        isSistema: r.funcoes.sistema,
+      })),
     };
 
     try {
@@ -168,11 +185,10 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
       setNewBaseResponsaveis([
         {
           nome: "",
+          telefone: "",
           funcoes: {
             financeiro: false,
-            operacional: false,
-            comercial: false,
-            gerencial: false,
+            sistema: false,
           },
         },
       ]);
@@ -271,11 +287,10 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
       ...newBaseResponsaveis,
       {
         nome: "",
+        telefone: "",
         funcoes: {
           financeiro: false,
-          operacional: false,
-          comercial: false,
-          gerencial: false,
+          sistema: false,
         },
       },
     ]);
@@ -293,8 +308,8 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
     value: string | boolean
   ) => {
     const updated = [...newBaseResponsaveis];
-    if (field === "nome") {
-      updated[index].nome = value as string;
+    if (field === "nome" || field === "telefone") {
+      updated[index][field] = value as string;
     } else {
       updated[index].funcoes = {
         ...updated[index].funcoes,
@@ -312,7 +327,11 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
     setEditingBaseResponsaveis(
       base.responsaveis?.map((r) => ({
         nome: r.nome,
-        funcoes: { ...r.funcoes },
+        telefone: r.telefone,
+        funcoes: {
+          financeiro: r.isFinanceiro,
+          sistema: r.isSistema,
+        },
       })) || []
     );
   };
@@ -328,7 +347,9 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
           editingBaseResponsaveis.filter((r) => r.nome.trim() !== "").length > 0
             ? editingBaseResponsaveis.map((r) => ({
                 nome: r.nome,
-                funcoes: { ...r.funcoes },
+                telefone: r.telefone,
+                isFinanceiro: r.funcoes.financeiro,
+                isSistema: r.funcoes.sistema,
               }))
             : null,
       });
@@ -346,68 +367,85 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <List className="h-6 w-6" /> Gerenciar Bases de Cliente
+    <Card className="w-full">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+          <List className="h-5 w-5 sm:h-6 sm:w-6" /> Gerenciar Bases de Cliente
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-6">
         <form
           onSubmit={handleAddClientBase}
-          className="space-y-4 p-4 border rounded-md bg-slate-50 dark:bg-slate-900"
+          className="space-y-3 sm:space-y-4 p-3 sm:p-4 border rounded-md bg-slate-50 dark:bg-slate-900"
         >
-          <h3 className="text-lg font-semibold">Criar Nova Base</h3>
-          <div>
-            <Label htmlFor="baseName">Nome da Base *</Label>
-            <Input
-              id="baseName"
-              value={newBaseName}
-              onChange={(e) => setNewBaseName(e.target.value)}
-              placeholder="Ex: Cliente Alpha"
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="baseNumberId">ID Numérico (Automático)</Label>
-            <Input
-              id="baseNumberId"
-              value={nextNumberId ?? "Carregando..."}
-              readOnly
-              disabled
-            />
-          </div>
-          <div>
-            <Label htmlFor="newBaseLimit">
-              Limite de Acessos (0 ou vazio para ilimitado)
-            </Label>
-            <Input
-              id="newBaseLimit"
-              type="number"
-              min="0"
-              value={newBaseLimit}
-              onChange={(e) => setNewBaseLimit(e.target.value)}
-              placeholder="Ex: 5"
-            />
+          <h3 className="text-base sm:text-lg font-semibold">
+            Criar Nova Base
+          </h3>
+
+          {/* Primeira linha: ID e Nome da Base */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <div>
+              <Label htmlFor="baseNumberId" className="text-sm">
+                ID Numérico
+              </Label>
+              <Input
+                id="baseNumberId"
+                value={nextNumberId ?? "Carregando..."}
+                readOnly
+                disabled
+                className="bg-gray-100 dark:bg-gray-800 text-sm"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="baseName" className="text-sm">
+                Nome da Base *
+              </Label>
+              <Input
+                id="baseName"
+                value={newBaseName}
+                onChange={(e) => setNewBaseName(e.target.value)}
+                placeholder="Ex: Cliente Alpha"
+                required
+                className="text-sm"
+              />
+            </div>
           </div>
 
-          {/* Campo CNPJ */}
-          <div>
-            <Label htmlFor="newBaseCNPJ">CNPJ (Opcional)</Label>
-            <Input
-              id="newBaseCNPJ"
-              value={newBaseCNPJ}
-              onChange={(e) => setNewBaseCNPJ(e.target.value)}
-              placeholder="00.000.000/0000-00"
-            />
+          {/* Segunda linha: CNPJ e Limite */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div>
+              <Label htmlFor="newBaseCNPJ" className="text-sm">
+                CNPJ da Loja Principal *
+              </Label>
+              <Input
+                id="newBaseCNPJ"
+                value={newBaseCNPJ}
+                onChange={(e) => setNewBaseCNPJ(e.target.value)}
+                placeholder="00.000.000/0000-00"
+                required
+                className="text-sm"
+              />
+            </div>
+            <div>
+              <Label htmlFor="newBaseLimit" className="text-sm">
+                Limite de Acessos
+              </Label>
+              <Input
+                id="newBaseLimit"
+                type="number"
+                min="0"
+                value={newBaseLimit}
+                onChange={(e) => setNewBaseLimit(e.target.value)}
+                placeholder="0 = ilimitado"
+                className="text-sm"
+              />
+            </div>
           </div>
 
           {/* Seção de Responsáveis */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">
-                Responsáveis (Opcional)
-              </Label>
+              <Label className="text-base font-medium">Responsáveis *</Label>
               <Button
                 type="button"
                 variant="outline"
@@ -425,65 +463,95 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
                 key={index}
                 className="p-3 border rounded-md bg-white dark:bg-slate-800 space-y-3"
               >
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <Label htmlFor={`responsavel-${index}`} className="text-sm">
-                      Nome do Responsável
+                {/* Nome e Telefone do Responsável */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label
+                      htmlFor={`responsavel-nome-${index}`}
+                      className="text-sm"
+                    >
+                      Nome do Responsável *
                     </Label>
                     <Input
-                      id={`responsavel-${index}`}
+                      id={`responsavel-nome-${index}`}
                       value={responsavel.nome}
                       onChange={(e) =>
                         updateResponsavel(index, "nome", e.target.value)
                       }
                       placeholder="Nome completo"
                       className="mt-1"
+                      required
                     />
                   </div>
-                  {newBaseResponsaveis.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeResponsavel(index)}
-                      className="mt-6 h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <Label
+                        htmlFor={`responsavel-telefone-${index}`}
+                        className="text-sm"
+                      >
+                        Telefone *
+                      </Label>
+                      <Input
+                        id={`responsavel-telefone-${index}`}
+                        value={responsavel.telefone}
+                        onChange={(e) =>
+                          updateResponsavel(index, "telefone", e.target.value)
+                        }
+                        placeholder="(00) 00000-0000"
+                        className="mt-1"
+                        required
+                      />
+                    </div>
+                    {newBaseResponsaveis.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeResponsavel(index)}
+                        className="h-9 w-9 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
+                {/* Funções do Responsável */}
                 <div>
                   <Label className="text-sm font-medium mb-2 block">
-                    Funções
+                    Funções do Responsável
                   </Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries({
-                      financeiro: "Financeiro",
-                      operacional: "Operacional",
-                      comercial: "Comercial",
-                      gerencial: "Gerencial",
-                    }).map(([key, label]) => (
-                      <div key={key} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`${index}-${key}`}
-                          checked={
-                            responsavel.funcoes[
-                              key as keyof typeof responsavel.funcoes
-                            ]
-                          }
-                          onCheckedChange={(checked) =>
-                            updateResponsavel(index, key, checked)
-                          }
-                        />
-                        <Label
-                          htmlFor={`${index}-${key}`}
-                          className="text-sm font-normal"
-                        >
-                          {label}
-                        </Label>
-                      </div>
-                    ))}
+                  <div className="flex gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`${index}-financeiro`}
+                        checked={responsavel.funcoes.financeiro}
+                        onCheckedChange={(checked) =>
+                          updateResponsavel(index, "financeiro", checked)
+                        }
+                      />
+                      <Label
+                        htmlFor={`${index}-financeiro`}
+                        className="text-sm font-normal"
+                      >
+                        Responsável Financeiro
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`${index}-sistema`}
+                        checked={responsavel.funcoes.sistema}
+                        onCheckedChange={(checked) =>
+                          updateResponsavel(index, "sistema", checked)
+                        }
+                      />
+                      <Label
+                        htmlFor={`${index}-sistema`}
+                        className="text-sm font-normal"
+                      >
+                        Responsável pelo Sistema
+                      </Label>
+                    </div>
                   </div>
                 </div>
               </div>
