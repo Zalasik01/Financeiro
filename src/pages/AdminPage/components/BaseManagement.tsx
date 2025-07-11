@@ -482,11 +482,29 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
                           </div>
                         </div>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Criado por:{" "}
-                        {baseCreatorsMap[base.createdBy] || base.createdBy} em{" "}
-                        {new Date(base.createdAt).toLocaleDateString("pt-BR")}
-                      </p>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-2 rounded border">
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">Criado por:</span>
+                          <span className="text-blue-600 dark:text-blue-400 font-medium">
+                            {baseCreatorsMap[base.createdBy] || base.createdBy}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">Data:</span>
+                          <span className="text-green-600 dark:text-green-400 font-medium">
+                            {new Date(base.createdAt).toLocaleDateString(
+                              "pt-BR",
+                              {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )}
+                          </span>
+                        </div>
+                      </div>
 
                       {!base.ativo && base.motivo_inativo && (
                         <Alert variant="destructive" className="mt-2 text-xs">
