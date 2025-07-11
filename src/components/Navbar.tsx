@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useStores } from "@/hooks/useStores"; // Adicionar useStores
 import { cn } from "@/lib/utils";
 import {
+  Archive,
   BarChart3,
   Briefcase,
   ChevronDown,
@@ -26,10 +27,7 @@ import {
   Settings,
   Tag,
   Target,
-  Archive,
   TrendingUp,
-  Users,
-  Building2,
   X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -60,8 +58,16 @@ const navItems: NavItemConfig[] = [
     submenu: [
       { href: "/categoria", label: "Categorias", icon: Tag },
       { href: "/loja", label: "Lojas", icon: Briefcase },
-      { href: "/clientes-fornecedores", label: "Clientes/Fornecedores", icon: Contact },
-      { href: "/forma-pagamento", label: "Formas de Pagamento", icon: CreditCard },
+      {
+        href: "/clientes-fornecedores",
+        label: "Clientes/Fornecedores",
+        icon: Contact,
+      },
+      {
+        href: "/forma-pagamento",
+        label: "Formas de Pagamento",
+        icon: CreditCard,
+      },
     ],
   },
   {
@@ -75,9 +81,7 @@ const navItems: NavItemConfig[] = [
   {
     label: "Gestão",
     icon: Settings,
-    submenu: [
-      { href: "/meta", label: "Metas", icon: Target },
-    ],
+    submenu: [{ href: "/meta", label: "Metas", icon: Target }],
   },
 ];
 
@@ -143,9 +147,13 @@ const Navbar: React.FC = () => {
                       variant="ghost"
                       className="px-2 lg:px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"
                     >
-                      {item.icon && <item.icon className="mr-1 lg:mr-2 h-4 w-4" />}
+                      {item.icon && (
+                        <item.icon className="mr-1 lg:mr-2 h-4 w-4" />
+                      )}
                       <span className="hidden lg:inline">{item.label}</span>
-                      <span className="lg:hidden">{item.label.slice(0, 4)}</span>
+                      <span className="lg:hidden">
+                        {item.label.slice(0, 4)}
+                      </span>
                       <ChevronDown className="ml-1 h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -204,7 +212,7 @@ const Navbar: React.FC = () => {
               {currentUser?.isAdmin && (
                 <Button
                   variant="ghost"
-                  onClick={() => navigate("/admin/store-management")}
+                  onClick={() => navigate("/admin")}
                   className="px-2 lg:px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"
                   title="Gestão Sistema"
                 >
@@ -333,7 +341,7 @@ const Navbar: React.FC = () => {
               <Button
                 variant="ghost"
                 onClick={() => {
-                  navigate("/admin/store-management");
+                  navigate("/admin");
                   closeMobileMenu();
                 }}
                 className="w-full justify-start px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"

@@ -22,6 +22,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { useStores } from "./hooks/useStores";
 import AdminPage from "./pages/AdminPage";
+import AdminDashboard from "./pages/AdminPage/AdminDashboard";
 import GerenciarUsuariosGlobalPage from "./pages/AdminPage/GerenciarUsuariosGlobalPage"; // Certifique-se que a importação está correta
 import CategoriaPage from "./pages/CategoriaPage";
 import DREPage from "./pages/DREPage";
@@ -174,15 +175,16 @@ const AppContent = () => {
               element={<ProtectedRoute allowedRoles={["admin"]} />}
             >
               <Route element={<AdminLayout />}>
-                <Route
-                  index
-                  element={<Navigate to="store-management" replace />}
-                />{" "}
-                {/* Redireciona /admin para /admin/store-management */}
-                <Route path="store-management" element={<AdminPage />} />
+                <Route index element={<AdminDashboard />} />
+                <Route path="gestao-bases" element={<AdminPage />} />
                 <Route
                   path="gerenciar-usuarios-global"
                   element={<GerenciarUsuariosGlobalPage />}
+                />
+                {/* Rotas de compatibilidade */}
+                <Route
+                  path="store-management"
+                  element={<Navigate to="/admin/gestao-bases" replace />}
                 />
                 {/* Outras sub-rotas do admin podem vir aqui */}
               </Route>
