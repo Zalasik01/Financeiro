@@ -18,6 +18,14 @@ import { AlertCircle, Building, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import { Base } from "@/types/store";
+
+type ExtendedBase = Base & {
+  ativo?: boolean;
+  authorizedUIDs?: { [uid: string]: { displayName: string; email: string } };
+  createdBy?: string;
+};
+
 type LoginStatus = "IDLE" | "LOADING" | "ERROR";
 
 const AppLogo = () => (
@@ -47,6 +55,16 @@ export default function LoginPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalAlreadyOpened, setModalAlreadyOpened] = useState(false);
   const modalProcessingRef = useRef(false);
+  const modalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const renderCountRef = useRef(0);
+
+  // Criar refs para funções estáveis
+  const handleBaseSelectedRef = useRef<(baseId: string) => void>();
+  const handleModalCloseRef = useRef<() => void>();
+
+  // Incrementar contador de render do LoginPage
+  renderCountRef.current += 1;
+  console.log(`🏠 [LoginPage] Render #${renderCountRef.current}`);
 
   const {
     login,
@@ -56,7 +74,7 @@ export default function LoginPage() {
     selectedBaseId,
     setSelectedBaseId,
   } = useAuth();
-  const { bases: allBases, loading: basesLoading } = useStores();
+  const { bases: allBases } = useStores();
   const navigate = useNavigate();
 
   // Carregar email salvo do localStorage
@@ -67,17 +85,14 @@ export default function LoginPage() {
     }
   }, []);
 
-  const dataIsLoading = authLoading || basesLoading;
+  const dataIsLoading = authLoading;
 
   const basesParaUsuario = useMemo(() => {
     if (!currentUser || !allBases) return [];
     if (currentUser.isAdmin) return allBases;
-    return allBases.filter(
-      (base) =>
-        base.ativo &&
-        ((base.authorizedUIDs && base.authorizedUIDs[currentUser.uid]) ||
-          base.createdBy === currentUser.uid)
-    );
+    // Para usuários não-admin, já foram filtradas no useStores
+    // Filtrar apenas bases ativas
+    return allBases.filter((base: ExtendedBase) => base.ativo);
   }, [allBases, currentUser]);
 
   useEffect(() => {
@@ -86,25 +101,70 @@ export default function LoginPage() {
     }
   }, [currentUser, selectedBaseId, navigate]);
 
+  // Limpeza quando o componente é desmontado
+  useEffect(() => {
+    return () => {
+      if (modalTimeoutRef.current) {
+        clearTimeout(modalTimeoutRef.current);
+        modalTimeoutRef.current = null;
+      }
+      modalProcessingRef.current = false;
+    };
+  }, []);
+
+  // Implementar funções estáveis usando refs
+  handleBaseSelectedRef.current = (baseId: string) => {
+    console.log("🎯 [LoginPage] Base selecionada:", baseId);
+    setSelectedBaseId(baseId);
+    setIsModalOpen(false); // Fecha o modal
+    // A navegação será acionada pelo primeiro useEffect.
+  };
+
+  handleModalCloseRef.current = () => {
+    console.log("❌ [LoginPage] Modal fechado pelo usuário");
+
+    // Limpar timeout se existir
+    if (modalTimeoutRef.current) {
+      clearTimeout(modalTimeoutRef.current);
+      modalTimeoutRef.current = null;
+    }
+
+    setIsModalOpen(false);
+    setModalAlreadyOpened(false); // Reset do flag quando modal é fechado
+    modalProcessingRef.current = false; // Reset do flag de processamento
+    logout();
+    setStatus("IDLE");
+  };
+
+  // Criar funções wrapper estáveis
+  const stableHandleBaseSelected = useCallback((baseId: string) => {
+    handleBaseSelectedRef.current?.(baseId);
+  }, []);
+
+  const stableHandleModalClose = useCallback(() => {
+    handleModalCloseRef.current?.();
+  }, []);
+
   // Efeito separado para verificar se deve abrir o modal após login bem-sucedido
   useEffect(() => {
     console.log("🔍 [LoginPage] useEffect Modal - Estados:", {
       currentUser: !!currentUser,
       currentUserEmail: currentUser?.email,
       authLoading,
-      basesLoading,
       status,
       isModalOpen,
       modalAlreadyOpened,
       modalProcessing: modalProcessingRef.current,
       basesParaUsuarioCount: basesParaUsuario.length,
+      allBasesCount: allBases?.length || 0,
       timestamp: new Date().toISOString(),
     });
 
+    // Só processar se o usuário acabou de fazer login (não em carregamentos subsequentes)
     if (
       currentUser &&
       !authLoading &&
-      !basesLoading &&
+      allBases && // Garantir que as bases foram carregadas
       status === "LOADING" &&
       !isModalOpen &&
       !modalAlreadyOpened &&
@@ -112,30 +172,48 @@ export default function LoginPage() {
     ) {
       console.log("✅ [LoginPage] Condições atendidas para abrir modal");
 
-      // Marcar como processando para evitar execuções duplas
-      modalProcessingRef.current = true;
-
-      if (currentUser.isAdmin || basesParaUsuario.length > 0) {
-        console.log("🚀 [LoginPage] Abrindo modal:", {
-          isAdmin: currentUser.isAdmin,
-          basesCount: basesParaUsuario.length,
-        });
-
-        // Garantir que só execute uma vez por login
-        setModalAlreadyOpened(true);
-        setIsModalOpen(true);
-        setStatus("IDLE");
-      } else {
-        console.log("❌ [LoginPage] Usuário sem bases associadas");
-        setError("Você não possui nenhuma base de dados associada.");
-        setStatus("ERROR");
-        logout();
+      // Limpar timeout anterior se existir
+      if (modalTimeoutRef.current) {
+        clearTimeout(modalTimeoutRef.current);
       }
+
+      // Usar setTimeout para garantir que o estado seja estável
+      modalTimeoutRef.current = setTimeout(() => {
+        // Verificar novamente as condições após o timeout
+        if (
+          !isModalOpen &&
+          !modalAlreadyOpened &&
+          !modalProcessingRef.current &&
+          status === "LOADING"
+        ) {
+          // Marcar como processando para evitar execuções duplas
+          modalProcessingRef.current = true;
+
+          if (currentUser.isAdmin || basesParaUsuario.length > 0) {
+            console.log("🚀 [LoginPage] Abrindo modal (após timeout):", {
+              isAdmin: currentUser.isAdmin,
+              basesCount: basesParaUsuario.length,
+            });
+
+            // Garantir que só execute uma vez por login
+            setModalAlreadyOpened(true);
+            setIsModalOpen(true);
+            setStatus("IDLE");
+          } else {
+            console.log("❌ [LoginPage] Usuário sem bases associadas");
+            setError("Você não possui nenhuma base de dados associada.");
+            setStatus("ERROR");
+            logout();
+          }
+        }
+        // Limpar a referência do timeout após execução
+        modalTimeoutRef.current = null;
+      }, 100); // Pequeno delay para garantir estabilidade
     } else {
       console.log("⏸️ [LoginPage] Condições NÃO atendidas:", {
         hasCurrentUser: !!currentUser,
         authNotLoading: !authLoading,
-        basesNotLoading: !basesLoading,
+        allBasesLoaded: !!allBases,
         statusIsLoading: status === "LOADING",
         modalNotOpen: !isModalOpen,
         modalNotAlreadyOpened: !modalAlreadyOpened,
@@ -145,7 +223,7 @@ export default function LoginPage() {
   }, [
     currentUser,
     authLoading,
-    basesLoading,
+    allBases,
     status,
     isModalOpen,
     modalAlreadyOpened,
@@ -170,6 +248,12 @@ export default function LoginPage() {
     setModalAlreadyOpened(false); // Reset do flag
     modalProcessingRef.current = false; // Reset do flag de processamento
 
+    // Limpar timeout se existir
+    if (modalTimeoutRef.current) {
+      clearTimeout(modalTimeoutRef.current);
+      modalTimeoutRef.current = null;
+    }
+
     console.log("⚙️ [LoginPage] Estados atualizados no handleSubmit:", {
       newStatus: "LOADING",
       modalAlreadyOpened: false,
@@ -188,24 +272,31 @@ export default function LoginPage() {
     }
   };
 
-  const handleBaseSelected = useCallback(
-    (baseId: string) => {
-      console.log("🎯 [LoginPage] Base selecionada:", baseId);
-      setSelectedBaseId(baseId);
-      setIsModalOpen(false); // Fecha o modal
-      // A navegação será acionada pelo primeiro useEffect.
-    },
-    [setSelectedBaseId]
-  );
+  // Estabilizar as props para o modal usando useMemo
+  const modalProps = useMemo(() => {
+    const props = {
+      isOpen: isModalOpen,
+      onClose: stableHandleModalClose,
+      onSelectBase: stableHandleBaseSelected,
+      bases: basesParaUsuario as ExtendedBase[],
+      isAdmin: !!currentUser?.isAdmin,
+    };
 
-  const handleModalClose = useCallback(() => {
-    console.log("❌ [LoginPage] Modal fechado pelo usuário");
-    setIsModalOpen(false);
-    setModalAlreadyOpened(false); // Reset do flag quando modal é fechado
-    modalProcessingRef.current = false; // Reset do flag de processamento
-    logout();
-    setStatus("IDLE");
-  }, [logout]);
+    console.log("🎛️ [LoginPage] modalProps recriadas:", {
+      isOpen: props.isOpen,
+      basesCount: props.bases.length,
+      isAdmin: props.isAdmin,
+      timestamp: new Date().toISOString(),
+    });
+
+    return props;
+  }, [
+    isModalOpen,
+    stableHandleModalClose,
+    stableHandleBaseSelected,
+    basesParaUsuario,
+    currentUser?.isAdmin,
+  ]);
 
   const isLoading = status === "LOADING";
 
@@ -315,13 +406,7 @@ export default function LoginPage() {
       </Card>
 
       {/* O Modal agora é renderizado aqui, controlado por seu próprio estado `isOpen` */}
-      <AccessSelectionModal
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        onSelectBase={handleBaseSelected}
-        bases={basesParaUsuario}
-        isAdmin={!!currentUser?.isAdmin}
-      />
+      <AccessSelectionModal {...modalProps} />
     </div>
   );
 }
