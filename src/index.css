@@ -155,14 +155,6 @@ body {
   }
 }
 
-/* Para dispositivos iOS com notch */
-@supports (padding: max(0px)) {
-  body {
-    padding-left: max(12px, env(safe-area-inset-left));
-    padding-right: max(12px, env(safe-area-inset-right));
-  }
-}
-
 /* Configurações para orientação landscape em móveis */
 @media screen and (orientation: landscape) and (max-height: 500px) {
   .mobile-landscape-adjust {

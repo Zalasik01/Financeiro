@@ -1,12 +1,12 @@
-import { useMemo } from "react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { ClienteFornecedor } from "@/types/clienteFornecedor.tsx";
 import { Transaction } from "@/types/finance";
 import { Store } from "@/types/store";
-import { ClienteFornecedor } from "@/types/clienteFornecedor.tsx";
-import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/utils/formatters";
 import { Pencil, Trash2 } from "lucide-react";
+import { useMemo } from "react";
 
 // --- Novo Componente para o Item da Lista ---
 
@@ -40,7 +40,10 @@ const TransactionListItem = ({
           {transaction.category?.icon || (isRevenue ? "💰" : "💸")}
         </span>
         <div className="flex-grow min-w-0">
-          <p className="font-semibold text-gray-800 truncate" title={transaction.description}>
+          <p
+            className="font-semibold text-gray-800 truncate"
+            title={transaction.description}
+          >
             {transaction.description}
           </p>
           <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500 mt-1">
@@ -59,20 +62,26 @@ const TransactionListItem = ({
                 <span>•</span>
               </>
             )}
-            <span>{new Date(transaction.date).toLocaleDateString("pt-BR")}</span>
+            <span>
+              {new Date(transaction.date).toLocaleDateString("pt-BR")}
+            </span>
           </div>
           <div className="mt-2 flex items-center gap-2 flex-wrap">
             <Badge
               style={{
                 backgroundColor:
-                  transaction.category?.color || (isRevenue ? "#10B981" : "#EF4444"),
+                  transaction.category?.color ||
+                  (isRevenue ? "#10B981" : "#EF4444"),
               }}
               className="text-xs text-white"
             >
               {transaction.category?.name}
             </Badge>
             {transaction.discount != null && transaction.discount > 0 && (
-              <Badge variant="outline" className="text-xs text-red-500 border-red-200">
+              <Badge
+                variant="outline"
+                className="text-xs text-red-500 border-red-200"
+              >
                 Desconto: {formatCurrency(transaction.discount)}
               </Badge>
             )}
@@ -105,9 +114,13 @@ const TransactionListItem = ({
           </Button>
         </div>
         {transaction.updatedAt && (
-          <div className="text-xs text-gray-400 italic mt-1 text-right" title={`Editado por ${transaction.updatedBy || 'desconhecido'}`}>
+          <div
+            className="text-xs text-gray-400 italic mt-1 text-right"
+            title={`Editado por ${transaction.updatedBy || "desconhecido"}`}
+          >
             <span>
-              Editado em {new Date(transaction.updatedAt).toLocaleDateString("pt-BR")}
+              Editado em{" "}
+              {new Date(transaction.updatedAt).toLocaleDateString("pt-BR")}
             </span>
           </div>
         )}
@@ -115,7 +128,6 @@ const TransactionListItem = ({
     </div>
   );
 };
-
 
 // --- Componente Principal Refatorado ---
 
@@ -137,8 +149,14 @@ export const TransactionList = ({
   const { toast } = useToast();
 
   // Otimização: Criar mapas de lookup uma vez para evitar buscas repetitivas dentro do loop.
-  const storeMap = useMemo(() => new Map(stores.map(s => [s.id, s])), [stores]);
-  const personMap = useMemo(() => new Map(clientesFornecedores.map(p => [p.id, p])), [clientesFornecedores]);
+  const storeMap = useMemo(
+    () => new Map(stores.map((s) => [s.id, s])),
+    [stores]
+  );
+  const personMap = useMemo(
+    () => new Map(clientesFornecedores.map((p) => [p.id, p])),
+    [clientesFornecedores]
+  );
 
   const handleDelete = (id: string, description: string) => {
     onDeleteTransaction(id);
@@ -150,13 +168,22 @@ export const TransactionList = ({
   };
 
   // Otimização: A ordenação também pode ser memoizada se a lista de transações for grande.
-  const sortedTransactions = useMemo(() =>
-    [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+  const sortedTransactions = useMemo(
+    () =>
+      [...transactions].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      ),
     [transactions]
   );
 
-  if (clientesFornecedores.length > 0 && personMap.size === 0 && transactions.some(t => t.personId)) {
-    console.warn("[TransactionList] `clientesFornecedores` tem dados, mas `personMap` está vazio. Verifique a criação do map.");
+  if (
+    clientesFornecedores.length > 0 &&
+    personMap.size === 0 &&
+    transactions.some((t) => t.personId)
+  ) {
+    console.warn(
+      "[TransactionList] `clientesFornecedores` tem dados, mas `personMap` está vazio. Verifique a criação do map."
+    );
   }
 
   return (
@@ -173,8 +200,6 @@ export const TransactionList = ({
           sortedTransactions.map((transaction) => {
             const store = storeMap.get(transaction.storeId);
             const person = personMap.get(transaction.personId);
-            // Adicione este log para cada item se o anterior não for suficiente
-            // console.log(`Item: ${transaction.id}, personId: ${transaction.personId}, Person from map:`, person); 
             return (
               <TransactionListItem
                 key={transaction.id}

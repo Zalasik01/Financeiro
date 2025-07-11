@@ -205,7 +205,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const login = async (email: string, password: string) => {
     try {
       setError(null);
-      console.log("🔐 [useAuth] Iniciando login para:", email);
 
       const userCredential = await signInWithEmailAndPassword(
         auth,
@@ -214,12 +213,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       );
       if (userCredential.user) {
         hasJustLoggedInRef.current = true;
-
-        console.log("✅ [useAuth] Login bem-sucedido:", {
-          email: userCredential.user.email,
-          uid: userCredential.user.uid,
-          hasJustLoggedIn: hasJustLoggedInRef.current,
-        });
 
         // Salvar email do usuário no localStorage
         userEmail.set(email);
@@ -335,18 +328,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   ? profileData.clientBaseId
                   : null;
             } else {
-              console.log(
-                "⚠️ [useAuth] Perfil não encontrado no database para:",
-                user.uid
-              );
+              // Usuário não encontrado na coleção users
             }
-
-            console.log("👤 [useAuth] Usuário configurado:", {
-              email: user.email,
-              uid: user.uid,
-              isAdmin: appUser.isAdmin,
-              clientBaseId: appUser.clientBaseId,
-            });
 
             // Salvar sessão do usuário no localStorage
             const sessionData: StoredUserSession = {
@@ -357,12 +340,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               photoURL: user.photoURL || undefined,
             };
             userSession.set(sessionData);
-
-            console.log("✅ [useAuth] setCurrentUser chamado:", {
-              email: user.email,
-              isAdmin: appUser.isAdmin,
-              hasJustLoggedIn: hasJustLoggedInRef.current,
-            });
 
             setCurrentUser(appUser);
             const lastSelectedBaseId = localStorage.getItem(
@@ -380,11 +357,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             setCurrentUser({ ...user, isAdmin: false, clientBaseId: null });
           })
           .finally(() => {
-            console.log("🏁 [useAuth] Loading finalizado (com usuário)");
             setLoading(false);
           });
       } else {
-        console.log("🚪 [useAuth] Usuário deslogado");
         // Limpar localStorage quando não há usuário autenticado
         clearSession();
         setCurrentUser(null);

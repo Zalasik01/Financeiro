@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DownloadCloud } from "lucide-react"; // Ícone para o botão
+import { useEffect, useState } from "react";
 
 // Define a interface para o evento beforeinstallprompt
 interface BeforeInstallPromptEvent extends Event {
@@ -50,7 +50,6 @@ export const InstallPWAButton = () => {
 
     deferredPrompt.prompt(); // Mostra o prompt de instalação
     const { outcome } = await deferredPrompt.userChoice; // Espera o usuário responder
-    console.log(`Resposta do usuário ao prompt de instalação: ${outcome}`);
     setDeferredPrompt(null); // O prompt só pode ser usado uma vez
     setShowIOSInstructions(false); // Esconde as instruções do iOS se o prompt foi mostrado (improvável no iOS, mas por segurança)
   };

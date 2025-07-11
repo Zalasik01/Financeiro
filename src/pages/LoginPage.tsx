@@ -84,31 +84,16 @@ export default function LoginPage() {
 
   const basesParaUsuario = useMemo(() => {
     if (!currentUser || !allBases) {
-      console.log("🔍 [LoginPage] basesParaUsuario: retornando array vazio", {
-        hasCurrentUser: !!currentUser,
-        hasAllBases: !!allBases,
-        allBasesLength: allBases?.length || 0,
-      });
       return [];
     }
 
     if (currentUser.isAdmin) {
-      console.log("🔍 [LoginPage] basesParaUsuario: admin vê todas as bases", {
-        isAdmin: currentUser.isAdmin,
-        totalBases: allBases.length,
-        bases: allBases.map((b) => ({ id: b.id, name: b.name })),
-      });
       // Admin vê todas as bases (ativas e inativas)
       return allBases;
     }
 
     // Para usuários não-admin, filtrar apenas bases ativas que eles têm acesso
     const filteredBases = allBases.filter((base: ExtendedBase) => base.ativo);
-    console.log("🔍 [LoginPage] basesParaUsuario: usuário normal", {
-      isAdmin: currentUser.isAdmin,
-      totalBases: allBases.length,
-      filteredBases: filteredBases.length,
-    });
     return filteredBases;
   }, [allBases, currentUser]);
 
@@ -131,15 +116,12 @@ export default function LoginPage() {
 
   // Implementar funções estáveis usando refs
   handleBaseSelectedRef.current = (baseId: string) => {
-    console.log("🎯 [LoginPage] Base selecionada:", baseId);
     setSelectedBaseId(baseId);
     setIsModalOpen(false); // Fecha o modal
     // A navegação será acionada pelo primeiro useEffect.
   };
 
   handleModalCloseRef.current = () => {
-    console.log("❌ [LoginPage] Modal fechado pelo usuário");
-
     // Limpar timeout se existir
     if (modalTimeoutRef.current) {
       clearTimeout(modalTimeoutRef.current);
@@ -164,32 +146,12 @@ export default function LoginPage() {
 
   // Efeito separado para verificar se deve abrir o modal após login bem-sucedido
   useEffect(() => {
-    console.log("🔍 [LoginPage] useEffect modal - verificando condições:", {
-      hasCurrentUser: !!currentUser,
-      isAdmin: currentUser?.isAdmin,
-      authLoading,
-      hasAllBases: !!allBases,
-      allBasesLength: allBases?.length || 0,
-      status,
-      isModalOpen,
-      modalAlreadyOpened,
-      modalProcessingRefCurrent: modalProcessingRef.current,
-      basesParaUsuarioLength: basesParaUsuario.length,
-    });
-
     // Só processar se o usuário acabou de fazer login (não em carregamentos subsequentes)
     // IMPORTANTE: Para admin, aguardar pelo menos uma tentativa de carregamento das bases
     const shouldWaitForBases = currentUser?.isAdmin;
     const basesLoaded = shouldWaitForBases
       ? allBases && allBases.length >= 0
       : true;
-
-    console.log("🔍 [LoginPage] Análise de carregamento:", {
-      shouldWaitForBases,
-      basesLoaded,
-      allBasesLength: allBases?.length,
-      basesParaUsuarioLength: basesParaUsuario.length,
-    });
 
     if (
       currentUser &&
@@ -202,10 +164,6 @@ export default function LoginPage() {
       !modalProcessingRef.current &&
       (currentUser.isAdmin || basesParaUsuario.length > 0) // Só prosseguir se tiver bases ou for admin
     ) {
-      console.log(
-        "🎯 [LoginPage] Condições atendidas - preparando para abrir modal"
-      );
-
       // Limpar timeout anterior se existir
       if (modalTimeoutRef.current) {
         clearTimeout(modalTimeoutRef.current);
@@ -213,10 +171,6 @@ export default function LoginPage() {
 
       // Usar setTimeout para garantir que o estado seja estável
       modalTimeoutRef.current = setTimeout(() => {
-        console.log(
-          "⏰ [LoginPage] Timeout executado - verificando condições novamente"
-        );
-
         // Verificar novamente as condições após o timeout
         if (
           !isModalOpen &&
@@ -227,12 +181,6 @@ export default function LoginPage() {
           // Marcar como processando para evitar execuções duplas
           modalProcessingRef.current = true;
 
-          console.log("🚀 [LoginPage] Abrindo modal:", {
-            isAdmin: currentUser.isAdmin,
-            basesParaUsuarioLength: basesParaUsuario.length,
-            hasBasesToShow: currentUser.isAdmin || basesParaUsuario.length > 0,
-          });
-
           // Para admin: sempre abrir o modal (mesmo sem bases)
           // Para usuário normal: só abrir se tiver bases
           if (currentUser.isAdmin || basesParaUsuario.length > 0) {
@@ -241,9 +189,6 @@ export default function LoginPage() {
             setIsModalOpen(true);
             setStatus("IDLE");
           } else {
-            console.log(
-              "❌ [LoginPage] Nenhuma base disponível para usuário não-admin"
-            );
             setError("Você não possui nenhuma base de dados associada.");
             setStatus("ERROR");
             logout();

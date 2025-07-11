@@ -40,26 +40,15 @@ export const useStores = () => {
 
   useEffect(() => {
     if (!currentUser) {
-      console.log("🏪 [useStores] Sem usuário - limpando bases");
       setBases([]);
       return;
     }
-
-    console.log("🏪 [useStores] Carregando bases para usuário:", {
-      email: currentUser.email,
-      isAdmin: currentUser.isAdmin,
-      uid: currentUser.uid,
-    });
 
     const clientBasesRef = ref(db, "clientBases");
     const unsubscribeBases = onValue(
       clientBasesRef,
       (snapshot) => {
         const data = snapshot.val();
-        console.log("🏪 [useStores] Dados recebidos do Firebase:", {
-          hasData: !!data,
-          dataKeys: data ? Object.keys(data) : [],
-        });
 
         if (data) {
           const allClientBases: ClientBase[] = Object.keys(data).map((key) => ({
@@ -67,38 +56,16 @@ export const useStores = () => {
             ...data[key],
           }));
 
-          console.log("🏪 [useStores] Todas as bases do Firebase:", {
-            totalBases: allClientBases.length,
-            bases: allClientBases.map((cb) => ({
-              id: cb.id,
-              name: cb.name,
-              ativo: cb.ativo,
-              createdBy: cb.createdBy,
-              hasAuthorizedUIDs: !!cb.authorizedUIDs,
-            })),
-          });
-
           let accessibleClientBases: ClientBase[];
 
           if (currentUser.isAdmin) {
-            console.log(
-              "🏪 [useStores] Usuário é admin - todas as bases acessíveis"
-            );
             accessibleClientBases = allClientBases;
           } else {
-            console.log("🏪 [useStores] Usuário não é admin - filtrando bases");
             accessibleClientBases = allClientBases.filter(
               (cb) =>
                 (cb.authorizedUIDs && cb.authorizedUIDs[currentUser.uid]) ||
                 cb.createdBy === currentUser.uid
             );
-            console.log("🏪 [useStores] Bases acessíveis após filtro:", {
-              accessibleCount: accessibleClientBases.length,
-              bases: accessibleClientBases.map((cb) => ({
-                id: cb.id,
-                name: cb.name,
-              })),
-            });
           }
 
           const finalBases = accessibleClientBases.map(
@@ -111,19 +78,12 @@ export const useStores = () => {
             })
           );
 
-          console.log("🏪 [useStores] Bases finais sendo definidas:", {
-            finalBasesCount: finalBases.length,
-            bases: finalBases.map((b) => ({ id: b.id, name: b.name })),
-          });
-
           setBases(finalBases);
         } else {
-          console.log("🏪 [useStores] Nenhum dado encontrado - limpando bases");
           setBases([]);
         }
       },
       (error) => {
-        console.error("[useStores] Erro ao carregar clientBases:", error);
         setBases([]);
       }
     );
@@ -158,7 +118,6 @@ export const useStores = () => {
           }
         },
         (error) => {
-          console.error(`[useStores] Erro ao carregar ${path}:`, error);
           setter([]);
         }
       );
@@ -250,7 +209,6 @@ export const useStores = () => {
         createdAt: new Date(),
       } as Store;
     } catch (error) {
-      console.error("[useStores] Erro ao adicionar loja:", error);
       toast({
         title: "Erro!",
         description: "Não foi possível adicionar a loja.",
@@ -285,7 +243,6 @@ export const useStores = () => {
         variant: "success",
       });
     } catch (error) {
-      console.error("[useStores] Erro ao atualizar loja:", error);
       toast({
         title: "Erro!",
         description: "Não foi possível atualizar a loja.",
@@ -330,7 +287,6 @@ export const useStores = () => {
         variant: "success",
       });
     } catch (error) {
-      console.error("[useStores] Erro ao deletar loja:", error);
       toast({
         title: "Erro!",
         description: "Não foi possível deletar a loja.",
@@ -435,7 +391,6 @@ export const useStores = () => {
         });
         return { id: newRef.key!, ...data, createdAt: new Date() } as T;
       } catch (error) {
-        console.error(`[useStores] Erro ao adicionar ${entityName}:`, error);
         toast({
           title: "Erro!",
           description: `Não foi possível adicionar ${entityName}.`,
@@ -466,7 +421,6 @@ export const useStores = () => {
           variant: "success",
         });
       } catch (error) {
-        console.error(`[useStores] Erro ao atualizar ${entityName}:`, error);
         toast({
           title: "Erro!",
           description: `Não foi possível atualizar ${entityName}.`,
@@ -493,7 +447,6 @@ export const useStores = () => {
           variant: "success",
         });
       } catch (error) {
-        console.error(`[useStores] Erro ao remover ${entityName}:`, error);
         toast({
           title: "Erro!",
           description: `Não foi possível remover ${entityName}.`,
@@ -569,7 +522,6 @@ export const useStores = () => {
         createdAt: new Date(),
       };
     } catch (error) {
-      console.error("[useStores] Erro ao adicionar fechamento:", error);
       toast({
         title: "Erro!",
         description: "Não foi possível adicionar o fechamento.",
@@ -627,7 +579,6 @@ export const useStores = () => {
       await update(closingRef, updatesToSave);
       toast({ title: "Sucesso!", description: "Fechamento atualizado." });
     } catch (error) {
-      console.error("[useStores] Erro ao atualizar fechamento:", error);
       toast({
         title: "Erro!",
         description: "Não foi possível atualizar o fechamento.",
@@ -652,7 +603,6 @@ export const useStores = () => {
       );
       await remove(closingRef);
     } catch (error) {
-      console.error("[useStores] Erro ao deletar fechamento:", error);
       toast({
         title: "Erro!",
         description: "Não foi possível deletar o fechamento.",
@@ -684,7 +634,6 @@ export const useStores = () => {
       toast({ title: "Sucesso!", description: "Meta adicionada." });
       return { ...goalData, id: newGoalRef.key!, createdAt: new Date() };
     } catch (error) {
-      console.error("Erro ao adicionar meta:", error);
       toast({
         title: "Erro!",
         description: "Não foi possível adicionar a meta.",
@@ -715,7 +664,6 @@ export const useStores = () => {
       await update(goalRef, updatesToSave);
       toast({ title: "Sucesso!", description: "Meta atualizada." });
     } catch (error) {
-      console.error("Erro ao atualizar meta:", error);
       toast({
         title: "Erro!",
         description: "Não foi possível atualizar a meta.",
@@ -738,7 +686,6 @@ export const useStores = () => {
       await remove(goalRef);
       toast({ title: "Sucesso!", description: "Meta deletada." });
     } catch (error) {
-      console.error("Erro ao deletar meta:", error);
       toast({
         title: "Erro!",
         description: "Não foi possível deletar a meta.",

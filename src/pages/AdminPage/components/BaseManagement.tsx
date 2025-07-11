@@ -12,6 +12,7 @@ import type { ClientBase } from "@/types/store";
 import { push, ref, serverTimestamp, set, update } from "firebase/database";
 import {
   Copy,
+  Edit,
   Info,
   List,
   Minus,
@@ -24,6 +25,7 @@ import {
   Trash2,
   UserPlus,
   UserX,
+  X,
 } from "lucide-react";
 import React, { FormEvent, useState } from "react";
 import { InviteByIdModal } from "./InviteByIdModal";
@@ -324,7 +326,7 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
     setEditingBaseId(base.id);
     setEditingBaseName(base.name);
     setEditingBaseCNPJ(base.cnpj || "");
-    setEditingBaseResponsaveis(
+    const responsaveis =
       base.responsaveis?.map((r) => ({
         nome: r.nome,
         telefone: r.telefone,
@@ -332,26 +334,58 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
           financeiro: r.isFinanceiro,
           sistema: r.isSistema,
         },
-      })) || []
-    );
+      })) || [];
+
+    // Garantir que sempre há pelo menos um responsável para edição
+    if (responsaveis.length === 0) {
+      responsaveis.push({
+        nome: "",
+        telefone: "",
+        funcoes: {
+          financeiro: false,
+          sistema: false,
+        },
+      });
+    }
+
+    setEditingBaseResponsaveis(responsaveis);
   };
 
   const handleSaveEditBase = async (baseId: string) => {
+    if (!editingBaseName.trim()) {
+      toast.validationError("Nome da base é obrigatório.");
+      return;
+    }
+
+    if (!editingBaseCNPJ.trim()) {
+      toast.validationError("CNPJ da loja principal é obrigatório.");
+      return;
+    }
+
+    // Validar se pelo menos um responsável tem nome e telefone
+    const responsaveisValidos = editingBaseResponsaveis.filter(
+      (r) => r.nome.trim() !== "" && r.telefone.trim() !== ""
+    );
+
+    if (responsaveisValidos.length === 0) {
+      toast.validationError(
+        "É necessário informar pelo menos um responsável com nome e telefone."
+      );
+      return;
+    }
+
     setSavingEdit(true);
     try {
       const baseUpdateRef = ref(db, `clientBases/${baseId}`);
       await update(baseUpdateRef, {
-        name: editingBaseName,
-        cnpj: editingBaseCNPJ.trim() || null,
-        responsaveis:
-          editingBaseResponsaveis.filter((r) => r.nome.trim() !== "").length > 0
-            ? editingBaseResponsaveis.map((r) => ({
-                nome: r.nome,
-                telefone: r.telefone,
-                isFinanceiro: r.funcoes.financeiro,
-                isSistema: r.funcoes.sistema,
-              }))
-            : null,
+        name: editingBaseName.trim(),
+        cnpj: editingBaseCNPJ.trim(),
+        responsaveis: responsaveisValidos.map((r) => ({
+          nome: r.nome.trim(),
+          telefone: r.telefone.trim(),
+          isFinanceiro: r.funcoes.financeiro,
+          isSistema: r.funcoes.sistema,
+        })),
       });
       toast.updateSuccess(`Base "${editingBaseName}" atualizada com sucesso.`);
       setEditingBaseId(null);
@@ -364,6 +398,46 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
 
   const handleCancelEdit = () => {
     setEditingBaseId(null);
+  };
+
+  // Funções para gerenciar responsáveis na edição
+  const addEditResponsavel = () => {
+    setEditingBaseResponsaveis([
+      ...editingBaseResponsaveis,
+      {
+        nome: "",
+        telefone: "",
+        funcoes: {
+          financeiro: false,
+          sistema: false,
+        },
+      },
+    ]);
+  };
+
+  const removeEditResponsavel = (index: number) => {
+    if (editingBaseResponsaveis.length > 1) {
+      setEditingBaseResponsaveis(
+        editingBaseResponsaveis.filter((_, i) => i !== index)
+      );
+    }
+  };
+
+  const updateEditResponsavel = (
+    index: number,
+    field: string,
+    value: string | boolean
+  ) => {
+    const updated = [...editingBaseResponsaveis];
+    if (field === "nome" || field === "telefone") {
+      updated[index][field] = value as string;
+    } else {
+      updated[index].funcoes = {
+        ...updated[index].funcoes,
+        [field]: value as boolean,
+      };
+    }
+    setEditingBaseResponsaveis(updated);
   };
 
   return (
@@ -627,44 +701,231 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
                     className={`p-4 border rounded-lg flex flex-col justify-between gap-3 bg-slate-100 dark:bg-slate-700 shadow-sm`}
                   >
                     <div>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-lg text-primary">
-                            {base.name}
-                          </span>
-                          <Badge variant="secondary">ID: {base.numberId}</Badge>
-                        </div>
-                        <div className="flex flex-wrap items-start sm:items-center gap-2">
-                          {/* Seção de Gerar Convite com Input */}
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
-                            {inviteLinksPerBase[base.id] && (
-                              <div className="flex items-center gap-1 order-2 sm:order-1">
-                                <Input
-                                  value={inviteLinksPerBase[base.id]}
-                                  readOnly
-                                  onClick={(e) => {
-                                    (e.target as HTMLInputElement).select();
-                                    handleCopyInviteLink(
-                                      inviteLinksPerBase[base.id]
-                                    );
-                                  }}
-                                  className="w-64 h-9 text-xs cursor-pointer bg-green-50 border-green-200 text-green-800"
-                                  placeholder="Link será exibido aqui..."
-                                  title="Clique para copiar o link"
-                                />
-                              </div>
+                      {/* Cabeçalho da base com edição inline */}
+                      {editingBaseId === base.id ? (
+                        // Modo de edição
+                        <div className="space-y-4 mb-4 p-4 border-2 border-blue-300 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
+                              Editando Base
+                            </h4>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleSaveEditBase(base.id)}
+                                disabled={savingEdit}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                <Save className="mr-2 h-4 w-4" />
+                                {savingEdit ? "Salvando..." : "Salvar"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleCancelEdit}
+                                disabled={savingEdit}
+                              >
+                                <X className="mr-2 h-4 w-4" />
+                                Cancelar
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Campos de edição */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                              <Label className="text-sm font-medium">
+                                ID Numérico
+                              </Label>
+                              <Input
+                                value={base.numberId}
+                                readOnly
+                                disabled
+                                className="bg-gray-100 dark:bg-gray-800 text-sm"
+                              />
+                              <p className="text-xs text-gray-500 mt-1">
+                                Não editável
+                              </p>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <Label className="text-sm font-medium">
+                                Nome da Base *
+                              </Label>
+                              <Input
+                                value={editingBaseName}
+                                onChange={(e) =>
+                                  setEditingBaseName(e.target.value)
+                                }
+                                placeholder="Ex: Cliente Alpha"
+                                className="text-sm"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label className="text-sm font-medium">
+                              CNPJ da Loja Principal *
+                            </Label>
+                            <Input
+                              value={editingBaseCNPJ}
+                              onChange={(e) =>
+                                setEditingBaseCNPJ(e.target.value)
+                              }
+                              placeholder="00.000.000/0000-00"
+                              className="text-sm max-w-sm"
+                            />
+                          </div>
+
+                          {/* Responsáveis na edição */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-base font-medium">
+                                Responsáveis *
+                              </Label>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={addEditResponsavel}
+                                className="h-8 px-2"
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Adicionar
+                              </Button>
+                            </div>
+
+                            {editingBaseResponsaveis.map(
+                              (responsavel, index) => (
+                                <div
+                                  key={index}
+                                  className="p-3 border rounded-md bg-white dark:bg-slate-800 space-y-3"
+                                >
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                      <Label className="text-sm">
+                                        Nome do Responsável *
+                                      </Label>
+                                      <Input
+                                        value={responsavel.nome}
+                                        onChange={(e) =>
+                                          updateEditResponsavel(
+                                            index,
+                                            "nome",
+                                            e.target.value
+                                          )
+                                        }
+                                        placeholder="Nome completo"
+                                        className="mt-1"
+                                      />
+                                    </div>
+                                    <div className="flex items-end gap-2">
+                                      <div className="flex-1">
+                                        <Label className="text-sm">
+                                          Telefone *
+                                        </Label>
+                                        <Input
+                                          value={responsavel.telefone}
+                                          onChange={(e) =>
+                                            updateEditResponsavel(
+                                              index,
+                                              "telefone",
+                                              e.target.value
+                                            )
+                                          }
+                                          placeholder="(00) 00000-0000"
+                                          className="mt-1"
+                                        />
+                                      </div>
+                                      {editingBaseResponsaveis.length > 1 && (
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() =>
+                                            removeEditResponsavel(index)
+                                          }
+                                          className="h-9 w-9 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                        >
+                                          <Minus className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <Label className="text-sm font-medium mb-2 block">
+                                      Funções do Responsável
+                                    </Label>
+                                    <div className="flex gap-4">
+                                      <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                          checked={
+                                            responsavel.funcoes.financeiro
+                                          }
+                                          onCheckedChange={(checked) =>
+                                            updateEditResponsavel(
+                                              index,
+                                              "financeiro",
+                                              checked
+                                            )
+                                          }
+                                        />
+                                        <Label className="text-sm font-normal">
+                                          Responsável Financeiro
+                                        </Label>
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                          checked={responsavel.funcoes.sistema}
+                                          onCheckedChange={(checked) =>
+                                            updateEditResponsavel(
+                                              index,
+                                              "sistema",
+                                              checked
+                                            )
+                                          }
+                                        />
+                                        <Label className="text-sm font-normal">
+                                          Responsável pelo Sistema
+                                        </Label>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
                             )}
+                          </div>
+                        </div>
+                      ) : (
+                        // Modo de visualização
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-lg text-primary">
+                              {base.name}
+                            </span>
+                            <Badge variant="secondary">
+                              ID: {base.numberId}
+                            </Badge>
+                          </div>
+                          <div className="flex flex-wrap items-start sm:items-center gap-2">
+                            {/* Todos os botões lado a lado */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditBase(base)}
+                              className="w-full sm:w-auto"
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Editar Base
+                            </Button>
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleGenerateInviteForBase(base)}
-                              className="w-full sm:w-auto order-1 sm:order-2"
+                              className="w-full sm:w-auto"
                             >
                               <Send className="mr-2 h-4 w-4" /> Gerar Convite
                             </Button>
-                          </div>
-
-                          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                             <Button
                               variant={base.ativo ? "outline" : "secondary"}
                               size="sm"
@@ -688,7 +949,120 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
                             </Button>
                           </div>
                         </div>
-                      </div>
+                      )}
+
+                      {/* Informações da base (sempre visíveis) */}
+                      {editingBaseId !== base.id && (
+                        <>
+                          {/* Exibir CNPJ */}
+                          <div className="mb-3 space-y-3">
+                            {base.cnpj && (
+                              <div className="text-sm">
+                                <span className="font-medium">CNPJ:</span>{" "}
+                                <span className="text-gray-700 dark:text-gray-300">
+                                  {base.cnpj}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Tabela de Responsáveis */}
+                            {base.responsaveis &&
+                              base.responsaveis.length > 0 && (
+                                <div>
+                                  <h4 className="text-sm font-medium mb-2">
+                                    Responsáveis:
+                                  </h4>
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full text-sm border-collapse border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg">
+                                      <thead>
+                                        <tr className="bg-gray-50 dark:bg-gray-700">
+                                          <th className="border border-gray-200 dark:border-gray-600 px-3 py-2 text-left font-medium">
+                                            Nome
+                                          </th>
+                                          <th className="border border-gray-200 dark:border-gray-600 px-3 py-2 text-left font-medium">
+                                            Telefone
+                                          </th>
+                                          <th className="border border-gray-200 dark:border-gray-600 px-3 py-2 text-center font-medium">
+                                            Resp. Financeiro
+                                          </th>
+                                          <th className="border border-gray-200 dark:border-gray-600 px-3 py-2 text-center font-medium">
+                                            Resp. Sistema
+                                          </th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {base.responsaveis.map((resp, idx) => (
+                                          <tr
+                                            key={idx}
+                                            className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                          >
+                                            <td className="border border-gray-200 dark:border-gray-600 px-3 py-2 font-medium">
+                                              {resp.nome}
+                                            </td>
+                                            <td className="border border-gray-200 dark:border-gray-600 px-3 py-2 text-gray-600 dark:text-gray-400">
+                                              {resp.telefone}
+                                            </td>
+                                            <td className="border border-gray-200 dark:border-gray-600 px-3 py-2 text-center">
+                                              {resp.isFinanceiro ? (
+                                                <Badge
+                                                  variant="outline"
+                                                  className="bg-green-50 text-green-700 border-green-200"
+                                                >
+                                                  Sim
+                                                </Badge>
+                                              ) : (
+                                                <span className="text-gray-400">
+                                                  Não
+                                                </span>
+                                              )}
+                                            </td>
+                                            <td className="border border-gray-200 dark:border-gray-600 px-3 py-2 text-center">
+                                              {resp.isSistema ? (
+                                                <Badge
+                                                  variant="outline"
+                                                  className="bg-blue-50 text-blue-700 border-blue-200"
+                                                >
+                                                  Sim
+                                                </Badge>
+                                              ) : (
+                                                <span className="text-gray-400">
+                                                  Não
+                                                </span>
+                                              )}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              )}
+                          </div>
+
+                          {/* Link de convite, se existir */}
+                          {inviteLinksPerBase[base.id] && (
+                            <div className="mb-3">
+                              <Label className="text-sm font-medium">
+                                Link de Convite Gerado:
+                              </Label>
+                              <Input
+                                value={inviteLinksPerBase[base.id]}
+                                readOnly
+                                onClick={(e) => {
+                                  (e.target as HTMLInputElement).select();
+                                  handleCopyInviteLink(
+                                    inviteLinksPerBase[base.id]
+                                  );
+                                }}
+                                className="mt-1 cursor-pointer bg-green-50 border-green-200 text-green-800"
+                                title="Clique para copiar o link"
+                              />
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Informações de criação e status (sempre visíveis) */}
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-2 rounded border">
                         <div className="flex items-center gap-1">
                           <span className="font-medium">Criado por:</span>
