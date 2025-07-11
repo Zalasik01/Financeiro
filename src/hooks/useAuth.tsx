@@ -1,38 +1,36 @@
+import { auth, db } from "@/firebase";
+import type { ClientBase } from "@/types/store";
 import {
-  useState,
-  useEffect,
-  createContext,
-  useContext,
-  ReactNode,
-  useRef,
-  useCallback,
-} from "react";
-import {
+  AuthError,
   User,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
   updateProfile,
-  AuthError,
 } from "firebase/auth";
-import { auth, storage } from "@/firebase";
+import { get as databaseGet, ref as databaseRef } from "firebase/database";
 import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject,
-} from "firebase/storage";
-import { db } from "@/firebase";
-import {
-  ref as databaseRef,
-  set as databaseSet,
-  get as databaseGet,
-  serverTimestamp,
-} from "firebase/database";
+  ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useToast } from "./use-toast";
-import type { ClientBase } from "@/types/store";
+// Importar utilitários do localStorage
+import {
+  accessToken,
+  clearSession,
+  selectedBase,
+  userEmail,
+  userSession,
+  type StoredBaseInfo,
+  type StoredUserSession,
+} from "@/utils/storage";
 
 interface AppUser extends User {
   isAdmin?: boolean;
@@ -53,7 +51,11 @@ interface AuthContextType {
     isAdminOverride?: boolean
   ) => Promise<User | null>;
   login: (email: string, password: string) => Promise<User | null>;
-  logout: (customMessage?: { title: string; description: string, variant?: "default" | "destructive" | "success" }) => Promise<void>;
+  logout: (customMessage?: {
+    title: string;
+    description: string;
+    variant?: "default" | "destructive" | "success";
+  }) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfileData: (updates: {
     displayName?: string;
@@ -87,68 +89,115 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const { toast } = useToast();
   const hasJustLoggedInRef = useRef(false);
 
-  const getLocalStorageKeyForSelectedBase = (uid: string) => `financeiroApp_lastSelectedBaseId_${uid}`;
+  const getLocalStorageKeyForSelectedBase = (uid: string) =>
+    `financeiroApp_lastSelectedBaseId_${uid}`;
 
-  const setSelectedBaseId = useCallback(async (baseId: string | null): Promise<void> => {
-    if (!auth.currentUser) {
-      _setSelectedBaseId(null);
-      return;
-    }
-    const localStorageKey = getLocalStorageKeyForSelectedBase(auth.currentUser.uid);
+  const setSelectedBaseId = useCallback(
+    async (baseId: string | null): Promise<void> => {
+      if (!auth.currentUser) {
+        _setSelectedBaseId(null);
+        return;
+      }
+      const localStorageKey = getLocalStorageKeyForSelectedBase(
+        auth.currentUser.uid
+      );
 
-    if (!baseId) {
-      localStorage.removeItem(localStorageKey);
-      _setSelectedBaseId(null);
-      return;
-    }
-
-    try {
-      const baseDataRef = databaseRef(db, `clientBases/${baseId}`);
-      const snapshot = await databaseGet(baseDataRef);
-
-      if (!snapshot.exists()) {
-        toast({ title: "Erro", description: "A base selecionada não foi encontrada.", variant: "destructive" });
+      if (!baseId) {
         localStorage.removeItem(localStorageKey);
         _setSelectedBaseId(null);
         return;
       }
 
-      const baseData = snapshot.val() as ClientBase;
-      if (!baseData.ativo) {
-        toast({ title: "Acesso Bloqueado", description: `A base "${baseData.name}" está temporariamente inativa.`, variant: "destructive" });
+      try {
+        const baseDataRef = databaseRef(db, `clientBases/${baseId}`);
+        const snapshot = await databaseGet(baseDataRef);
+
+        if (!snapshot.exists()) {
+          toast({
+            title: "Erro",
+            description: "A base selecionada não foi encontrada.",
+            variant: "destructive",
+          });
+          localStorage.removeItem(localStorageKey);
+          _setSelectedBaseId(null);
+          return;
+        }
+
+        const baseData = snapshot.val() as ClientBase;
+        if (!baseData.ativo) {
+          toast({
+            title: "Acesso Bloqueado",
+            description: `A base "${baseData.name}" está temporariamente inativa.`,
+            variant: "destructive",
+          });
+          localStorage.removeItem(localStorageKey);
+          selectedBase.remove();
+          _setSelectedBaseId(null);
+          return;
+        }
+
+        // Salvar informações da base no localStorage
+        const baseInfo: StoredBaseInfo = {
+          id: baseId,
+          name: baseData.name,
+          numberId: baseData.numberId,
+          ativo: baseData.ativo,
+        };
+        selectedBase.set(baseInfo);
+
+        localStorage.setItem(localStorageKey, baseId);
+        _setSelectedBaseId(baseId);
+      } catch (err) {
+        console.error("Erro ao verificar status da base:", err);
+        toast({
+          title: "Erro ao Acessar Base",
+          description:
+            "Não foi possível verificar o status da base selecionada.",
+          variant: "destructive",
+        });
         localStorage.removeItem(localStorageKey);
         _setSelectedBaseId(null);
-        return;
       }
-      localStorage.setItem(localStorageKey, baseId);
-      _setSelectedBaseId(baseId);
-    } catch (err) {
-      console.error("Erro ao verificar status da base:", err);
-      toast({ title: "Erro ao Acessar Base", description: "Não foi possível verificar o status da base selecionada.", variant: "destructive" });
-      localStorage.removeItem(localStorageKey);
-      _setSelectedBaseId(null);
-    }
-  }, [toast]);
+    },
+    [toast]
+  );
 
-  const signup = async (email: string, password: string, displayName: string, isAdminOverride?: boolean) => {
+  const signup = async (
+    email: string,
+    password: string,
+    displayName: string,
+    isAdminOverride?: boolean
+  ) => {
     try {
       setError(null);
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       if (userCredential.user) {
         await updateProfile(userCredential.user, { displayName });
       }
-      toast({ title: "Bem vindo(a)!", description: `Bem-vindo(a)! ${displayName}`, variant: "success" });
+      toast({
+        title: "Bem vindo(a)!",
+        description: `Bem-vindo(a)! ${displayName}`,
+        variant: "success",
+      });
       return userCredential.user;
     } catch (err) {
       const error = err as AuthError;
       let errorMessage = "Não foi possível criar a conta.";
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'Este e-mail já está cadastrado.';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'A senha é muito fraca. Use pelo menos 6 caracteres.';
+      if (error.code === "auth/email-already-in-use") {
+        errorMessage = "Este e-mail já está cadastrado.";
+      } else if (error.code === "auth/weak-password") {
+        errorMessage = "A senha é muito fraca. Use pelo menos 6 caracteres.";
       }
       setError(errorMessage);
-      toast({ title: "Erro no cadastro", description: errorMessage, variant: "destructive" });
+      toast({
+        title: "Erro no cadastro",
+        description: errorMessage,
+        variant: "destructive",
+      });
       return null;
     }
   };
@@ -156,41 +205,79 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const login = async (email: string, password: string) => {
     try {
       setError(null);
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log("🔐 [useAuth] Iniciando login para:", email);
+
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       if (userCredential.user) {
         hasJustLoggedInRef.current = true;
+
+        console.log("✅ [useAuth] Login bem-sucedido:", {
+          email: userCredential.user.email,
+          uid: userCredential.user.uid,
+          hasJustLoggedIn: hasJustLoggedInRef.current,
+        });
+
+        // Salvar email do usuário no localStorage
+        userEmail.set(email);
+
+        // Gerar/obter access token (usando o token do Firebase)
+        const token = await userCredential.user.getIdToken();
+        accessToken.set(token);
       }
       return userCredential.user;
     } catch (err) {
       hasJustLoggedInRef.current = false;
       const error = err as AuthError;
-      const errorMessage = "Credenciais inválidas. Verifique seu e-mail e senha.";
+      const errorMessage =
+        "Credenciais inválidas. Verifique seu e-mail e senha.";
       setError(errorMessage);
-      toast({ title: "Erro no login", description: errorMessage, variant: "destructive" });
+      toast({
+        title: "Erro no login",
+        description: errorMessage,
+        variant: "destructive",
+      });
       throw new Error(errorMessage);
     }
   };
 
-  const logout = async (customMessage?: { title: string; description: string, variant?: "default" | "destructive" | "success" }) => {
+  const logout = async (customMessage?: {
+    title: string;
+    description: string;
+    variant?: "default" | "destructive" | "success";
+  }) => {
     try {
       setError(null);
       hasJustLoggedInRef.current = false;
       const currentUid = auth.currentUser?.uid;
       await signOut(auth);
       _setSelectedBaseId(null);
+
+      // Limpar dados do localStorage (mantém o email para facilitar próximo login)
+      clearSession();
+
       if (currentUid) {
         localStorage.removeItem(getLocalStorageKeyForSelectedBase(currentUid));
       }
       toast({
         title: customMessage?.title || "Logout realizado",
-        description: customMessage?.description || "Você foi desconectado com sucesso.",
+        description:
+          customMessage?.description || "Você foi desconectado com sucesso.",
         variant: customMessage?.variant || "success",
       });
     } catch (err) {
       const authError = err as AuthError;
-      const errorMessage = authError.message || "Não foi possível fazer logout.";
+      const errorMessage =
+        authError.message || "Não foi possível fazer logout.";
       setError(errorMessage);
-      toast({ title: "Erro no logout", description: errorMessage, variant: "destructive" });
+      toast({
+        title: "Erro no logout",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   };
 
@@ -198,38 +285,94 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       setError(null);
       await sendPasswordResetEmail(auth, email);
-      toast({ title: "E-mail enviado", description: "Verifique sua caixa de entrada para redefinir a senha." });
+      toast({
+        title: "E-mail enviado",
+        description: "Verifique sua caixa de entrada para redefinir a senha.",
+      });
     } catch (error) {
       const authError = error as AuthError;
-      const errorMessage = authError.message || "Não foi possível enviar o e-mail.";
+      const errorMessage =
+        authError.message || "Não foi possível enviar o e-mail.";
       setError(errorMessage);
-      toast({ title: "Erro", description: errorMessage, variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("🔐 [useAuth] onAuthStateChanged:", {
+        hasUser: !!user,
+        userEmail: user?.email,
+        timestamp: new Date().toISOString(),
+      });
+
       if (user) {
         const userProfileRef = databaseRef(db, `users/${user.uid}/profile`);
-        databaseGet(userProfileRef).then((snapshot) => {
-          let appUser: AppUser = { ...user, isAdmin: false, clientBaseId: null };
-          if (snapshot.exists()) {
-            const profileData = snapshot.val();
-            appUser.isAdmin = profileData.isAdmin === true;
-            appUser.clientBaseId = typeof profileData.clientBaseId === "number" ? profileData.clientBaseId : null;
-          }
-          setCurrentUser(appUser);
-          const lastSelectedBaseId = localStorage.getItem(getLocalStorageKeyForSelectedBase(user.uid));
-          if (lastSelectedBaseId) {
-            setSelectedBaseId(lastSelectedBaseId);
-          }
-        }).catch((error) => {
-          console.error("Erro ao buscar perfil do usuário:", error);
-          setCurrentUser({ ...user, isAdmin: false, clientBaseId: null });
-        }).finally(() => {
-          setLoading(false);
-        });
+        databaseGet(userProfileRef)
+          .then((snapshot) => {
+            const appUser: AppUser = {
+              ...user,
+              isAdmin: false,
+              clientBaseId: null,
+            };
+            if (snapshot.exists()) {
+              const profileData = snapshot.val();
+              appUser.isAdmin = profileData.isAdmin === true;
+              appUser.clientBaseId =
+                typeof profileData.clientBaseId === "number"
+                  ? profileData.clientBaseId
+                  : null;
+            }
+
+            console.log("👤 [useAuth] Usuário configurado:", {
+              email: user.email,
+              isAdmin: appUser.isAdmin,
+              clientBaseId: appUser.clientBaseId,
+            });
+
+            // Salvar sessão do usuário no localStorage
+            const sessionData: StoredUserSession = {
+              email: user.email || "",
+              uid: user.uid,
+              isAdmin: appUser.isAdmin || false,
+              displayName: user.displayName || undefined,
+              photoURL: user.photoURL || undefined,
+            };
+            userSession.set(sessionData);
+
+            console.log("✅ [useAuth] setCurrentUser chamado:", {
+              email: user.email,
+              isAdmin: appUser.isAdmin,
+              hasJustLoggedIn: hasJustLoggedInRef.current,
+            });
+
+            setCurrentUser(appUser);
+            const lastSelectedBaseId = localStorage.getItem(
+              getLocalStorageKeyForSelectedBase(user.uid)
+            );
+            if (lastSelectedBaseId) {
+              setSelectedBaseId(lastSelectedBaseId);
+            }
+          })
+          .catch((error) => {
+            console.error(
+              "❌ [useAuth] Erro ao buscar perfil do usuário:",
+              error
+            );
+            setCurrentUser({ ...user, isAdmin: false, clientBaseId: null });
+          })
+          .finally(() => {
+            console.log("🏁 [useAuth] Loading finalizado (com usuário)");
+            setLoading(false);
+          });
       } else {
+        console.log("🚪 [useAuth] Usuário deslogado");
+        // Limpar localStorage quando não há usuário autenticado
+        clearSession();
         setCurrentUser(null);
         setLoading(false);
       }

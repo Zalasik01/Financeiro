@@ -1,10 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { useStores } from "@/hooks/useStores";
+import { AccessSelectionModal } from "@/components/AccessSelectionModal";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -13,15 +9,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Loader2,
-  AlertCircle,
-  Eye,
-  EyeOff,
-  Building,
-} from "lucide-react";
-import { AccessSelectionModal } from "@/components/AccessSelectionModal";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/useAuth";
+import { useStores } from "@/hooks/useStores";
+import { userEmail } from "@/utils/storage";
+import { AlertCircle, Building, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 type LoginStatus = "IDLE" | "LOADING" | "ERROR";
 
@@ -50,6 +45,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState<LoginStatus>("IDLE");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalAlreadyOpened, setModalAlreadyOpened] = useState(false);
+  const modalProcessingRef = useRef(false);
 
   const {
     login,
@@ -61,6 +58,14 @@ export default function LoginPage() {
   } = useAuth();
   const { bases: allBases, loading: basesLoading } = useStores();
   const navigate = useNavigate();
+
+  // Carregar email salvo do localStorage
+  useEffect(() => {
+    const savedEmail = userEmail.get();
+    if (savedEmail) {
+      setEmail(savedEmail);
+    }
+  }, []);
 
   const dataIsLoading = authLoading || basesLoading;
 
@@ -81,53 +86,127 @@ export default function LoginPage() {
     }
   }, [currentUser, selectedBaseId, navigate]);
 
+  // Efeito separado para verificar se deve abrir o modal após login bem-sucedido
   useEffect(() => {
-    // Este efeito só se preocupa em abrir o modal quando o carregamento termina.
-    if (status === "LOADING" && !dataIsLoading) {
-      if (currentUser) {
-        if (currentUser.isAdmin || basesParaUsuario.length > 0) {
-          setIsModalOpen(true);
-        } else {
-          setError("Você não possui nenhuma base de dados associada.");
-          setStatus("ERROR");
-          logout();
-        }
-      }
-      // Reseta o status para IDLE, pois a tarefa de carregar terminou.
-      setStatus("IDLE");
-    }
-  }, [status, dataIsLoading, currentUser, basesParaUsuario, logout]);
+    console.log("🔍 [LoginPage] useEffect Modal - Estados:", {
+      currentUser: !!currentUser,
+      currentUserEmail: currentUser?.email,
+      authLoading,
+      basesLoading,
+      status,
+      isModalOpen,
+      modalAlreadyOpened,
+      modalProcessing: modalProcessingRef.current,
+      basesParaUsuarioCount: basesParaUsuario.length,
+      timestamp: new Date().toISOString(),
+    });
 
+    if (
+      currentUser &&
+      !authLoading &&
+      !basesLoading &&
+      status === "LOADING" &&
+      !isModalOpen &&
+      !modalAlreadyOpened &&
+      !modalProcessingRef.current
+    ) {
+      console.log("✅ [LoginPage] Condições atendidas para abrir modal");
+
+      // Marcar como processando para evitar execuções duplas
+      modalProcessingRef.current = true;
+
+      if (currentUser.isAdmin || basesParaUsuario.length > 0) {
+        console.log("🚀 [LoginPage] Abrindo modal:", {
+          isAdmin: currentUser.isAdmin,
+          basesCount: basesParaUsuario.length,
+        });
+
+        // Garantir que só execute uma vez por login
+        setModalAlreadyOpened(true);
+        setIsModalOpen(true);
+        setStatus("IDLE");
+      } else {
+        console.log("❌ [LoginPage] Usuário sem bases associadas");
+        setError("Você não possui nenhuma base de dados associada.");
+        setStatus("ERROR");
+        logout();
+      }
+    } else {
+      console.log("⏸️ [LoginPage] Condições NÃO atendidas:", {
+        hasCurrentUser: !!currentUser,
+        authNotLoading: !authLoading,
+        basesNotLoading: !basesLoading,
+        statusIsLoading: status === "LOADING",
+        modalNotOpen: !isModalOpen,
+        modalNotAlreadyOpened: !modalAlreadyOpened,
+        modalNotProcessing: !modalProcessingRef.current,
+      });
+    }
+  }, [
+    currentUser,
+    authLoading,
+    basesLoading,
+    status,
+    isModalOpen,
+    modalAlreadyOpened,
+    basesParaUsuario.length, // Usar apenas o length para evitar re-criações do array
+    logout,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (status === "LOADING") return;
 
+    console.log("🚀 [LoginPage] handleSubmit iniciado:", {
+      email,
+      status,
+      isModalOpen,
+      modalAlreadyOpened,
+      timestamp: new Date().toISOString(),
+    });
+
     setError(null);
-    setStatus("LOADING"); // Apenas indica que estamos em um processo de carregamento.
-    
+    setStatus("LOADING");
+    setModalAlreadyOpened(false); // Reset do flag
+    modalProcessingRef.current = false; // Reset do flag de processamento
+
+    console.log("⚙️ [LoginPage] Estados atualizados no handleSubmit:", {
+      newStatus: "LOADING",
+      modalAlreadyOpened: false,
+      modalProcessing: false,
+    });
+
     try {
+      console.log("🔐 [LoginPage] Chamando login...");
       await login(email, password);
-      // O useEffect acima cuidará do resto quando o loading terminar.
+      console.log("✅ [LoginPage] Login concluído com sucesso");
+      // O useEffect acima cuidará do resto quando currentUser for atualizado
     } catch (error) {
-      console.error("Falha no login:", error);
+      console.error("❌ [LoginPage] Falha no login:", error);
       setError("E-mail ou senha inválidos. Verifique suas credenciais.");
       setStatus("ERROR");
     }
   };
-  
-  const handleBaseSelected = (baseId: string) => {
-    setSelectedBaseId(baseId);
-    setIsModalOpen(false); // Fecha o modal
-    // A navegação será acionada pelo primeiro useEffect.
-  };
 
-  const handleModalClose = () => {
+  const handleBaseSelected = useCallback(
+    (baseId: string) => {
+      console.log("🎯 [LoginPage] Base selecionada:", baseId);
+      setSelectedBaseId(baseId);
+      setIsModalOpen(false); // Fecha o modal
+      // A navegação será acionada pelo primeiro useEffect.
+    },
+    [setSelectedBaseId]
+  );
+
+  const handleModalClose = useCallback(() => {
+    console.log("❌ [LoginPage] Modal fechado pelo usuário");
     setIsModalOpen(false);
+    setModalAlreadyOpened(false); // Reset do flag quando modal é fechado
+    modalProcessingRef.current = false; // Reset do flag de processamento
     logout();
     setStatus("IDLE");
-  };
-  
+  }, [logout]);
+
   const isLoading = status === "LOADING";
 
   // Se o hook de auth ainda estiver carregando, mostre o loader de tela cheia.
@@ -157,19 +236,54 @@ export default function LoginPage() {
           <CardContent className="p-8 pt-4 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="seu@email.com" autoComplete="email" autoFocus required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} className="h-11" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="seu@email.com"
+                autoComplete="email"
+                autoFocus
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+                className="h-11"
+              />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Senha</Label>
-                <Link to="/esqueceu-senha" className="text-xs font-medium text-primary hover:underline">
+                <Link
+                  to="/esqueceu-senha"
+                  className="text-xs font-medium text-primary hover:underline"
+                >
                   Esqueceu a senha?
                 </Link>
               </div>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} required value={password} placeholder="Digite sua senha" autoComplete="current-password" onChange={(e) => setPassword(e.target.value)} disabled={isLoading} className="h-11 pr-10" />
-                <Button type="button" variant="ghost" size="icon" className="absolute top-0 right-0 h-full px-3 text-muted-foreground hover:text-primary" onClick={() => setShowPassword(!showPassword)} disabled={isLoading}>
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  placeholder="Digite sua senha"
+                  autoComplete="current-password"
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  className="h-11 pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-0 right-0 h-full px-3 text-muted-foreground hover:text-primary"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </Button>
               </div>
             </div>
@@ -182,20 +296,31 @@ export default function LoginPage() {
             )}
           </CardContent>
           <CardFooter className="p-8 pt-4">
-            <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={isLoading}>
-              {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</>) : ("Entrar")}
+            <Button
+              type="submit"
+              className="w-full h-11 text-base font-semibold"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Entrando...
+                </>
+              ) : (
+                "Entrar"
+              )}
             </Button>
           </CardFooter>
         </form>
       </Card>
-      
+
       {/* O Modal agora é renderizado aqui, controlado por seu próprio estado `isOpen` */}
       <AccessSelectionModal
-          isOpen={isModalOpen}
-          onClose={handleModalClose}
-          onSelectBase={handleBaseSelected}
-          bases={basesParaUsuario}
-          isAdmin={!!currentUser?.isAdmin}
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onSelectBase={handleBaseSelected}
+        bases={basesParaUsuario}
+        isAdmin={!!currentUser?.isAdmin}
       />
     </div>
   );
