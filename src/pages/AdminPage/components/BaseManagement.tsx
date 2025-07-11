@@ -2,6 +2,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { db } from "@/firebase";
@@ -13,6 +14,8 @@ import {
   Copy,
   Info,
   List,
+  Minus,
+  Plus,
   PlusCircle,
   Power,
   PowerOff,
@@ -54,6 +57,18 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
   const { currentUser } = useAuth();
   const [newBaseName, setNewBaseName] = useState("");
   const [newBaseLimit, setNewBaseLimit] = useState<string>(""); // Estado para o limite da nova base
+  const [newBaseCNPJ, setNewBaseCNPJ] = useState("");
+  const [newBaseResponsaveis, setNewBaseResponsaveis] = useState([
+    {
+      nome: "",
+      funcoes: {
+        financeiro: false,
+        operacional: false,
+        comercial: false,
+        gerencial: false,
+      },
+    },
+  ]);
   const [isLoading, setIsLoading] = useState(false);
   const [limitInputs, setLimitInputs] = useState<{ [baseId: string]: string }>(
     {}
@@ -68,6 +83,23 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
   const [lastGeneratedBaseId, setLastGeneratedBaseId] = useState<string | null>(
     null
   );
+
+  // Estados para edição inline das bases
+  const [editingBaseId, setEditingBaseId] = useState<string | null>(null);
+  const [editingBaseName, setEditingBaseName] = useState("");
+  const [editingBaseCNPJ, setEditingBaseCNPJ] = useState("");
+  const [editingBaseResponsaveis, setEditingBaseResponsaveis] = useState<
+    Array<{
+      nome: string;
+      funcoes: {
+        financeiro: boolean;
+        operacional: boolean;
+        comercial: boolean;
+        gerencial: boolean;
+      };
+    }>
+  >([]);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   // Sincronizar o generatedInviteLink com o estado local por base
   React.useEffect(() => {
@@ -109,15 +141,19 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
     }
 
     const baseData = {
-      // <--- REMOVA a anotação de tipo daqui
       name: newBaseName,
       numberId: nextNumberId,
       authorizedUIDs: authorizedUIDsObject,
-      createdAt: serverTimestamp(), // 'as any' removido
+      createdAt: serverTimestamp(),
       limite_acesso: limiteAcessoParaNovaBase,
       createdBy: currentUser.uid,
       ativo: true,
       motivo_inativo: null,
+      cnpj: newBaseCNPJ.trim() || null,
+      responsaveis:
+        newBaseResponsaveis.filter((r) => r.nome.trim() !== "").length > 0
+          ? newBaseResponsaveis.filter((r) => r.nome.trim() !== "")
+          : null,
     };
 
     try {
@@ -127,7 +163,19 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
         `Base "${newBaseName}" criada com ID ${nextNumberId}`
       );
       setNewBaseName("");
-      setNewBaseLimit(""); // Limpar o campo de limite
+      setNewBaseLimit("");
+      setNewBaseCNPJ("");
+      setNewBaseResponsaveis([
+        {
+          nome: "",
+          funcoes: {
+            financeiro: false,
+            operacional: false,
+            comercial: false,
+            gerencial: false,
+          },
+        },
+      ]);
     } catch (error) {
       toast.createError(
         `${(error as Error).message} - Verifique as permissões do Firebase.`
@@ -217,6 +265,86 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
     }
   };
 
+  // Funções para gerenciar responsáveis
+  const addResponsavel = () => {
+    setNewBaseResponsaveis([
+      ...newBaseResponsaveis,
+      {
+        nome: "",
+        funcoes: {
+          financeiro: false,
+          operacional: false,
+          comercial: false,
+          gerencial: false,
+        },
+      },
+    ]);
+  };
+
+  const removeResponsavel = (index: number) => {
+    if (newBaseResponsaveis.length > 1) {
+      setNewBaseResponsaveis(newBaseResponsaveis.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateResponsavel = (
+    index: number,
+    field: string,
+    value: string | boolean
+  ) => {
+    const updated = [...newBaseResponsaveis];
+    if (field === "nome") {
+      updated[index].nome = value as string;
+    } else {
+      updated[index].funcoes = {
+        ...updated[index].funcoes,
+        [field]: value as boolean,
+      };
+    }
+    setNewBaseResponsaveis(updated);
+  };
+
+  // Funções para edição inline de bases
+  const handleEditBase = (base: ClientBase) => {
+    setEditingBaseId(base.id);
+    setEditingBaseName(base.name);
+    setEditingBaseCNPJ(base.cnpj || "");
+    setEditingBaseResponsaveis(
+      base.responsaveis?.map((r) => ({
+        nome: r.nome,
+        funcoes: { ...r.funcoes },
+      })) || []
+    );
+  };
+
+  const handleSaveEditBase = async (baseId: string) => {
+    setSavingEdit(true);
+    try {
+      const baseUpdateRef = ref(db, `clientBases/${baseId}`);
+      await update(baseUpdateRef, {
+        name: editingBaseName,
+        cnpj: editingBaseCNPJ.trim() || null,
+        responsaveis:
+          editingBaseResponsaveis.filter((r) => r.nome.trim() !== "").length > 0
+            ? editingBaseResponsaveis.map((r) => ({
+                nome: r.nome,
+                funcoes: { ...r.funcoes },
+              }))
+            : null,
+      });
+      toast.updateSuccess(`Base "${editingBaseName}" atualizada com sucesso.`);
+      setEditingBaseId(null);
+    } catch (error) {
+      toast.updateError("Erro ao atualizar a base. Tente novamente.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingBaseId(null);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -262,6 +390,106 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
               placeholder="Ex: 5"
             />
           </div>
+
+          {/* Campo CNPJ */}
+          <div>
+            <Label htmlFor="newBaseCNPJ">CNPJ (Opcional)</Label>
+            <Input
+              id="newBaseCNPJ"
+              value={newBaseCNPJ}
+              onChange={(e) => setNewBaseCNPJ(e.target.value)}
+              placeholder="00.000.000/0000-00"
+            />
+          </div>
+
+          {/* Seção de Responsáveis */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-medium">
+                Responsáveis (Opcional)
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addResponsavel}
+                className="h-8 px-2"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar
+              </Button>
+            </div>
+
+            {newBaseResponsaveis.map((responsavel, index) => (
+              <div
+                key={index}
+                className="p-3 border rounded-md bg-white dark:bg-slate-800 space-y-3"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Label htmlFor={`responsavel-${index}`} className="text-sm">
+                      Nome do Responsável
+                    </Label>
+                    <Input
+                      id={`responsavel-${index}`}
+                      value={responsavel.nome}
+                      onChange={(e) =>
+                        updateResponsavel(index, "nome", e.target.value)
+                      }
+                      placeholder="Nome completo"
+                      className="mt-1"
+                    />
+                  </div>
+                  {newBaseResponsaveis.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeResponsavel(index)}
+                      className="mt-6 h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">
+                    Funções
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries({
+                      financeiro: "Financeiro",
+                      operacional: "Operacional",
+                      comercial: "Comercial",
+                      gerencial: "Gerencial",
+                    }).map(([key, label]) => (
+                      <div key={key} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`${index}-${key}`}
+                          checked={
+                            responsavel.funcoes[
+                              key as keyof typeof responsavel.funcoes
+                            ]
+                          }
+                          onCheckedChange={(checked) =>
+                            updateResponsavel(index, key, checked)
+                          }
+                        />
+                        <Label
+                          htmlFor={`${index}-${key}`}
+                          className="text-sm font-normal"
+                        >
+                          {label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <Button
             type="submit"
             disabled={isLoading || nextNumberId === null}
