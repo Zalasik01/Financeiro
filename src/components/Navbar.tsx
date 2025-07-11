@@ -1,24 +1,42 @@
-import React, { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { HelpModal } from "./HelpModal";
-import { Menu, X, Database, Contact, ChevronDown, Home, ListChecks, Tag, Briefcase, Archive, BarChart3, Target, CreditCard } from "lucide-react"; // Adicionado ChevronDown e outros ícones
-import { InstallPWAButton } from "./InstallPWAButton";
-import { UserMenu } from "./UserMenu";
-import { useStores } from "@/hooks/useStores"; // Adicionar useStores
-import { useAuth } from "@/hooks/useAuth";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"; // Para mobile
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"; // Para desktop
+import { useAuth } from "@/hooks/useAuth";
+import { useStores } from "@/hooks/useStores"; // Adicionar useStores
+import { cn } from "@/lib/utils";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"; // Para mobile
+  BarChart3,
+  Briefcase,
+  ChevronDown,
+  Contact,
+  CreditCard,
+  Database,
+  Home,
+  ListChecks,
+  Menu,
+  Settings,
+  Tag,
+  Target,
+  Archive,
+  TrendingUp,
+  Users,
+  Building2,
+  X,
+} from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { HelpModal } from "./HelpModal";
+import { InstallPWAButton } from "./InstallPWAButton";
+import { UserMenu } from "./UserMenu";
 
 interface NavSubItem {
   href: string;
@@ -58,10 +76,14 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [openMobileSubmenu, setOpenMobileSubmenu] = useState<string | null>(null);
+  const [openMobileSubmenu, setOpenMobileSubmenu] = useState<string | null>(
+    null
+  );
 
   // Encontrar os detalhes da base selecionada
-  const selectedBaseDetails = selectedBaseId ? bases.find(b => b.id === selectedBaseId) : null;
+  const selectedBaseDetails = selectedBaseId
+    ? bases.find((b) => b.id === selectedBaseId)
+    : null;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -114,17 +136,24 @@ const Navbar: React.FC = () => {
                       <ChevronDown className="ml-1 h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="bg-gray-800 border-gray-700 text-white">
+                  <DropdownMenuContent
+                    align="start"
+                    className="bg-gray-800 border-gray-700 text-white"
+                  >
                     {item.submenu.map((subItem) => (
                       <DropdownMenuItem key={subItem.href} asChild>
                         <Link
                           to={subItem.href}
                           className={cn(
                             "px-3 py-2 text-sm hover:bg-gray-700 w-full flex items-center",
-                            location.pathname === subItem.href ? "bg-gray-900" : ""
+                            location.pathname === subItem.href
+                              ? "bg-gray-900"
+                              : ""
                           )}
                         >
-                          {subItem.icon && <subItem.icon className="mr-2 h-4 w-4" />}
+                          {subItem.icon && (
+                            <subItem.icon className="mr-2 h-4 w-4" />
+                          )}
                           {subItem.label}
                         </Link>
                       </DropdownMenuItem>
@@ -156,6 +185,16 @@ const Navbar: React.FC = () => {
               >
                 Ajuda
               </Button>
+              {currentUser?.isAdmin && (
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate("/admin/store-management")}
+                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Gestão Sistema
+                </Button>
+              )}
               <InstallPWAButton />
               {selectedBaseDetails && (
                 <div className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-300">
@@ -193,7 +232,11 @@ const Navbar: React.FC = () => {
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {navItems.map((item) =>
               item.submenu ? (
-                <Collapsible key={item.label} open={openMobileSubmenu === item.label} onOpenChange={() => toggleMobileSubmenu(item.label)}>
+                <Collapsible
+                  key={item.label}
+                  open={openMobileSubmenu === item.label}
+                  onOpenChange={() => toggleMobileSubmenu(item.label)}
+                >
                   <CollapsibleTrigger asChild>
                     <Button
                       variant="ghost"
@@ -203,7 +246,11 @@ const Navbar: React.FC = () => {
                         {item.icon && <item.icon className="mr-2 h-5 w-5" />}
                         {item.label}
                       </div>
-                      <ChevronDown className={`h-5 w-5 transition-transform ${openMobileSubmenu === item.label ? "rotate-180" : ""}`} />
+                      <ChevronDown
+                        className={`h-5 w-5 transition-transform ${
+                          openMobileSubmenu === item.label ? "rotate-180" : ""
+                        }`}
+                      />
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pl-6 space-y-1 mt-1">
@@ -219,7 +266,9 @@ const Navbar: React.FC = () => {
                             : "text-gray-300 hover:text-white"
                         )}
                       >
-                        {subItem.icon && <subItem.icon className="mr-2 h-5 w-5" />}
+                        {subItem.icon && (
+                          <subItem.icon className="mr-2 h-5 w-5" />
+                        )}
                         {subItem.label}
                       </Link>
                     ))}
@@ -263,6 +312,19 @@ const Navbar: React.FC = () => {
             >
               Ajuda
             </Button>
+            {currentUser?.isAdmin && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  navigate("/admin/store-management");
+                  closeMobileMenu();
+                }}
+                className="w-full justify-start px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"
+              >
+                <Settings className="mr-2 h-5 w-5" />
+                Gestão Sistema
+              </Button>
+            )}
             <InstallPWAButton />
             <div className="border-t border-gray-700 pt-3 mt-2">
               <UserMenu />

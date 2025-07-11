@@ -1,43 +1,42 @@
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Navigate } from "react-router-dom"; // Importar Navigate
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   BrowserRouter,
-  Routes,
-  Route,
+  Navigate,
   Outlet,
+  Route,
+  Routes,
   useLocation,
-} from "react-router-dom";
+} from "react-router-dom"; // Importar Navigate
 import Index from "./pages/Index";
+import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
-import LoginPage from "./pages/LoginPage"; 
 // import SignupPage from "./pages/SignupPage"; // Página de signup não será mais usada
-import ProtectedRoute from "./components/ProtectedRoute";
-import SettingsPage from "./pages/SettingsPage";
-import { AuthProvider, useAuth } from "./hooks/useAuth";
-import TransacaoPage from "./pages/TransacaoPage";
-import CategoriaPage from "./pages/CategoriaPage";
-import LojaPage from "./pages/LojaPage";
-import FechamentoPage from "./pages/FechamentoPage";
-import DREPage from "./pages/DREPage";
-import MetaPage from "./pages/MetaPage";
-import GerenciarFormaPagamentoPage from "./pages/GerenciarFormaPagamentoPage";
-import GerenciarUsuarioPage from "./pages/GerenciarUsuarioPage";
-import GerenciarTipoMovimentacaoPage from "./pages/GerenciarTipoMovimentacaoPage";
-import { useEffect, useState, useMemo } from "react"; // Adicionado useMemo
-import Navbar from "./components/Navbar"; // Corrigido: Navbar já estava importado
-import Footer from "./components/Footer";
-import EditarPerfilPage from "./pages/EditarPerfilPage";
-import AdminPage from "./pages/AdminPage";
+import { useEffect, useMemo } from "react"; // Adicionado useMemo
 import AdminLayout from "./components/AdminLayout";
-import GerenciarUsuariosGlobalPage from "./pages/AdminPage/GerenciarUsuariosGlobalPage"; // Certifique-se que a importação está correta
-import { AccessSelectionModal } from "./components/AccessSelectionModal";
-import InvitePage from "./pages/InvitePage";
+import Footer from "./components/Footer";
+import Navbar from "./components/Navbar"; // Corrigido: Navbar já estava importado
+import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { useStores } from "./hooks/useStores";
-import { PaginaClienteFornecedor } from "./pages/PaginaClienteFornecedor";
+import AdminPage from "./pages/AdminPage";
+import GerenciarUsuariosGlobalPage from "./pages/AdminPage/GerenciarUsuariosGlobalPage"; // Certifique-se que a importação está correta
+import CategoriaPage from "./pages/CategoriaPage";
+import DREPage from "./pages/DREPage";
+import EditarPerfilPage from "./pages/EditarPerfilPage";
+import FechamentoPage from "./pages/FechamentoPage";
 import { GerenciarClientesFornecedoresPage } from "./pages/GerenciarClientesFornecedoresPage"; // Importar a nova página
+import GerenciarFormaPagamentoPage from "./pages/GerenciarFormaPagamentoPage";
+import GerenciarTipoMovimentacaoPage from "./pages/GerenciarTipoMovimentacaoPage";
+import GerenciarUsuarioPage from "./pages/GerenciarUsuarioPage";
+import InvitePage from "./pages/InvitePage";
+import LojaPage from "./pages/LojaPage";
+import MetaPage from "./pages/MetaPage";
+import { PaginaClienteFornecedor } from "./pages/PaginaClienteFornecedor";
+import SettingsPage from "./pages/SettingsPage";
+import TransacaoPage from "./pages/TransacaoPage";
 
 const queryClient = new QueryClient();
 
@@ -61,48 +60,40 @@ const AppContent = () => {
   const location = useLocation();
   const { currentUser, loading: authLoading, setSelectedBaseId } = useAuth();
   const { bases } = useStores();
-  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
-  const routeTitles = useMemo((): Record<string, string> => ({
-    "/": "Visão Geral",
-    "/transacao": "Transações",
-    "/categoria": "Categorias",
-    "/loja": "Lojas",
-    "/fechamento": "Fechamentos",
-    "/dre": "DRE",
-    "/meta": "Metas",
-    "/forma-pagamento": "Formas de Pagamento",
-    "/gerenciar-forma-pagamento": "Formas de Pagamento",
-    "/gerenciar-usuario": "Gerenciar Usuários",
-    "/gerenciar-tipo-movimentacao": "Gerenciar Tipos de Movimentação",
-    "/editar-perfil": "Editar Perfil",
-    "/settings": "Configurações",
-    "/clientes-fornecedores/editar/:id": "Editar Cliente/Fornecedor", 
-    "/clientes-fornecedores/novo": "Novo Cliente/Fornecedor", // Título para a página de novo cadastro
-    "/clientes-fornecedores": "Clientes e Fornecedores", // Adicionar título para a nova rota
-    "/login": "Login",
-    "/signup": "Criar Conta",
-    "*": "Página Não Encontrada",
-  }), []);
+  const routeTitles = useMemo(
+    (): Record<string, string> => ({
+      "/": "Visão Geral",
+      "/transacao": "Transações",
+      "/categoria": "Categorias",
+      "/loja": "Lojas",
+      "/fechamento": "Fechamentos",
+      "/dre": "DRE",
+      "/meta": "Metas",
+      "/forma-pagamento": "Formas de Pagamento",
+      "/gerenciar-forma-pagamento": "Formas de Pagamento",
+      "/gerenciar-usuario": "Gerenciar Usuários",
+      "/gerenciar-tipo-movimentacao": "Gerenciar Tipos de Movimentação",
+      "/editar-perfil": "Editar Perfil",
+      "/settings": "Configurações",
+      "/clientes-fornecedores/editar/:id": "Editar Cliente/Fornecedor",
+      "/clientes-fornecedores/novo": "Novo Cliente/Fornecedor", // Título para a página de novo cadastro
+      "/clientes-fornecedores": "Clientes e Fornecedores", // Adicionar título para a nova rota
+      "/login": "Login",
+      "/signup": "Criar Conta",
+      "*": "Página Não Encontrada",
+    }),
+    []
+  );
 
   useEffect(() => {
-    const pageTitle = routeTitles[location.pathname] || 
-                      (location.pathname.startsWith("/clientes-fornecedores/editar/") 
-                        ? routeTitles["/clientes-fornecedores/editar/:id"] 
-                        : routeTitles["*"]);
+    const pageTitle =
+      routeTitles[location.pathname] ||
+      (location.pathname.startsWith("/clientes-fornecedores/editar/")
+        ? routeTitles["/clientes-fornecedores/editar/:id"]
+        : routeTitles["*"]);
     document.title = `Financeiro App - ${pageTitle}`;
   }, [location.pathname, routeTitles]); // routeTitles is now stable due to useMemo
-
-
-  useEffect(() => {
-    if (
-      !authLoading &&
-      currentUser &&
-      !sessionStorage.getItem("adminModalDismissed")
-    ) {
-      setIsAdminModalOpen(true);
-    }
-  }, [currentUser, authLoading]);
   useEffect(() => {
     if (
       currentUser &&
@@ -163,17 +154,36 @@ const AppContent = () => {
                 />
                 <Route path="/editar-perfil" element={<EditarPerfilPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/clientes-fornecedores" element={<GerenciarClientesFornecedoresPage />} />
-                <Route path="/clientes-fornecedores/novo" element={<PaginaClienteFornecedor />} />
-                <Route path="/clientes-fornecedores/editar/:id" element={<PaginaClienteFornecedor />} /> 
+                <Route
+                  path="/clientes-fornecedores"
+                  element={<GerenciarClientesFornecedoresPage />}
+                />
+                <Route
+                  path="/clientes-fornecedores/novo"
+                  element={<PaginaClienteFornecedor />}
+                />
+                <Route
+                  path="/clientes-fornecedores/editar/:id"
+                  element={<PaginaClienteFornecedor />}
+                />
               </Route>
             </Route>
             {/* Agrupar todas as rotas de admin sob /admin */}
-            <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]} />}>
+            <Route
+              path="/admin"
+              element={<ProtectedRoute allowedRoles={["admin"]} />}
+            >
               <Route element={<AdminLayout />}>
-                <Route index element={<Navigate to="store-management" replace />} /> {/* Redireciona /admin para /admin/store-management */}
+                <Route
+                  index
+                  element={<Navigate to="store-management" replace />}
+                />{" "}
+                {/* Redireciona /admin para /admin/store-management */}
                 <Route path="store-management" element={<AdminPage />} />
-                <Route path="gerenciar-usuarios-global" element={<GerenciarUsuariosGlobalPage />} />
+                <Route
+                  path="gerenciar-usuarios-global"
+                  element={<GerenciarUsuariosGlobalPage />}
+                />
                 {/* Outras sub-rotas do admin podem vir aqui */}
               </Route>
             </Route>
@@ -184,17 +194,6 @@ const AppContent = () => {
           </Routes>
           {!location.pathname.startsWith("/admin") && <Footer />}
         </div>
-        {currentUser && isAdminModalOpen && (
-          <AccessSelectionModal
-            isOpen={isAdminModalOpen}
-            onClose={() => {
-              setIsAdminModalOpen(false);
-              sessionStorage.setItem("adminModalDismissed", "true");
-            }}
-            bases={bases}
-            isAdmin={!!currentUser?.isAdmin} // Passa a flag isAdmin
-          />
-        )}
       </TooltipProvider>
     </QueryClientProvider>
   );

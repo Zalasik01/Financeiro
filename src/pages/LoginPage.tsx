@@ -56,15 +56,10 @@ export default function LoginPage() {
   const [modalAlreadyOpened, setModalAlreadyOpened] = useState(false);
   const modalProcessingRef = useRef(false);
   const modalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const renderCountRef = useRef(0);
 
   // Criar refs para funções estáveis
   const handleBaseSelectedRef = useRef<(baseId: string) => void>();
   const handleModalCloseRef = useRef<() => void>();
-
-  // Incrementar contador de render do LoginPage
-  renderCountRef.current += 1;
-  console.log(`🏠 [LoginPage] Render #${renderCountRef.current}`);
 
   const {
     login,
@@ -88,11 +83,33 @@ export default function LoginPage() {
   const dataIsLoading = authLoading;
 
   const basesParaUsuario = useMemo(() => {
-    if (!currentUser || !allBases) return [];
-    if (currentUser.isAdmin) return allBases;
-    // Para usuários não-admin, já foram filtradas no useStores
-    // Filtrar apenas bases ativas
-    return allBases.filter((base: ExtendedBase) => base.ativo);
+    if (!currentUser || !allBases) {
+      console.log("🔍 [LoginPage] basesParaUsuario: retornando array vazio", {
+        hasCurrentUser: !!currentUser,
+        hasAllBases: !!allBases,
+        allBasesLength: allBases?.length || 0,
+      });
+      return [];
+    }
+
+    if (currentUser.isAdmin) {
+      console.log("🔍 [LoginPage] basesParaUsuario: admin vê todas as bases", {
+        isAdmin: currentUser.isAdmin,
+        totalBases: allBases.length,
+        bases: allBases.map((b) => ({ id: b.id, name: b.name })),
+      });
+      // Admin vê todas as bases (ativas e inativas)
+      return allBases;
+    }
+
+    // Para usuários não-admin, filtrar apenas bases ativas que eles têm acesso
+    const filteredBases = allBases.filter((base: ExtendedBase) => base.ativo);
+    console.log("🔍 [LoginPage] basesParaUsuario: usuário normal", {
+      isAdmin: currentUser.isAdmin,
+      totalBases: allBases.length,
+      filteredBases: filteredBases.length,
+    });
+    return filteredBases;
   }, [allBases, currentUser]);
 
   useEffect(() => {
@@ -147,30 +164,47 @@ export default function LoginPage() {
 
   // Efeito separado para verificar se deve abrir o modal após login bem-sucedido
   useEffect(() => {
-    console.log("🔍 [LoginPage] useEffect Modal - Estados:", {
-      currentUser: !!currentUser,
-      currentUserEmail: currentUser?.email,
+    console.log("🔍 [LoginPage] useEffect modal - verificando condições:", {
+      hasCurrentUser: !!currentUser,
+      isAdmin: currentUser?.isAdmin,
       authLoading,
+      hasAllBases: !!allBases,
+      allBasesLength: allBases?.length || 0,
       status,
       isModalOpen,
       modalAlreadyOpened,
-      modalProcessing: modalProcessingRef.current,
-      basesParaUsuarioCount: basesParaUsuario.length,
-      allBasesCount: allBases?.length || 0,
-      timestamp: new Date().toISOString(),
+      modalProcessingRefCurrent: modalProcessingRef.current,
+      basesParaUsuarioLength: basesParaUsuario.length,
     });
 
     // Só processar se o usuário acabou de fazer login (não em carregamentos subsequentes)
+    // IMPORTANTE: Para admin, aguardar pelo menos uma tentativa de carregamento das bases
+    const shouldWaitForBases = currentUser?.isAdmin;
+    const basesLoaded = shouldWaitForBases
+      ? allBases && allBases.length >= 0
+      : true;
+
+    console.log("🔍 [LoginPage] Análise de carregamento:", {
+      shouldWaitForBases,
+      basesLoaded,
+      allBasesLength: allBases?.length,
+      basesParaUsuarioLength: basesParaUsuario.length,
+    });
+
     if (
       currentUser &&
       !authLoading &&
       allBases && // Garantir que as bases foram carregadas
+      basesLoaded && // Para admin, garantir que as bases foram processadas
       status === "LOADING" &&
       !isModalOpen &&
       !modalAlreadyOpened &&
-      !modalProcessingRef.current
+      !modalProcessingRef.current &&
+      (currentUser.isAdmin || basesParaUsuario.length > 0) // Só prosseguir se tiver bases ou for admin
     ) {
-      console.log("✅ [LoginPage] Condições atendidas para abrir modal");
+      console.log(
+        "🎯 [LoginPage] Condições atendidas - preparando para abrir modal"
+      );
 
       // Limpar timeout anterior se existir
       if (modalTimeoutRef.current) {
@@ -179,6 +213,10 @@ export default function LoginPage() {
 
       // Usar setTimeout para garantir que o estado seja estável
       modalTimeoutRef.current = setTimeout(() => {
+        console.log(
+          "⏰ [LoginPage] Timeout executado - verificando condições novamente"
+        );
+
         // Verificar novamente as condições após o timeout
         if (
           !isModalOpen &&
@@ -189,18 +227,23 @@ export default function LoginPage() {
           // Marcar como processando para evitar execuções duplas
           modalProcessingRef.current = true;
 
-          if (currentUser.isAdmin || basesParaUsuario.length > 0) {
-            console.log("🚀 [LoginPage] Abrindo modal (após timeout):", {
-              isAdmin: currentUser.isAdmin,
-              basesCount: basesParaUsuario.length,
-            });
+          console.log("🚀 [LoginPage] Abrindo modal:", {
+            isAdmin: currentUser.isAdmin,
+            basesParaUsuarioLength: basesParaUsuario.length,
+            hasBasesToShow: currentUser.isAdmin || basesParaUsuario.length > 0,
+          });
 
+          // Para admin: sempre abrir o modal (mesmo sem bases)
+          // Para usuário normal: só abrir se tiver bases
+          if (currentUser.isAdmin || basesParaUsuario.length > 0) {
             // Garantir que só execute uma vez por login
             setModalAlreadyOpened(true);
             setIsModalOpen(true);
             setStatus("IDLE");
           } else {
-            console.log("❌ [LoginPage] Usuário sem bases associadas");
+            console.log(
+              "❌ [LoginPage] Nenhuma base disponível para usuário não-admin"
+            );
             setError("Você não possui nenhuma base de dados associada.");
             setStatus("ERROR");
             logout();
@@ -208,17 +251,7 @@ export default function LoginPage() {
         }
         // Limpar a referência do timeout após execução
         modalTimeoutRef.current = null;
-      }, 100); // Pequeno delay para garantir estabilidade
-    } else {
-      console.log("⏸️ [LoginPage] Condições NÃO atendidas:", {
-        hasCurrentUser: !!currentUser,
-        authNotLoading: !authLoading,
-        allBasesLoaded: !!allBases,
-        statusIsLoading: status === "LOADING",
-        modalNotOpen: !isModalOpen,
-        modalNotAlreadyOpened: !modalAlreadyOpened,
-        modalNotProcessing: !modalProcessingRef.current,
-      });
+      }, 200); // Aumentar o delay para 200ms para dar tempo das bases carregarem
     }
   }, [
     currentUser,
@@ -227,21 +260,13 @@ export default function LoginPage() {
     status,
     isModalOpen,
     modalAlreadyOpened,
-    basesParaUsuario.length, // Usar apenas o length para evitar re-criações do array
+    basesParaUsuario, // Usar o array completo para reagir a mudanças nas bases
     logout,
   ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (status === "LOADING") return;
-
-    console.log("🚀 [LoginPage] handleSubmit iniciado:", {
-      email,
-      status,
-      isModalOpen,
-      modalAlreadyOpened,
-      timestamp: new Date().toISOString(),
-    });
 
     setError(null);
     setStatus("LOADING");
@@ -254,49 +279,32 @@ export default function LoginPage() {
       modalTimeoutRef.current = null;
     }
 
-    console.log("⚙️ [LoginPage] Estados atualizados no handleSubmit:", {
-      newStatus: "LOADING",
-      modalAlreadyOpened: false,
-      modalProcessing: false,
-    });
-
     try {
-      console.log("🔐 [LoginPage] Chamando login...");
       await login(email, password);
-      console.log("✅ [LoginPage] Login concluído com sucesso");
       // O useEffect acima cuidará do resto quando currentUser for atualizado
     } catch (error) {
-      console.error("❌ [LoginPage] Falha no login:", error);
       setError("E-mail ou senha inválidos. Verifique suas credenciais.");
       setStatus("ERROR");
     }
   };
 
   // Estabilizar as props para o modal usando useMemo
-  const modalProps = useMemo(() => {
-    const props = {
+  const modalProps = useMemo(
+    () => ({
       isOpen: isModalOpen,
       onClose: stableHandleModalClose,
       onSelectBase: stableHandleBaseSelected,
       bases: basesParaUsuario as ExtendedBase[],
       isAdmin: !!currentUser?.isAdmin,
-    };
-
-    console.log("🎛️ [LoginPage] modalProps recriadas:", {
-      isOpen: props.isOpen,
-      basesCount: props.bases.length,
-      isAdmin: props.isAdmin,
-      timestamp: new Date().toISOString(),
-    });
-
-    return props;
-  }, [
-    isModalOpen,
-    stableHandleModalClose,
-    stableHandleBaseSelected,
-    basesParaUsuario,
-    currentUser?.isAdmin,
-  ]);
+    }),
+    [
+      isModalOpen,
+      stableHandleModalClose,
+      stableHandleBaseSelected,
+      basesParaUsuario,
+      currentUser?.isAdmin,
+    ]
+  );
 
   const isLoading = status === "LOADING";
 
