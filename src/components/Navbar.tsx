@@ -52,21 +52,33 @@ interface NavItemConfig {
 }
 
 const navItems: NavItemConfig[] = [
-  { href: "/", label: "Visão Geral", icon: Home },
+  { href: "/", label: "Dashboard", icon: Home },
   { href: "/transacao", label: "Transações", icon: ListChecks },
-  { href: "/categoria", label: "Categorias", icon: Tag },
-  { href: "/loja", label: "Lojas", icon: Briefcase },
   {
-    label: "Clientes",
-    icon: Contact,
+    label: "Cadastros",
+    icon: Database,
     submenu: [
-      { href: "/clientes-fornecedores", label: "Cadastrar Cliente/Fornecedor" },
+      { href: "/categoria", label: "Categorias", icon: Tag },
+      { href: "/loja", label: "Lojas", icon: Briefcase },
+      { href: "/clientes-fornecedores", label: "Clientes/Fornecedores", icon: Contact },
+      { href: "/forma-pagamento", label: "Formas de Pagamento", icon: CreditCard },
     ],
   },
-  { href: "/fechamento", label: "Fechamentos", icon: Archive },
-  { href: "/dre", label: "DRE", icon: BarChart3 },
-  { href: "/meta", label: "Metas", icon: Target },
-  { href: "/forma-pagamento", label: "Formas de Pagamento", icon: CreditCard },
+  {
+    label: "Relatórios",
+    icon: TrendingUp,
+    submenu: [
+      { href: "/dre", label: "DRE", icon: BarChart3 },
+      { href: "/fechamento", label: "Fechamentos", icon: Archive },
+    ],
+  },
+  {
+    label: "Gestão",
+    icon: Settings,
+    submenu: [
+      { href: "/meta", label: "Metas", icon: Target },
+    ],
+  },
 ];
 
 const Navbar: React.FC = () => {
@@ -120,8 +132,8 @@ const Navbar: React.FC = () => {
             </Link>
           </div>
 
-          {/* Menu Desktop (visível em telas grandes) */}
-          <div className="hidden lg:flex lg:items-center lg:space-x-4">
+          {/* Menu Desktop (visível em telas médias e grandes) */}
+          <div className="hidden md:flex md:items-center md:space-x-2 lg:space-x-4">
             {/* Links de Navegação */}
             {navItems.map((item) =>
               item.submenu ? (
@@ -129,10 +141,11 @@ const Navbar: React.FC = () => {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
-                      className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"
+                      className="px-2 lg:px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"
                     >
-                      {item.icon && <item.icon className="mr-2 h-4 w-4" />}
-                      {item.label}
+                      {item.icon && <item.icon className="mr-1 lg:mr-2 h-4 w-4" />}
+                      <span className="hidden lg:inline">{item.label}</span>
+                      <span className="lg:hidden">{item.label.slice(0, 4)}</span>
                       <ChevronDown className="ml-1 h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -165,41 +178,45 @@ const Navbar: React.FC = () => {
                   key={item.href}
                   to={item.href!}
                   className={cn(
-                    "px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 flex items-center",
+                    "px-2 lg:px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 flex items-center",
                     location.pathname === item.href
                       ? "bg-gray-900 text-white"
                       : "text-gray-300 hover:text-white"
                   )}
                 >
-                  {item.icon && <item.icon className="mr-2 h-4 w-4" />}
-                  {item.label}
+                  {item.icon && <item.icon className="mr-1 lg:mr-2 h-4 w-4" />}
+                  <span className="hidden lg:inline">{item.label}</span>
+                  <span className="lg:hidden">{item.label.slice(0, 4)}</span>
                 </Link>
               )
             )}
             {/* Ações e Menu do Usuário */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 lg:space-x-2">
               <Button
                 variant="ghost"
                 onClick={() => setIsHelpModalOpen(true)}
-                className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+                className="px-2 lg:px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+                title="Ajuda"
               >
-                Ajuda
+                <span className="hidden lg:inline">Ajuda</span>
+                <span className="lg:hidden">?</span>
               </Button>
               {currentUser?.isAdmin && (
                 <Button
                   variant="ghost"
                   onClick={() => navigate("/admin/store-management")}
-                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"
+                  className="px-2 lg:px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"
+                  title="Gestão Sistema"
                 >
-                  <Settings className="mr-2 h-4 w-4" />
-                  Gestão Sistema
+                  <Settings className="h-4 w-4 lg:mr-2" />
+                  <span className="hidden lg:inline">Gestão Sistema</span>
                 </Button>
               )}
               <InstallPWAButton />
               {selectedBaseDetails && (
-                <div className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-300">
-                  <Database size={16} className="mr-2 text-gray-400" />
-                  <span>
+                <div className="hidden xl:flex items-center px-2 lg:px-3 py-2 rounded-md text-sm font-medium text-gray-300">
+                  <Database size={16} className="mr-1 lg:mr-2 text-gray-400" />
+                  <span className="truncate max-w-32">
                     {selectedBaseDetails.name} (#{selectedBaseDetails.numberId})
                   </span>
                 </div>
@@ -208,8 +225,8 @@ const Navbar: React.FC = () => {
             </div>
           </div>
 
-          {/* Botão do Menu Hambúrguer (visível em telas pequenas) */}
-          <div className="lg:hidden flex items-center">
+          {/* Botão do Menu Hambúrguer (visível em telas pequenas e médias) */}
+          <div className="md:hidden flex items-center">
             <Button
               variant="ghost"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -228,7 +245,7 @@ const Navbar: React.FC = () => {
 
       {/* Menu Mobile (Conteúdo que abre) */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-gray-700">
+        <div className="md:hidden border-t border-gray-700">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {navItems.map((item) =>
               item.submenu ? (
