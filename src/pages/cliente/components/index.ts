@@ -1,0 +1,1 @@
+export { EditarClienteFornecedor } from "./EditarClienteFornecedor";

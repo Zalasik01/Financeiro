@@ -35,7 +35,7 @@ import GerenciarUsuarioPage from "./pages/GerenciarUsuarioPage";
 import InvitePage from "./pages/InvitePage";
 import LojaPage from "./pages/LojaPage";
 import MetaPage from "./pages/MetaPage";
-import { PaginaClienteFornecedor } from "./pages/PaginaClienteFornecedor";
+import { EditarClienteFornecedor } from "./pages/cliente/components/EditarClienteFornecedor";
 import SettingsPage from "./pages/SettingsPage";
 import TransacaoPage from "./pages/TransacaoPage";
 
@@ -77,8 +77,7 @@ const AppContent = () => {
       "/gerenciar-tipo-movimentacao": "Gerenciar Tipos de Movimentação",
       "/editar-perfil": "Editar Perfil",
       "/settings": "Configurações",
-      "/clientes-fornecedores/editar/:id": "Editar Cliente/Fornecedor",
-      "/clientes-fornecedores/novo": "Novo Cliente/Fornecedor", // Título para a página de novo cadastro
+      "/clientes-fornecedores/editar/:id": "Cliente/Fornecedor",
       "/clientes-fornecedores": "Clientes e Fornecedores", // Adicionar título para a nova rota
       "/login": "Login",
       "/signup": "Criar Conta",
@@ -160,12 +159,8 @@ const AppContent = () => {
                   element={<GerenciarClientesFornecedoresPage />}
                 />
                 <Route
-                  path="/clientes-fornecedores/novo"
-                  element={<PaginaClienteFornecedor />}
-                />
-                <Route
                   path="/clientes-fornecedores/editar/:id"
-                  element={<PaginaClienteFornecedor />}
+                  element={<EditarClienteFornecedor />}
                 />
               </Route>
             </Route>
