@@ -5,6 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Search, Filter, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,11 +23,12 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { SortableTableHeader } from "@/components/ui/SortableTableHeader";
 import { useTableSort } from "@/hooks/useTableSort";
 import { DataTable, DataTableHeader, DataTableBody, DataTableRow, DataTableCell, DataTableHeaderCell } from "@/components/ui/data-table";
-import { db } from "@/firebase";
+import { db, functions as firebaseFunctions } from "@/firebase";
 import { toast } from "@/lib/toast";
 import { useAuth } from "@/hooks/useAuth";
 import type { ClientBase } from "@/types/store";
 import { onValue, ref } from "firebase/database";
+import { httpsCallable } from "firebase/functions";
 
 interface UserProfile {
   uid: string;
@@ -44,6 +55,7 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
   const [busca, setBusca] = useState("");
   
   const [modalPesquisaAberto, setModalPesquisaAberto] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
   const [filtros, setFiltros] = useState({
     status: "todos",
     tipo: "todos",
@@ -122,6 +134,42 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
 
   const navegarParaVisualizarUsuario = (uid: string) => {
     navigate(`/admin/gerenciar-usuarios-global/editar/${uid}`);
+  };
+
+  const handleDeleteUser = (user: UserProfile) => {
+    setUserToDelete(user);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      const deleteUserAccountFunction = httpsCallable(firebaseFunctions, 'deleteUserAccount');
+      const result = await deleteUserAccountFunction({ targetUid: userToDelete.uid });
+      const resultData = result.data as { success: boolean; message: string };
+
+      if (resultData.success) {
+        toast.success({
+          title: "Sucesso!",
+          description: resultData.message,
+        });
+        setUsuarios(prevUsers => prevUsers.filter(u => u.uid !== userToDelete.uid));
+      } else {
+        toast.error({
+          title: "Erro ao excluir usuário",
+          description: resultData.message || "Ocorreu um erro.",
+        });
+      }
+    } catch (errorUnknown: unknown) {
+      const error = errorUnknown as { message?: string };
+      console.error("Erro ao chamar Cloud Function deleteUserAccount:", error.message || error);
+      toast.error({
+        title: "Erro na Operação",
+        description: error.message || `Não foi possível excluir o usuário ${userToDelete.displayName}.`,
+      });
+    } finally {
+      setUserToDelete(null);
+    }
   };
 
   const aplicarFiltros = () => {
@@ -326,15 +374,15 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
                   <DataTableCell>{getBasesText(user)}</DataTableCell>
                   <DataTableCell>{formatDate(user.createdAt || 0)}</DataTableCell>
                   <DataTableCell align="center">
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <ActionButton
                         type="edit"
-                        onClick={e => { e.stopPropagation(); navegarParaEditar(user.uid); }}
+                        onClick={() => navegarParaEditar(user.uid)}
                         tooltip="Editar usuário"
                       />
                       <ActionButton
                         type="delete"
-                        onClick={e => { e.stopPropagation(); /* aqui chama a função de exclusão real */ console.log('Deletar usuário:', user.uid); }}
+                        onClick={() => handleDeleteUser(user)}
                         tooltip="Deletar usuário"
                       />
                     </div>
@@ -427,6 +475,27 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Confirmação de Exclusão */}
+      {userToDelete && (
+        <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir o usuário "{userToDelete.displayName || userToDelete.uid}" (UID: {userToDelete.uid})?
+                Esta ação não pode ser desfeita e removerá permanentemente todos os dados do usuário.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setUserToDelete(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteUser} className="bg-red-600 hover:bg-red-700">
+                Excluir Usuário
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 };
