@@ -22,6 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTableSort } from "@/hooks/useTableSort";
 import type { ClientBase } from "@/types/store";
 import { onValue, ref, update } from "firebase/database";
+import { maskCNPJ } from "@/utils/formatters";
 
 interface AppUser {
   uid: string;
@@ -449,7 +450,7 @@ export const GestaoBasesPage: React.FC = () => {
                 <DataTableRow key={base.id} onClick={() => navegarParaVisualizarBase(base.id)} className={!base.ativo ? 'opacity-60' : ''}>
                   <DataTableCell className="font-medium">#{base.numberId || 'N/A'}</DataTableCell>
                   <DataTableCell className="font-medium">{base.name}</DataTableCell>
-                  <DataTableCell>{base.cnpj || 'Não informado'}</DataTableCell>
+                  <DataTableCell>{base.cnpj ? maskCNPJ(base.cnpj) : 'Não informado'}</DataTableCell>
                   <DataTableCell align="center">{getUserCount(base)}</DataTableCell>
                   <DataTableCell align="center">
                     {base.limite_acesso ? base.limite_acesso : 'Ilimitado'}
