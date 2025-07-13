@@ -261,7 +261,7 @@ const EditarPerfilPage: React.FC = () => {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={isUpdatingProfile} className="bg-[#1a365d] hover:bg-[#2d5a87] text-white">
+            <Button type="submit" disabled={isUpdatingProfile} className="bg-gray-800 hover:bg-gray-900 text-white">
               {isUpdatingProfile ? "Salvando..." : "Salvar Perfil"}
             </Button>
           </CardFooter>
@@ -306,7 +306,7 @@ const EditarPerfilPage: React.FC = () => {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={isUpdatingPassword} className="bg-[#1a365d] hover:bg-[#2d5a87] text-white">
+            <Button type="submit" disabled={isUpdatingPassword} className="bg-gray-800 hover:bg-gray-900 text-white">
               {isUpdatingPassword ? "Alterando..." : "Alterar Senha"}
             </Button>
           </CardFooter>

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useStores } from "@/hooks/useStores";
 import { Store } from "@/types/store"; 
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Edit2, Trash2, Search, Filter, MoreVertical, Download } from "lucide-react";
+import { PlusCircle, Search, Filter, MoreVertical, Download, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -12,6 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { maskCNPJ } from "@/utils/formatters";
+import { ActionButtons } from "@/components/ui/action-buttons";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { DataTable, DataTableHeader, DataTableBody, DataTableRow, DataTableCell, DataTableHeaderCell } from "@/components/ui/data-table";
 
 const LojaPage: React.FC = () => {
   const {
@@ -303,7 +306,7 @@ const LojaPage: React.FC = () => {
                     <Button 
                       type="button"
                       onClick={aplicarFiltros}
-                      className="flex-1 bg-gray-800 hover:bg-gray-700 text-white"
+                      className="flex-1 bg-[#1f2937] hover:bg-[#374151] text-white"
                     >
                       Aplicar
                     </Button>
@@ -311,7 +314,7 @@ const LojaPage: React.FC = () => {
                       type="button"
                       variant="outline" 
                       onClick={limparFiltros}
-                      className="flex-1 border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white"
+                      className="flex-1 border-[#1f2937] text-[#1f2937] hover:bg-[#1f2937] hover:text-white"
                     >
                       Limpar
                     </Button>
@@ -324,147 +327,126 @@ const LojaPage: React.FC = () => {
           {temFiltrosAtivos && (
             <div className="mb-4 flex flex-wrap gap-2">
               {filtros.status !== "todos" && (
-                <Badge variant="secondary" className="bg-gray-800 text-white">
+                <Badge variant="secondary" className="bg-[#1f2937] text-white">
                   Status: {filtros.status === "matriz" ? "Matriz" : filtros.status === "filial" ? "Filial" : "Loja Padrão"}
                 </Badge>
               )}
             </div>
           )}
           {/* Tabela de Resultados */}
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-300">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border border-gray-300 px-4 py-2 text-center">Nome/Razão Social</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Tipo</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">CNPJ</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Telefone</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Email</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Matriz</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Status</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lojasFiltradas.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                      {stores.length === 0 ? 'Nenhuma loja cadastrada ainda.' : 'Nenhuma loja encontrada com os filtros aplicados.'}
-                    </td>
-                  </tr>
-                )}
-                {lojasFiltradas.length > 0 && lojasFiltradas.map((loja) => {
-                  const telefonePrincipal = loja.telefones?.find(t => t.principal) || loja.telefones?.[0];
-                  const emailPrincipal = loja.emails?.find(e => e.principal) || loja.emails?.[0];
-                  
-                  return (
-                    <tr key={loja.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navegarParaEditar(loja.id)}>
-                      <td className="border border-gray-300 px-4 py-2">
-                        <div className="flex items-center gap-2">
-                          {loja.icon &&
-                          (loja.icon.startsWith("data:image") ||
-                            loja.icon.startsWith("http")) ? (
-                            <img
-                              src={loja.icon}
-                              alt={loja.name}
-                              className="w-8 h-8 rounded-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-lg w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
-                              {loja.icon || "🏪"}
-                            </span>
+          <DataTable>
+            <DataTableHeader>
+              <DataTableRow>
+                <DataTableHeaderCell>Nome/Razão Social</DataTableHeaderCell>
+                <DataTableHeaderCell align="center">Tipo</DataTableHeaderCell>
+                <DataTableHeaderCell align="center">CNPJ</DataTableHeaderCell>
+                <DataTableHeaderCell align="center">Telefone</DataTableHeaderCell>
+                <DataTableHeaderCell align="center">Email</DataTableHeaderCell>
+                <DataTableHeaderCell align="center">Matriz</DataTableHeaderCell>
+                <DataTableHeaderCell align="center">Status</DataTableHeaderCell>
+                <DataTableHeaderCell align="center">Ações</DataTableHeaderCell>
+              </DataTableRow>
+            </DataTableHeader>
+            <DataTableBody>
+              {lojasFiltradas.length === 0 && (
+                <DataTableRow>
+                  <DataTableCell className="py-8 text-gray-500" align="center" colSpan={8}>
+                    {stores.length === 0 ? 'Nenhuma loja cadastrada ainda.' : 'Nenhuma loja encontrada com os filtros aplicados.'}
+                  </DataTableCell>
+                </DataTableRow>
+              )}
+              {lojasFiltradas.length > 0 && lojasFiltradas.map((loja) => {
+                const telefonePrincipal = loja.telefones?.find(t => t.principal) || loja.telefones?.[0];
+                const emailPrincipal = loja.emails?.find(e => e.principal) || loja.emails?.[0];
+                
+                return (
+                  <DataTableRow key={loja.id} onClick={() => navegarParaEditar(loja.id)}>
+                    <DataTableCell>
+                      <div className="flex items-center gap-2">
+                        {loja.icon &&
+                        (loja.icon.startsWith("data:image") ||
+                          loja.icon.startsWith("http")) ? (
+                          <img
+                            src={loja.icon}
+                            alt={loja.name}
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-lg w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
+                            {loja.icon || "🏪"}
+                          </span>
+                        )}
+                        <div>
+                          <div className="font-medium flex items-center gap-1">
+                            {loja.name}
+                            {loja.isDefault && (
+                              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                            )}
+                          </div>
+                          {(loja.nickname || loja.code) && (
+                            <div className="flex gap-1 mt-1">
+                              {loja.nickname && (
+                                <span className="text-xs bg-gray-200 text-gray-700 px-1 py-0.5 rounded">
+                                  {loja.nickname}
+                                </span>
+                              )}
+                              {loja.code && (
+                                <span className="text-xs bg-gray-800 text-white px-1 py-0.5 rounded">
+                                  #{loja.code}
+                                </span>
+                              )}
+                            </div>
                           )}
-                          <div>
-                            <div className="font-medium">{loja.name}</div>
-                            {(loja.nickname || loja.code) && (
-                              <div className="flex gap-1 mt-1">
-                                {loja.nickname && (
-                                  <span className="text-xs bg-gray-200 text-gray-700 px-1 py-0.5 rounded">
-                                    {loja.nickname}
-                                  </span>
-                                )}
-                                {loja.code && (
-                                  <span className="text-xs bg-gray-800 text-white px-1 py-0.5 rounded">
-                                    #{loja.code}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
                         </div>
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {loja.isMatriz ? "Matriz" : "Filial"}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {maskCNPJ(loja.cnpj)}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {telefonePrincipal ? (
-                          <div className="flex items-center gap-1">
-                            <span>{telefonePrincipal.numero}</span>
-                            {telefonePrincipal.principal && (
-                              <span className="text-xs bg-gray-800 text-white px-1 py-0.5 rounded">P</span>
-                            )}
-                          </div>
-                        ) : "-"}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {emailPrincipal ? (
-                          <div className="flex items-center gap-1">
-                            <span className="truncate max-w-32">{emailPrincipal.email}</span>
-                            {emailPrincipal.principal && (
-                              <span className="text-xs bg-gray-800 text-white px-1 py-0.5 rounded">P</span>
-                            )}
-                          </div>
-                        ) : "-"}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-center">
-                        {loja.isMatriz ? (
-                          <span className="text-green-600 font-medium">Sim</span>
-                        ) : (
-                          <span className="text-gray-500">Não</span>
-                        )}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-center">
-                        {loja.isDefault ? (
-                          <span className="text-xs bg-yellow-500 text-white px-2 py-1 rounded">Padrão</span>
-                        ) : (
-                          <span className="text-xs bg-green-500 text-white px-2 py-1 rounded">Ativo</span>
-                        )}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navegarParaEditar(loja.id);
-                            }}
-                            className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-100"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              lidarComDelecao(loja.id, loja.name);
-                            }}
-                            className="h-8 w-8 p-0 text-red-600 hover:bg-red-100"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                      </div>
+                    </DataTableCell>
+                    <DataTableCell align="center">
+                      {loja.isMatriz ? "Matriz" : "Filial"}
+                    </DataTableCell>
+                    <DataTableCell align="center">
+                      {maskCNPJ(loja.cnpj)}
+                    </DataTableCell>
+                    <DataTableCell align="center">
+                      {telefonePrincipal ? (
+                        <div className="flex items-center gap-1">
+                          <span>{telefonePrincipal.numero}</span>
+                          {telefonePrincipal.principal && (
+                            <span className="text-xs bg-gray-800 text-white px-1 py-0.5 rounded">P</span>
+                          )}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      ) : "-"}
+                    </DataTableCell>
+                    <DataTableCell align="center">
+                      {emailPrincipal ? (
+                        <div className="flex items-center gap-1">
+                          <span className="truncate max-w-32">{emailPrincipal.email}</span>
+                          {emailPrincipal.principal && (
+                            <span className="text-xs bg-gray-800 text-white px-1 py-0.5 rounded">P</span>
+                          )}
+                        </div>
+                      ) : "-"}
+                    </DataTableCell>
+                    <DataTableCell align="center">
+                      {loja.isMatriz ? (
+                        <span className="font-medium">Sim</span>
+                      ) : (
+                        <span className="text-gray-500">Não</span>
+                      )}
+                    </DataTableCell>
+                    <DataTableCell align="center">
+                      <StatusBadge isActive={loja.ativo !== false} />
+                    </DataTableCell>
+                    <DataTableCell align="center">
+                      <ActionButtons
+                        onEdit={() => navegarParaEditar(loja.id)}
+                        onDelete={() => lidarComDelecao(loja.id, loja.name)}
+                      />
+                    </DataTableCell>
+                  </DataTableRow>
+                );
+              })}
+            </DataTableBody>
+          </DataTable>
         </CardContent>
       </Card>
 
@@ -488,7 +470,7 @@ const LojaPage: React.FC = () => {
             <Button
               variant="outline"
               onClick={cancelarDelecao}
-              className="border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white"
+              className="border-[#1f2937] text-[#1f2937] hover:bg-[#1f2937] hover:text-white"
             >
               Cancelar
             </Button>

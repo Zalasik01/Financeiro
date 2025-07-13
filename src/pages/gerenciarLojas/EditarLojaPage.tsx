@@ -17,10 +17,17 @@ export const EditarLojaPage: React.FC = () => {
     console.log("EditarLojaPage - useEffect executado");
     console.log("ID da URL:", id);
     console.log("Stores disponíveis:", stores);
+    console.log("Stores length:", stores.length);
     
     if (!id) {
       console.log("ID não encontrado, redirecionando para /loja");
       navigate("/loja");
+      return;
+    }
+
+    // Aguardar o carregamento das stores se ainda estão vazias
+    if (stores.length === 0) {
+      console.log("Stores ainda não carregadas, aguardando...");
       return;
     }
 

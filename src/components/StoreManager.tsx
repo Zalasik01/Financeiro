@@ -248,7 +248,7 @@ export const StoreManager = ({
               helpTooltipDicaKey="lojaIcone" // Adicionando dica ao ImageUpload
             />
 
-            <Button type="submit" className="w-full bg-[#1a365d] hover:bg-[#2d5a87] text-white">
+            <Button type="submit" className="w-full bg-gray-800 hover:bg-gray-900 text-white">
               Cadastrar Loja
             </Button>
           </form>
@@ -331,7 +331,7 @@ export const StoreManager = ({
               placeholder="Ícone da Loja"
             />
 
-            <Button type="submit" className="w-full bg-[#1a365d] hover:bg-[#2d5a87] text-white">
+            <Button type="submit" className="w-full bg-gray-800 hover:bg-gray-900 text-white">
               Salvar Alterações
             </Button>
           </form>

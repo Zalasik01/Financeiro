@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -467,28 +466,28 @@ export const EditarClienteFornecedor: React.FC = () => {
               {/* Status - Ativo, Cliente e Fornecedor no topo */}
               <div className="flex flex-wrap gap-6 p-4 bg-gray-50 rounded-lg mb-6">
                 <div className="flex items-center space-x-2">
-                  <Checkbox
+                  <Switch
                     id="ativo"
                     checked={formData.ativo}
                     onCheckedChange={(checked) => handleInputChange("ativo", checked)}
                   />
-                  <Label htmlFor="ativo">Ativo</Label>
+                  <Label htmlFor="ativo" className="text-gray-800">Ativo</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Checkbox
+                  <Switch
                     id="ehCliente"
                     checked={formData.ehCliente}
                     onCheckedChange={(checked) => handleInputChange("ehCliente", checked)}
                   />
-                  <Label htmlFor="ehCliente">Cliente</Label>
+                  <Label htmlFor="ehCliente" className="text-gray-800">Cliente</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Checkbox
+                  <Switch
                     id="ehFornecedor"
                     checked={formData.ehFornecedor}
                     onCheckedChange={(checked) => handleInputChange("ehFornecedor", checked)}
                   />
-                  <Label htmlFor="ehFornecedor">Fornecedor</Label>
+                  <Label htmlFor="ehFornecedor" className="text-gray-800">Fornecedor</Label>
                 </div>
               </div>
 
@@ -633,7 +632,7 @@ export const EditarClienteFornecedor: React.FC = () => {
                           <Button 
                             type="button"
                             onClick={editandoTelefone ? salvarEdicaoTelefone : adicionarTelefone}
-                            className="flex-1 bg-[#1a365d] hover:bg-[#2d5a87] text-white"
+                            className="flex-1 bg-gray-800 hover:bg-gray-900 text-white"
                           >
                             {editandoTelefone ? 'Salvar' : 'Adicionar'}
                           </Button>
@@ -798,7 +797,7 @@ export const EditarClienteFornecedor: React.FC = () => {
                           <Button 
                             type="button"
                             onClick={editandoEmail ? salvarEdicaoEmail : adicionarEmail}
-                            className="flex-1 bg-[#1a365d] hover:bg-[#2d5a87] text-white"
+                            className="flex-1 bg-gray-800 hover:bg-gray-900 text-white"
                           >
                             {editandoEmail ? 'Salvar' : 'Adicionar'}
                           </Button>
@@ -1026,7 +1025,7 @@ export const EditarClienteFornecedor: React.FC = () => {
                 <Button type="button" variant="outline" onClick={handleVoltar}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={carregando} className="bg-[#1a365d] hover:bg-[#2d5a87] text-white">
+                <Button type="submit" disabled={carregando} className="bg-gray-800 hover:bg-gray-900 text-white">
                   {isNovoCliente ? <Plus className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
                   {carregando ? "Salvando..." : isNovoCliente ? "Criar" : "Salvar Alterações"}
                 </Button>

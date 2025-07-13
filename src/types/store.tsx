@@ -54,6 +54,8 @@ export interface Store {
   icon: string;
   isDefault?: boolean;
   isMatriz?: boolean;
+  ativo?: boolean; // Campo ativo adicionado
+  observacoes?: string; // Campo observações adicionado
   telefones?: ContatoTelefone[];
   emails?: ContatoEmail[];
   endereco?: {

@@ -4,13 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useClientesFornecedores } from "@/hooks/useClientesFornecedores";
 import { ClienteFornecedor } from "@/types/clienteFornecedor.tsx"; 
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Edit2, Trash2, Search, Filter, MoreVertical, Download } from "lucide-react";
+import { PlusCircle, Search, Filter, MoreVertical, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ActionButtons } from "@/components/ui/action-buttons";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { DataTable, DataTableHeader, DataTableBody, DataTableRow, DataTableCell, DataTableHeaderCell } from "@/components/ui/data-table";
 
 export const GerenciarClientesFornecedoresPage: React.FC = () => {
   const {
@@ -338,114 +341,87 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
           )}
 
           {/* Tabela */}
-          <div className="overflow-x-auto">
-            <table className="w-full border border-gray-300">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Nome/Razão Social</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Tipo</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Documento</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Telefone</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Email</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Cliente</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Fornecedor</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Status</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {carregando && (
-                  <tr>
-                    <td colSpan={9} className="border border-gray-300 px-4 py-8 text-center">
-                      Carregando cadastros...
-                    </td>
-                  </tr>
-                )}
-                {!carregando && clientesFiltrados.length === 0 && (
-                  <tr>
-                    <td colSpan={9} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                      Nenhum cliente ou fornecedor encontrado.
-                    </td>
-                  </tr>
-                )}
-                {!carregando && clientesFiltrados.length > 0 && clientesFiltrados.map((cf) => {
-                  // Busca telefone principal ou primeiro telefone
-                  const telefonePrincipal = cf.telefones?.find(t => t.principal) || cf.telefones?.[0];
-                  const emailPrincipal = cf.emails?.find(e => e.principal) || cf.emails?.[0];
-                  
-                  return (
-                    <tr key={cf.id} className={`hover:bg-gray-50 cursor-pointer ${cf.ativo === false ? 'opacity-60' : ''}`} onClick={() => navegarParaVisualizarCliente(cf.id)}>
-                      <td className="border border-gray-300 px-4 py-2 font-medium">{cf.nome}</td>
-                      <td className="border border-gray-300 px-4 py-2">{cf.tipoDocumento === 'CNPJ' ? "Jurídica" : "Física"}</td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {cf.tipoDocumento}: {cf.numeroDocumento || "Não informado"}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {telefonePrincipal ? (
-                          <div className="flex items-center gap-1">
-                            <span>{telefonePrincipal.numero}</span>
-                            {telefonePrincipal.principal && (
-                              <span className="text-xs bg-gray-800 text-white px-1 py-0.5 rounded">P</span>
-                            )}
-                          </div>
-                        ) : (cf.telefone || "-")}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {emailPrincipal ? (
-                          <div className="flex items-center gap-1">
-                            <span className="truncate max-w-32">{emailPrincipal.email}</span>
-                            {emailPrincipal.principal && (
-                              <span className="text-xs bg-gray-800 text-white px-1 py-0.5 rounded">P</span>
-                            )}
-                          </div>
-                        ) : (cf.email || "-")}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-center">
-                        {cf.ehCliente ? "Sim" : "Não"}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-center">
-                        {cf.ehFornecedor ? "Sim" : "Não"}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-center">
-                        {cf.ativo === false ? (
-                          <span className="inline-block px-2 py-1 text-xs rounded bg-red-100 text-red-700 border border-red-300">Inativo</span>
-                        ) : (
-                          <span className="inline-block px-2 py-1 text-xs rounded bg-green-100 text-green-700 border border-green-300">Ativo</span>
-                        )}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-center">
-                        <div className="flex justify-center gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navegarParaEditar(cf.id);
-                            }} 
-                            title="Editar"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-red-500 hover:text-red-700" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              lidarComDelecao(cf.id, cf.nome);
-                            }} 
-                            title="Remover"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+          <DataTable>
+            <DataTableHeader>
+              <DataTableRow>
+                <DataTableHeaderCell>Nome/Razão Social</DataTableHeaderCell>
+                <DataTableHeaderCell>Tipo</DataTableHeaderCell>
+                <DataTableHeaderCell>Documento</DataTableHeaderCell>
+                <DataTableHeaderCell>Telefone</DataTableHeaderCell>
+                <DataTableHeaderCell>Email</DataTableHeaderCell>
+                <DataTableHeaderCell align="center">Cliente</DataTableHeaderCell>
+                <DataTableHeaderCell align="center">Fornecedor</DataTableHeaderCell>
+                <DataTableHeaderCell align="center">Status</DataTableHeaderCell>
+                <DataTableHeaderCell align="center">Ações</DataTableHeaderCell>
+              </DataTableRow>
+            </DataTableHeader>
+            <DataTableBody>
+              {carregando && (
+                <DataTableRow>
+                  <DataTableCell className="py-8" align="center" colSpan={9}>
+                    Carregando cadastros...
+                  </DataTableCell>
+                </DataTableRow>
+              )}
+              {!carregando && clientesFiltrados.length === 0 && (
+                <DataTableRow>
+                  <DataTableCell className="py-8 text-gray-500" align="center" colSpan={9}>
+                    Nenhum cliente ou fornecedor encontrado.
+                  </DataTableCell>
+                </DataTableRow>
+              )}
+              {!carregando && clientesFiltrados.length > 0 && clientesFiltrados.map((cf) => {
+                // Busca telefone principal ou primeiro telefone
+                const telefonePrincipal = cf.telefones?.find(t => t.principal) || cf.telefones?.[0];
+                const emailPrincipal = cf.emails?.find(e => e.principal) || cf.emails?.[0];
+                
+                return (
+                  <DataTableRow key={cf.id} onClick={() => navegarParaVisualizarCliente(cf.id)} className={cf.ativo === false ? 'opacity-60' : ''}>
+                    <DataTableCell className="font-medium">{cf.nome}</DataTableCell>
+                    <DataTableCell>{cf.tipoDocumento === 'CNPJ' ? "Jurídica" : "Física"}</DataTableCell>
+                    <DataTableCell>
+                      {cf.tipoDocumento}: {cf.numeroDocumento || "Não informado"}
+                    </DataTableCell>
+                    <DataTableCell>
+                      {telefonePrincipal ? (
+                        <div className="flex items-center gap-1">
+                          <span>{telefonePrincipal.numero}</span>
+                          {telefonePrincipal.principal && (
+                            <span className="text-xs bg-gray-800 text-white px-1 py-0.5 rounded">P</span>
+                          )}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      ) : (cf.telefone || "-")}
+                    </DataTableCell>
+                    <DataTableCell>
+                      {emailPrincipal ? (
+                        <div className="flex items-center gap-1">
+                          <span className="truncate max-w-32">{emailPrincipal.email}</span>
+                          {emailPrincipal.principal && (
+                            <span className="text-xs bg-gray-800 text-white px-1 py-0.5 rounded">P</span>
+                          )}
+                        </div>
+                      ) : (cf.email || "-")}
+                    </DataTableCell>
+                    <DataTableCell align="center">
+                      {cf.ehCliente ? "Sim" : "Não"}
+                    </DataTableCell>
+                    <DataTableCell align="center">
+                      {cf.ehFornecedor ? "Sim" : "Não"}
+                    </DataTableCell>
+                    <DataTableCell align="center">
+                      <StatusBadge isActive={cf.ativo} />
+                    </DataTableCell>
+                    <DataTableCell align="center">
+                      <ActionButtons
+                        onEdit={() => navegarParaEditar(cf.id)}
+                        onDelete={() => lidarComDelecao(cf.id, cf.nome)}
+                      />
+                    </DataTableCell>
+                  </DataTableRow>
+                );
+              })}
+            </DataTableBody>
+          </DataTable>
           
           <div className="mt-4 text-sm text-gray-600">
             Total: <strong>{clientesFiltrados.length}</strong> registro(s)

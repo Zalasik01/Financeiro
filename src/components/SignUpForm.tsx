@@ -115,7 +115,7 @@ export const SignUpForm = () => {
             {error && (
               <p className="text-sm text-red-500 text-center py-2">{error}</p>
             )}
-            <Button type="submit" className="w-full bg-[#1a365d] hover:bg-[#2d5a87] text-white" disabled={loading}>
+            <Button type="submit" className="w-full bg-gray-800 hover:bg-gray-900 text-white" disabled={loading}>
               {loading ? "Cadastrando..." : "Cadastrar"}
             </Button>
           </form>

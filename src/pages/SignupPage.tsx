@@ -204,7 +204,7 @@ export default function SignupPage() {
           <CardFooter className="flex flex-col gap-4 p-6 sm:p-8">
             <Button
               type="submit"
-              className="w-full h-11 text-base bg-[#1a365d] hover:bg-[#2d5a87] text-white"
+              className="w-full h-11 text-base bg-gray-800 hover:bg-gray-900 text-white"
               disabled={isLoading || passwordStrength.score < 50}
             >
               {isLoading ? (
