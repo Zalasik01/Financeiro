@@ -313,6 +313,7 @@ export const FormularioBase: React.FC = () => {
         contrato,
         modeloContrato,
         anotacoes,
+        authorizedUIDs: {}, // Garantir que authorizedUIDs sempre exista
       };
 
       // Limite de usuários
@@ -337,7 +338,7 @@ export const FormularioBase: React.FC = () => {
         baseData.numberId = nextNumberId;
         baseData.createdAt = serverTimestamp();
         baseData.createdBy = currentUser?.uid;
-        baseData.authorizedUIDs = {};
+        // authorizedUIDs já está definido acima
 
         const clientBasesRef = ref(db, "clientBases");
         const newBaseRef = push(clientBasesRef);

@@ -23,7 +23,7 @@
       "$clientBaseId": {
         ".read": "auth != null && (root.child('users/' + auth.uid + '/profile/isAdmin').val() === true || data.child('authorizedUIDs').child(auth.uid).exists())",
         ".write": "auth != null && root.child('users/' + auth.uid + '/profile/isAdmin').val() === true",
-        ".validate": "newData.hasChildren(['name', 'numberId', 'authorizedUIDs', 'createdAt', 'createdBy']) && newData.child('name').isString() && newData.child('numberId').isNumber() && newData.child('createdBy').isString() && (newData.child('createdAt').isNumber() || (newData.child('createdAt').hasChild('.sv') && newData.child('createdAt/.sv').val() === 'timestamp')) && newData.child('authorizedUIDs').exists() && !newData.child('authorizedUIDs').isString() && !newData.child('authorizedUIDs').isNumber() && !newData.child('authorizedUIDs').isBoolean()",
+        ".validate": "newData.hasChildren(['name', 'numberId', 'authorizedUIDs', 'createdAt', 'createdBy']) && newData.child('name').isString() && newData.child('numberId').isNumber() && newData.child('createdBy').isString() && newData.child('authorizedUIDs').exists()",
         "authorizedUIDs": {
           ".write": "auth != null && root.child('users/' + auth.uid + '/profile/isAdmin').val() === true",
           "$authorizedUserUid": {

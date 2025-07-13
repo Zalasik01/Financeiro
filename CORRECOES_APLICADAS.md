@@ -87,5 +87,72 @@ if (context === undefined) {
 
 - **UI Padronizada**: ✅ Completo
 - **Funcionalidade de Modais**: ✅ Corrigido
-- **Sistema de Autenticação**: ✅ Corrigido
+- **Sistema de Autenticação**: ✅ Corrigido  
 - **Permissões Firebase**: ✅ Atualizadas
+- **Diagnóstico de Login**: 🔍 Em análise
+
+## 🔍 Diagnóstico Adicional - Problema "Entrando..."
+
+### Sintomas
+- Usuário consegue autenticar (logs mostram sucesso)
+- Fica na tela "Entrando..." indefinidamente
+- Logs mostram: `isAdmin: false, clientBaseId: null`
+
+### 🔍 **PROBLEMA IDENTIFICADO: Estrutura de Usuários Fragmentada**
+
+**Múltiplos usuários para emails similares:**
+```json
+{
+  "Wkr17AIRrreo8HjD7el9HEfj2TD3": {
+    "profile": {
+      "email": "zalasik@gmail.com",
+      "isAdmin": false
+    }
+  },
+  "user_1752436167170_vh9kpwphl": {
+    "profile": {
+      "email": "zalasik@gmail.com",
+      "isTemporaryUser": true
+    }
+  },
+  "lFRdGTMCgFUbd5JYywR3aCqpu7S2": {
+    "profile": {
+      "email": "nzalasik@gmail.com",
+      "isAdmin": false
+    }
+  }
+}
+```
+
+### 🔧 **Logs de Debug Adicionados**
+```typescript
+// useStores.tsx - Diagnóstico detalhado
+console.log("📊 [useStores] Verificando acesso à base:", {
+  baseId: cb.id,
+  baseName: cb.name,
+  userUID: currentUser.uid,
+  authorizedUIDs: cb.authorizedUIDs ? Object.keys(cb.authorizedUIDs) : [],
+  hasAuthorizedUID: !!hasAuthorizedUID,
+  isCreatedByUser,
+  createdBy: cb.createdBy,
+  hasAccess
+});
+```
+
+### 🎯 **Próximos Passos OBRIGATÓRIOS**
+
+1. **IDENTIFICAR O UID ATUAL**
+   - Verificar nos logs do console qual UID aparece no `useAuth`
+   - Procurar por: `✅ [useAuth] Usuário configurado com sucesso: {uid: '...', ...}`
+
+2. **CORRIGIR VINCULAÇÃO NO FIREBASE**
+   - Acesse: Firebase Console → Database → `clientBases/-OSC1jiQzr8FMnQbyZIj/authorizedUIDs`
+   - REMOVER todas as chaves antigas
+   - ADICIONAR nova chave com o UID correto
+   - Estrutura: `[UID_CORRETO]: { displayName: "...", email: "..." }`
+
+3. **TESTAR CRIAÇÃO DE BASE**
+   - Deve funcionar com usuário admin após as correções
+
+### ⚠️ **AÇÃO NECESSÁRIA**
+Execute o teste de login e verifique qual UID aparece nos logs. Então faça a correção manual no Firebase com o UID correto.

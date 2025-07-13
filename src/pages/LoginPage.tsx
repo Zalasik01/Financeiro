@@ -84,16 +84,43 @@ export default function LoginPage() {
 
   const basesParaUsuario = useMemo(() => {
     if (!currentUser || !allBases) {
+      console.log("🔍 [LoginPage] Bases não carregadas ainda:", { currentUser: !!currentUser, allBases: !!allBases });
       return [];
     }
 
+    console.log("🔍 [LoginPage] Processando bases para usuário:", {
+      isAdmin: currentUser.isAdmin,
+      totalBases: allBases.length,
+      userUID: currentUser.uid
+    });
+
     if (currentUser.isAdmin) {
       // Admin vê todas as bases (ativas e inativas)
+      console.log("🔍 [LoginPage] Usuário admin - retornando todas as bases:", allBases.length);
       return allBases;
     }
 
     // Para usuários não-admin, filtrar apenas bases ativas que eles têm acesso
-    const filteredBases = allBases.filter((base: ExtendedBase) => base.ativo);
+    const filteredBases = allBases.filter((base: ExtendedBase) => {
+      const isActive = base.ativo;
+      const hasAccess = base.authorizedUIDs && base.authorizedUIDs[currentUser.uid];
+      
+      console.log("🔍 [LoginPage] Verificando base:", {
+        baseId: base.id,
+        baseName: base.name,
+        isActive,
+        hasAccess: !!hasAccess,
+        authorizedUIDs: base.authorizedUIDs ? Object.keys(base.authorizedUIDs) : []
+      });
+      
+      return isActive && hasAccess;
+    });
+    
+    console.log("🔍 [LoginPage] Bases filtradas para usuário:", {
+      total: filteredBases.length,
+      bases: filteredBases.map(b => ({ id: b.id, name: b.name }))
+    });
+    
     return filteredBases;
   }, [allBases, currentUser]);
 
@@ -153,6 +180,19 @@ export default function LoginPage() {
       ? allBases && allBases.length >= 0
       : true;
 
+    console.log("🔍 [LoginPage] useEffect condições:", {
+      currentUser: !!currentUser,
+      authLoading,
+      allBases: !!allBases,
+      basesLoaded,
+      status,
+      isModalOpen,
+      modalAlreadyOpened,
+      modalProcessingRef: modalProcessingRef.current,
+      isAdmin: currentUser?.isAdmin,
+      basesParaUsuarioLength: basesParaUsuario.length
+    });
+
     if (
       currentUser &&
       !authLoading &&
@@ -197,6 +237,22 @@ export default function LoginPage() {
         // Limpar a referência do timeout após execução
         modalTimeoutRef.current = null;
       }, 200); // Aumentar o delay para 200ms para dar tempo das bases carregarem
+    }
+    
+    // Condição adicional: se usuário não-admin não tem bases após carregamento completo
+    if (
+      currentUser &&
+      !authLoading &&
+      allBases && // Bases foram carregadas
+      status === "LOADING" &&
+      !currentUser.isAdmin &&
+      basesParaUsuario.length === 0 &&
+      !modalProcessingRef.current
+    ) {
+      console.log("⚠️ [LoginPage] Usuário não-admin sem bases disponíveis");
+      setError("Você não possui nenhuma base de dados associada. Entre em contato com o administrador.");
+      setStatus("ERROR");
+      logout();
     }
   }, [
     currentUser,

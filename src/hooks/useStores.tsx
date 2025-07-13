@@ -39,7 +39,14 @@ export const useStores = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log("📊 [useStores] useEffect executado:", { 
+      currentUser: !!currentUser, 
+      userUID: currentUser?.uid,
+      isAdmin: currentUser?.isAdmin 
+    });
+    
     if (!currentUser) {
+      console.log("📊 [useStores] Sem usuário - limpando bases");
       setBases([]);
       return;
     }
@@ -48,6 +55,7 @@ export const useStores = () => {
     const unsubscribeBases = onValue(
       clientBasesRef,
       (snapshot) => {
+        console.log("📊 [useStores] Carregando bases do Firebase...");
         const data = snapshot.val();
 
         if (data) {
@@ -56,15 +64,44 @@ export const useStores = () => {
             ...data[key],
           }));
 
+          console.log("📊 [useStores] Bases encontradas:", {
+            total: allClientBases.length,
+            userIsAdmin: currentUser.isAdmin,
+            userUID: currentUser.uid
+          });
+
           let accessibleClientBases: ClientBase[];
 
           if (currentUser.isAdmin) {
             accessibleClientBases = allClientBases;
+            console.log("📊 [useStores] Usuário admin - acesso a todas as bases");
           } else {
             accessibleClientBases = allClientBases.filter(
-              (cb) =>
-                (cb.authorizedUIDs && cb.authorizedUIDs[currentUser.uid]) ||
-                cb.createdBy === currentUser.uid
+              (cb) => {
+                const hasAuthorizedUID = cb.authorizedUIDs && cb.authorizedUIDs[currentUser.uid];
+                const isCreatedByUser = cb.createdBy === currentUser.uid;
+                const hasAccess = hasAuthorizedUID || isCreatedByUser;
+                
+                console.log("📊 [useStores] Verificando acesso à base:", {
+                  baseId: cb.id,
+                  baseName: cb.name,
+                  userUID: currentUser.uid,
+                  authorizedUIDs: cb.authorizedUIDs ? Object.keys(cb.authorizedUIDs) : [],
+                  authorizedUIDsDetailed: cb.authorizedUIDs || {},
+                  hasAuthorizedUID: !!hasAuthorizedUID,
+                  isCreatedByUser,
+                  createdBy: cb.createdBy,
+                  hasAccess,
+                  uidComparison: cb.authorizedUIDs ? 
+                    Object.keys(cb.authorizedUIDs).map(uid => ({
+                      storedUID: uid,
+                      matches: uid === currentUser.uid,
+                      userUID: currentUser.uid
+                    })) : []
+                });
+                
+                return hasAccess;
+              }
             );
           }
 
@@ -78,12 +115,19 @@ export const useStores = () => {
             })
           );
 
+          console.log("📊 [useStores] Bases finais configuradas:", {
+            accessible: finalBases.length,
+            bases: finalBases.map(b => ({ id: b.id, name: b.name, ativo: b.ativo }))
+          });
+
           setBases(finalBases);
         } else {
+          console.log("📊 [useStores] Nenhuma base encontrada no Firebase");
           setBases([]);
         }
       },
       (error) => {
+        console.error("❌ [useStores] Erro ao carregar bases:", error);
         setBases([]);
       }
     );

@@ -56,6 +56,7 @@ export interface Base {
   id: string; // Será "1", "2", "3", etc.
   name: string;
   numberId?: number;
+  ativo: boolean;
   createdAt: number; // Usaremos timestamp do Firebase
 }
 export interface ContatoTelefone {
