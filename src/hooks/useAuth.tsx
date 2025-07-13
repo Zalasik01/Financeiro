@@ -10,7 +10,7 @@ import {
   signOut,
   updateProfile,
 } from "firebase/auth";
-import { get as databaseGet, ref as databaseRef } from "firebase/database";
+import { get as databaseGet, ref as databaseRef, set as databaseSet } from "firebase/database";
 import {
   ReactNode,
   createContext,
@@ -73,6 +73,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
+    // Durante o desenvolvimento com hot reload, pode haver momentos onde o contexto não está disponível
+    console.warn("⚠️ [useAuth] Contexto não encontrado - verificando se AuthProvider está configurado corretamente");
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
@@ -323,8 +325,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   ? profileData.clientBaseId
                   : null;
             } else {
-              // Usuário não encontrado na coleção users
-              console.log("⚠️ [useAuth] Usuário não encontrado na coleção users - usando dados padrão");
+              // Usuário não encontrado na coleção users - criar perfil básico
+              console.log("⚠️ [useAuth] Usuário não encontrado na coleção users - criando perfil básico");
+              
+              // Criar perfil básico para o usuário
+              const basicProfile = {
+                email: user.email,
+                displayName: user.displayName || user.email?.split('@')[0] || 'Usuário',
+                isAdmin: false,
+                clientBaseId: null,
+                createdAt: Date.now(),
+              };
+
+              const userProfileRef = databaseRef(db, `users/${user.uid}/profile`);
+              databaseSet(userProfileRef, basicProfile)
+                .then(() => {
+                  console.log("✅ [useAuth] Perfil básico criado com sucesso");
+                })
+                .catch((error) => {
+                  console.warn("⚠️ [useAuth] Erro ao criar perfil básico:", error);
+                });
             }
 
             // Salvar sessão do usuário no localStorage
