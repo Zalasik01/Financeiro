@@ -37,7 +37,7 @@ import LojaPage from "./pages/LojaPage";
 import MetaPage from "./pages/MetaPage";
 import { EditarClienteFornecedor } from "./pages/cliente/components/EditarClienteFornecedor";
 import SettingsPage from "./pages/SettingsPage";
-import TransacaoPage from "./pages/TransacaoPage";
+import TransacoesPage from "./pages/transacoes/TransacoesPage";
 
 const queryClient = new QueryClient();
 
@@ -77,7 +77,8 @@ const AppContent = () => {
       "/gerenciar-tipo-movimentacao": "Gerenciar Tipos de Movimentação",
       "/editar-perfil": "Editar Perfil",
       "/settings": "Configurações",
-      "/clientes-fornecedores/editar/:id": "Cliente/Fornecedor",
+      "/clientes-fornecedores/novo": "Novo Cliente/Fornecedor",
+      "/clientes-fornecedores/editar/:id": "Editar Cliente/Fornecedor",
       "/clientes-fornecedores": "Clientes e Fornecedores", // Adicionar título para a nova rota
       "/login": "Login",
       "/signup": "Criar Conta",
@@ -89,7 +90,9 @@ const AppContent = () => {
   useEffect(() => {
     const pageTitle =
       routeTitles[location.pathname] ||
-      (location.pathname.startsWith("/clientes-fornecedores/editar/")
+      (location.pathname.startsWith("/clientes-fornecedores/novo")
+        ? routeTitles["/clientes-fornecedores/novo"]
+        : location.pathname.startsWith("/clientes-fornecedores/editar/")
         ? routeTitles["/clientes-fornecedores/editar/:id"]
         : routeTitles["*"]);
     document.title = `Financeiro App - ${pageTitle}`;
@@ -134,7 +137,7 @@ const AppContent = () => {
             <Route element={<ProtectedRoute />}>
               <Route element={<ProtectedPagesLayout />}>
                 <Route path="/" element={<Index />} />
-                <Route path="/transacao" element={<TransacaoPage />} />
+                <Route path="/transacao" element={<TransacoesPage />} />
                 <Route path="/categoria" element={<CategoriaPage />} />
                 <Route path="/loja" element={<LojaPage />} />
                 <Route path="/fechamento" element={<FechamentoPage />} />
@@ -157,6 +160,10 @@ const AppContent = () => {
                 <Route
                   path="/clientes-fornecedores"
                   element={<GerenciarClientesFornecedoresPage />}
+                />
+                <Route
+                  path="/clientes-fornecedores/novo"
+                  element={<EditarClienteFornecedor />}
                 />
                 <Route
                   path="/clientes-fornecedores/editar/:id"

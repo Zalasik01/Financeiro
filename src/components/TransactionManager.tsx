@@ -66,7 +66,7 @@ export const TransactionManager = ({
     <Card className="animate-fade-in">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          💳 Gerenciar Transações
+          Gerenciar Transações
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">

@@ -109,7 +109,7 @@ export const CategoryManager = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <span>
-            🏷️ Gerenciar Categorias
+            Gerenciar Categorias
           </span>
           <HelpTooltip dicaKey="gerenciarCategorias" side="bottom" />
         </CardTitle>
@@ -243,7 +243,7 @@ export const CategoryManager = ({
             </div>
           </div>
 
-          <Button type="submit" className="w-full">
+          <Button type="submit" className="w-full bg-[#1a365d] hover:bg-[#2d5a87] text-white">
             Adicionar Categoria
           </Button>
         </form>

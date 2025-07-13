@@ -48,7 +48,7 @@ const ManageUsersPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="container mx-auto p-4 space-y-8">
+    <div className="w-[90%] mx-auto p-4 space-y-8">
       <section className="space-y-4">
         <h1 className="text-2xl font-bold">Gerenciamento de Usuários</h1>
         <UserAccessMatrix

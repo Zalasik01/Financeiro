@@ -1,5 +1,5 @@
 import { OrganizationInfo } from "@/components/OrganizationInfo";
-import { SessionStatus } from "@/components/SessionStatus";
+import     <div className="w-[90%] mx-auto p-4 space-y-8"> SessionStatus } from "@/components/SessionStatus";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,7 +72,7 @@ export default function LocalStorageDemoPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="w-[90%] mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">LocalStorage Demo</h1>

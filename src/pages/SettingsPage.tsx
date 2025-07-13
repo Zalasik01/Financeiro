@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"; // Se você usar react-router-dom para 
 
 const SettingsPage: React.FC = () => {
   return (
-    <div className="container mx-auto p-4 space-y-8">
+    <div className="w-[90%] mx-auto p-4 space-y-8">
       <h1 className="text-2xl font-bold">Configurações</h1>
       <p className="text-gray-600">
         As seções de configuração foram movidas para páginas dedicadas.

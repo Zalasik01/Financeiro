@@ -115,7 +115,7 @@ export const SignUpForm = () => {
             {error && (
               <p className="text-sm text-red-500 text-center py-2">{error}</p>
             )}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full bg-[#1a365d] hover:bg-[#2d5a87] text-white" disabled={loading}>
               {loading ? "Cadastrando..." : "Cadastrar"}
             </Button>
           </form>
@@ -123,7 +123,7 @@ export const SignUpForm = () => {
         <CardFooter className="text-center text-sm">
           <p>
             Já tem uma conta?{" "}
-            <Link to="/login" className="text-blue-600 hover:underline">
+            <Link to="/login" className="text-[#1a365d] hover:text-[#2d5a87] hover:underline">
               Faça login
             </Link>
           </p>

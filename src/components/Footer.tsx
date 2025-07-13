@@ -13,10 +13,10 @@ const Footer: React.FC = () => {
     <footer className="bg-gray-100 dark:bg-gray-800 border-t dark:border-gray-700 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="text-center text-gray-600 dark:text-gray-400">
-          <p>💰 Sistema completo de gestão financeira pessoal e empresarial</p>
+          <p>Sistema completo de gestão financeira</p>
           <p className="text-sm mt-2">
-            {summary.transactionCount} transações pessoais • {stores.length}{" "}
-            lojas • {closings.length} fechamentos
+            <strong>{summary.transactionCount}</strong> Transações • <strong>{stores.length}</strong>{" "}
+            Lojas cadastradas • <strong>{closings.length}</strong> Fechamentos registrados
           </p>
           <p className="text-xs mt-4">Versão: {buildTimestamp}</p>
         </div>

@@ -44,10 +44,11 @@ export function ClienteFornecedorCombobox({
   )
 
   const filteredClientesFornecedores = React.useMemo(() => {
+    const ativos = clientesFornecedores.filter(cf => cf.ativo !== false);
     if (!searchTerm.trim()) {
-      return clientesFornecedores; // Mostra todos se a busca estiver vazia
+      return ativos; // Mostra apenas ativos se a busca estiver vazia
     }
-    return clientesFornecedores.filter((cf) =>
+    return ativos.filter((cf) =>
       cf.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (cf.numeroDocumento && cf.numeroDocumento.replace(/\D/g, '').includes(searchTerm.replace(/\D/g, '')))
     );

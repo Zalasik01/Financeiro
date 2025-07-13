@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { PaymentMethodManager } from "@/components/PaymentMethodManager";
+import React, { useState } from "react";  return (
+    <div className="w-[90%] mx-auto space-y-6">import { PaymentMethodManager } from "@/components/PaymentMethodManager";
 import { PaymentMethod } from "@/types/store";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
@@ -39,7 +39,7 @@ const ManagePaymentMethodsPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 space-y-8">
+    <div className="w-[90%] mx-auto p-4 space-y-8">
       <section className="space-y-4">
         <h1 className="text-2xl font-bold">
           Gerenciamento de Formas de Pagamento

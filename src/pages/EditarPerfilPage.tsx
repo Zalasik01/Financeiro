@@ -179,14 +179,14 @@ const EditarPerfilPage: React.FC = () => {
 
   if (loadingAuth || !currentUser) {
     return (
-      <div className="container mx-auto p-4 text-center">
+      <div className="w-[90%] mx-auto p-4 text-center">
         Carregando perfil...
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-8 max-w-2xl">
+    <div className="w-[90%] mx-auto p-4 md:p-8 max-w-2xl">
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Editar Perfil</CardTitle>
@@ -261,7 +261,7 @@ const EditarPerfilPage: React.FC = () => {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={isUpdatingProfile}>
+            <Button type="submit" disabled={isUpdatingProfile} className="bg-[#1a365d] hover:bg-[#2d5a87] text-white">
               {isUpdatingProfile ? "Salvando..." : "Salvar Perfil"}
             </Button>
           </CardFooter>
@@ -306,7 +306,7 @@ const EditarPerfilPage: React.FC = () => {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={isUpdatingPassword}>
+            <Button type="submit" disabled={isUpdatingPassword} className="bg-[#1a365d] hover:bg-[#2d5a87] text-white">
               {isUpdatingPassword ? "Alterando..." : "Alterar Senha"}
             </Button>
           </CardFooter>

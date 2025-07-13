@@ -134,7 +134,7 @@ export const FinancialInsights = ({
     ],
   };
 
-  // Calcula tendências para transações pessoais
+  // Calcula tendências para transações
   const today = new Date();
   const last30Days = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
   const last30DaysTransactions = transactions.filter(

@@ -163,7 +163,7 @@ export const MovementTypeManager: React.FC<MovementTypeManagerProps> = ({
               }
             />
           </div>
-          <Button type="submit" className="w-full">
+          <Button type="submit" className="w-full bg-[#1a365d] hover:bg-[#2d5a87] text-white">
             Adicionar Tipo
           </Button>
         </form>

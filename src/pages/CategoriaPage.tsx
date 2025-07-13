@@ -6,7 +6,7 @@ const CategoriaPage: React.FC = () => {
   const { categories, addCategory, deleteCategory } = useFinance();
 
   return (
-    <div className="container mx-auto p-4 space-y-8">
+    <div className="w-[90%] mx-auto p-4 space-y-8">
       <h1 className="text-2xl font-bold mb-4">Gerenciamento de Categorias</h1>
       <CategoryManager
         categories={categories}

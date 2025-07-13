@@ -459,12 +459,12 @@ export const TransactionForm = ({
           >
             Cancelar
           </Button>
-          <Button ref={submitButtonRef} type="submit" className="w-full">
+          <Button ref={submitButtonRef} type="submit" className="w-full bg-[#1a365d] hover:bg-[#2d5a87] text-white">
             Atualizar Transação
           </Button>
         </div>
       ) : (
-        <Button ref={submitButtonRef} type="submit" className="w-full">
+        <Button ref={submitButtonRef} type="submit" className="w-full bg-[#1a365d] hover:bg-[#2d5a87] text-white">
           Adicionar Transação
         </Button>
       )}

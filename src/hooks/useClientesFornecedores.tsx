@@ -80,6 +80,7 @@ export const useClientesFornecedores = () => {
         const novaRef = push(ref(db, caminhoBase)); // Gera um ID único
         const novoRegistro: Omit<ClienteFornecedor, "id"> = {
           ...dados,
+          ehCliente: dados.ehCliente !== undefined ? dados.ehCliente : true, // Por padrão é cliente
           dataCadastro: serverTimestamp() as unknown as number, // Firebase preencherá com o timestamp do servidor
           dataAtualizacao: serverTimestamp() as unknown as number,
         };

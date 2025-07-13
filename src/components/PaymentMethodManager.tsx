@@ -155,7 +155,7 @@ export const PaymentMethodManager = ({
               </div>
             </div>
 
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full bg-[#1a365d] hover:bg-[#2d5a87] text-white">
               Adicionar Forma de Pagamento
             </Button>
           </form>

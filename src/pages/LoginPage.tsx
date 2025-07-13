@@ -342,7 +342,7 @@ export default function LoginPage() {
           <CardFooter className="p-8 pt-4">
             <Button
               type="submit"
-              className="w-full h-11 text-base font-semibold"
+              className="w-full h-11 text-base font-semibold bg-[#1a365d] hover:bg-[#2d5a87] text-white"
               disabled={isLoading}
             >
               {isLoading ? (
