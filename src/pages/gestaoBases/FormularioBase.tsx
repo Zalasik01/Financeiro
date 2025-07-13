@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { db } from "@/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/lib/toast";
@@ -29,6 +30,8 @@ import {
   FileText,
   Users,
   DollarSign,
+  Edit3,
+  Trash2,
 } from "lucide-react";
 
 interface ResponsavelData {
@@ -49,6 +52,19 @@ interface ContratoData {
   observacoes: string;
   modalidadePagamento: string;
   diaVencimentoMensal: string;
+}
+
+interface ModeloContratoData {
+  templateTitle: string;
+  templateContent: string;
+}
+
+interface AnotacaoData {
+  id: string;
+  texto: string;
+  dataHora: string;
+  dataPersonalizada?: string;
+  autor: string;
 }
 
 export const FormularioBase: React.FC = () => {
@@ -82,7 +98,18 @@ export const FormularioBase: React.FC = () => {
     diaVencimentoMensal: '10',
   });
 
+  const [modeloContrato, setModeloContrato] = useState<ModeloContratoData>({
+    templateTitle: '',
+    templateContent: '',
+  });
+
+  const [anotacoes, setAnotacoes] = useState<AnotacaoData[]>([]);
+  const [modalAnotacaoAberto, setModalAnotacaoAberto] = useState(false);
+  const [novaAnotacao, setNovaAnotacao] = useState('');
+  const [dataAnotacao, setDataAnotacao] = useState('');
+
   const [nextNumberId, setNextNumberId] = useState<number | null>(null);
+  const [currentNumberId, setCurrentNumberId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -117,6 +144,7 @@ export const FormularioBase: React.FC = () => {
           setCnpj(baseData.cnpj || '');
           setLimiteUsuarios(baseData.limite_acesso?.toString() || '');
           setAtivo(baseData.ativo !== false);
+          setCurrentNumberId(baseData.numberId || null);
           
           // Carregar responsáveis
           if (baseData.responsaveis) {
@@ -142,6 +170,19 @@ export const FormularioBase: React.FC = () => {
               modalidadePagamento: baseData.contrato.modalidadePagamento || 'mensal',
               diaVencimentoMensal: baseData.contrato.diaVencimentoMensal || '10',
             });
+          }
+
+          // Carregar modelo de contrato
+          if (baseData.modeloContrato) {
+            setModeloContrato({
+              templateTitle: baseData.modeloContrato.templateTitle || '',
+              templateContent: baseData.modeloContrato.templateContent || '',
+            });
+          }
+
+          // Carregar anotações
+          if (baseData.anotacoes) {
+            setAnotacoes(baseData.anotacoes || []);
           }
         } else {
           toast.error({
@@ -190,6 +231,36 @@ export const FormularioBase: React.FC = () => {
     setContrato(prev => ({ ...prev, [field]: value }));
   };
 
+  const updateModeloContrato = (field: keyof ModeloContratoData, value: string) => {
+    setModeloContrato(prev => ({ ...prev, [field]: value }));
+  };
+
+  const adicionarAnotacao = () => {
+    if (!novaAnotacao.trim()) return;
+    
+    const dataFinal = dataAnotacao || new Date().toLocaleDateString('pt-BR');
+    const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    
+    const anotacao: AnotacaoData = {
+      id: Date.now().toString(),
+      texto: novaAnotacao.trim(),
+      dataHora: `${dataFinal} às ${horaAtual}`,
+      dataPersonalizada: dataAnotacao,
+      autor: currentUser?.displayName || currentUser?.email || 'Usuário'
+    };
+    
+    setAnotacoes(prev => [anotacao, ...prev]);
+    setNovaAnotacao('');
+    setDataAnotacao('');
+    setModalAnotacaoAberto(false);
+  };
+
+  const removerAnotacao = (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir esta anotação?')) {
+      setAnotacoes(prev => prev.filter(a => a.id !== id));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -222,6 +293,8 @@ export const FormularioBase: React.FC = () => {
         ativo,
         responsaveis: responsaveisValidos,
         contrato,
+        modeloContrato,
+        anotacoes,
       };
 
       // Limite de usuários
@@ -275,42 +348,52 @@ export const FormularioBase: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/admin/gestao-bases')}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </Button>
-        <h1 className="text-3xl font-bold text-gray-900">
-          {isEdicao ? 'Editar Base' : 'Nova Base'}
-        </h1>
-        {isEdicao && (
-          <Badge variant="secondary">ID: {nextNumberId ? nextNumberId - 1 : 'N/A'}</Badge>
-        )}
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Informações Básicas */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Informações Básicas
+    <div className="w-full px-4 py-6">
+      <Card className="w-full bg-[#F4F4F4] shadow-lg">
+        <CardHeader>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/admin/gestao-bases')}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <CardTitle className="text-2xl font-bold text-gray-800">
+              {isEdicao ? 'Editar Base' : 'Nova Base'}
             </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            {isEdicao && (
+              <Badge variant="secondary">ID: {nextNumberId ? nextNumberId - 1 : 'N/A'}</Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Informações Básicas */}
+            <div className="bg-white p-6 rounded-lg border">
+              <h3 className="text-lg font-semibold mb-6 text-gray-800 border-b pb-2 flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Informações Básicas
+              </h3>
+              
+              {/* Status - Base Ativa no topo */}
+              <div className="flex flex-wrap gap-6 p-4 bg-gray-50 rounded-lg mb-6">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="ativo"
+                    checked={ativo}
+                    onCheckedChange={(checked) => setAtivo(checked as boolean)}
+                  />
+                  <Label htmlFor="ativo" className="text-gray-800">Base Ativa</Label>
+                </div>
+              </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="numberId">ID Numérico</Label>
                 <Input
                   id="numberId"
-                  value={isEdicao ? 'Carregando...' : nextNumberId || 'Carregando...'}
+                  value={isEdicao ? (currentNumberId || 'N/A') : nextNumberId || 'Carregando...'}
                   disabled
-                  className="bg-gray-100"
+                  className="bg-gray-100 border-gray-300"
                 />
               </div>
               <div className="md:col-span-2">
@@ -320,6 +403,7 @@ export const FormularioBase: React.FC = () => {
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
                   placeholder="Ex: Cliente Alpha Ltda"
+                  className="border-gray-300 hover:border-black focus:border-black"
                   required
                 />
               </div>
@@ -333,6 +417,7 @@ export const FormularioBase: React.FC = () => {
                   value={cnpj}
                   onChange={(e) => setCnpj(e.target.value)}
                   placeholder="00.000.000/0000-00"
+                  className="border-gray-300 hover:border-black focus:border-black"
                   required
                 />
               </div>
@@ -344,45 +429,35 @@ export const FormularioBase: React.FC = () => {
                   value={limiteUsuarios}
                   onChange={(e) => setLimiteUsuarios(e.target.value)}
                   placeholder="0 = ilimitado"
+                  className="border-gray-300 hover:border-black focus:border-black"
                 />
               </div>
             </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="ativo"
-                checked={ativo}
-                onCheckedChange={(checked) => setAtivo(checked as boolean)}
-              />
-              <Label htmlFor="ativo">Base ativa</Label>
             </div>
-          </CardContent>
-        </Card>
 
         {/* Responsáveis */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Responsáveis
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={adicionarResponsavel}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Adicionar
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div className="bg-white p-6 rounded-lg border">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2 flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Responsáveis
+            </h3>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={adicionarResponsavel}
+              className="border-gray-300 text-gray-800 hover:bg-gray-800 hover:text-white"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Adicionar
+            </Button>
+          </div>
+          <div className="space-y-4">
             {responsaveis.map((responsavel, index) => (
-              <div key={index} className="p-4 border rounded-lg space-y-4 bg-gray-50">
+              <div key={index} className="p-4 border border-gray-300 rounded-lg space-y-4 bg-gray-50">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Responsável {index + 1}</h4>
+                  <h4 className="font-medium text-gray-800">Responsável {index + 1}</h4>
                   {responsaveis.length > 1 && (
                     <Button
                       type="button"
@@ -403,6 +478,7 @@ export const FormularioBase: React.FC = () => {
                       value={responsavel.nome}
                       onChange={(e) => updateResponsavel(index, 'nome', e.target.value)}
                       placeholder="Nome completo"
+                      className="border-gray-300 hover:border-black focus:border-black"
                       required
                     />
                   </div>
@@ -412,14 +488,27 @@ export const FormularioBase: React.FC = () => {
                       value={responsavel.cargo}
                       onChange={(e) => updateResponsavel(index, 'cargo', e.target.value)}
                       placeholder="Ex: Gerente Financeiro"
+                      className="border-gray-300 hover:border-black focus:border-black"
                     />
                   </div>
                   <div>
                     <Label>Telefone *</Label>
                     <Input
                       value={responsavel.telefone}
-                      onChange={(e) => updateResponsavel(index, 'telefone', e.target.value)}
+                      onChange={(e) => {
+                        // Formatação automática do telefone
+                        let valor = e.target.value.replace(/\D/g, '');
+                        if (valor.length <= 11) {
+                          if (valor.length <= 10) {
+                            valor = valor.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+                          } else {
+                            valor = valor.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+                          }
+                        }
+                        updateResponsavel(index, 'telefone', valor);
+                      }}
                       placeholder="(00) 00000-0000"
+                      className="border-gray-300 hover:border-black focus:border-black"
                       required
                     />
                   </div>
@@ -430,50 +519,49 @@ export const FormularioBase: React.FC = () => {
                       value={responsavel.email}
                       onChange={(e) => updateResponsavel(index, 'email', e.target.value)}
                       placeholder="email@empresa.com"
+                      className="border-gray-300 hover:border-black focus:border-black"
                     />
                   </div>
                 </div>
 
                 <div>
                   <Label className="text-sm font-medium mb-2 block">Funções</Label>
-                  <div className="flex gap-4">
+                  <div className="flex flex-wrap gap-6 p-4 bg-white rounded-lg border border-gray-200">
                     <div className="flex items-center space-x-2">
-                      <Checkbox
+                      <Switch
                         checked={responsavel.isFinanceiro}
                         onCheckedChange={(checked) => updateResponsavel(index, 'isFinanceiro', checked)}
                       />
-                      <Label className="text-sm">Responsável Financeiro</Label>
+                      <Label className="text-sm text-gray-800">Responsável Financeiro</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox
+                      <Switch
                         checked={responsavel.isSistema}
                         onCheckedChange={(checked) => updateResponsavel(index, 'isSistema', checked)}
                       />
-                      <Label className="text-sm">Responsável pelo Sistema</Label>
+                      <Label className="text-sm text-gray-800">Responsável pelo Sistema</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox
+                      <Switch
                         checked={responsavel.isContato}
                         onCheckedChange={(checked) => updateResponsavel(index, 'isContato', checked)}
                       />
-                      <Label className="text-sm">Contato Principal</Label>
+                      <Label className="text-sm text-gray-800">Contato Principal</Label>
                     </div>
                   </div>
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Informações do Contrato */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Informações do Contrato
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div className="bg-white p-6 rounded-lg border">
+          <h3 className="text-lg font-semibold mb-6 text-gray-800 border-b pb-2 flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Informações do Contrato
+          </h3>
+          <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="valorMensal">Valor Mensal</Label>
@@ -484,7 +572,7 @@ export const FormularioBase: React.FC = () => {
                     value={contrato.valorMensal}
                     onChange={(e) => updateContrato('valorMensal', e.target.value)}
                     placeholder="0,00"
-                    className="pl-10"
+                    className="pl-10 border-gray-300 hover:border-black focus:border-black"
                   />
                 </div>
               </div>
@@ -495,6 +583,7 @@ export const FormularioBase: React.FC = () => {
                   type="date"
                   value={contrato.dataInicio}
                   onChange={(e) => updateContrato('dataInicio', e.target.value)}
+                  className="border-gray-300 hover:border-black focus:border-black"
                 />
               </div>
               <div>
@@ -504,6 +593,7 @@ export const FormularioBase: React.FC = () => {
                   type="date"
                   value={contrato.dataVencimento}
                   onChange={(e) => updateContrato('dataVencimento', e.target.value)}
+                  className="border-gray-300 hover:border-black focus:border-black"
                 />
               </div>
             </div>
@@ -517,6 +607,7 @@ export const FormularioBase: React.FC = () => {
                   value={contrato.prazoMeses}
                   onChange={(e) => updateContrato('prazoMeses', e.target.value)}
                   placeholder="12"
+                  className="border-gray-300 hover:border-black focus:border-black"
                 />
               </div>
               <div>
@@ -525,7 +616,7 @@ export const FormularioBase: React.FC = () => {
                   id="modalidadePagamento"
                   value={contrato.modalidadePagamento}
                   onChange={(e) => updateContrato('modalidadePagamento', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 hover:border-black focus:border-black rounded-md text-sm"
                 >
                   <option value="mensal">Mensal</option>
                   <option value="trimestral">Trimestral</option>
@@ -543,6 +634,7 @@ export const FormularioBase: React.FC = () => {
                   value={contrato.diaVencimentoMensal}
                   onChange={(e) => updateContrato('diaVencimentoMensal', e.target.value)}
                   placeholder="10"
+                  className="border-gray-300 hover:border-black focus:border-black"
                 />
               </div>
             </div>
@@ -555,10 +647,149 @@ export const FormularioBase: React.FC = () => {
                 onChange={(e) => updateContrato('observacoes', e.target.value)}
                 placeholder="Observações adicionais sobre o contrato..."
                 rows={3}
+                className="border-gray-300 hover:border-black focus:border-black"
               />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+
+        {/* Modelo de Contrato */}
+        <div className="bg-white p-6 rounded-lg border">
+          <h3 className="text-lg font-semibold mb-6 text-gray-800 border-b pb-2 flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Modelo de Contrato
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="templateTitle">Título do Contrato</Label>
+              <Input
+                id="templateTitle"
+                value={modeloContrato.templateTitle}
+                onChange={(e) => updateModeloContrato('templateTitle', e.target.value)}
+                placeholder="Ex: Contrato de Prestação de Serviços de Software"
+                className="border-gray-300 hover:border-black focus:border-black"
+              />
+            </div>
+            <div>
+              <Label htmlFor="templateContent">Conteúdo do Contrato</Label>
+              <Textarea
+                id="templateContent"
+                value={modeloContrato.templateContent}
+                onChange={(e) => updateModeloContrato('templateContent', e.target.value)}
+                placeholder="Digite o modelo de contrato que será usado para impressão..."
+                rows={8}
+                className="border-gray-300 hover:border-black focus:border-black"
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Use variáveis como [NOME_BASE], [CNPJ], [VALOR_MENSAL], [DATA_INICIO] que serão substituídas automaticamente na impressão.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Anotações */}
+        <div className="bg-white p-6 rounded-lg border">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2 flex items-center gap-2">
+              <Edit3 className="h-5 w-5" />
+              Anotações
+            </h3>
+            <Dialog open={modalAnotacaoAberto} onOpenChange={setModalAnotacaoAberto}>
+              <DialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-gray-300 text-gray-800 hover:bg-gray-800 hover:text-white"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Nova Anotação
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Nova Anotação</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="dataAnotacao">Data da Anotação</Label>
+                    <Input
+                      id="dataAnotacao"
+                      type="date"
+                      value={dataAnotacao}
+                      onChange={(e) => setDataAnotacao(e.target.value)}
+                      className="border-gray-300 hover:border-black focus:border-black"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Deixe em branco para usar a data atual
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="novaAnotacao">Anotação</Label>
+                    <Textarea
+                      id="novaAnotacao"
+                      value={novaAnotacao}
+                      onChange={(e) => setNovaAnotacao(e.target.value)}
+                      placeholder="Digite sua anotação..."
+                      rows={4}
+                      className="border-gray-300 hover:border-black focus:border-black"
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      type="button"
+                      onClick={adicionarAnotacao}
+                      className="flex-1 bg-gray-800 hover:bg-gray-700 text-white"
+                    >
+                      Adicionar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setNovaAnotacao('');
+                        setDataAnotacao('');
+                        setModalAnotacaoAberto(false);
+                      }}
+                      className="flex-1 border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+          
+          <div className="space-y-3">
+            {anotacoes.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">Nenhuma anotação adicionada ainda.</p>
+            ) : (
+              anotacoes.map((anotacao) => (
+                <div key={anotacao.id} className="p-4 border border-gray-300 rounded-lg bg-gray-50">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="text-gray-800 mb-2">{anotacao.texto}</p>
+                      <div className="text-sm text-gray-500">
+                        <span>Por: {anotacao.autor}</span>
+                        <span className="ml-4">Em: {anotacao.dataHora}</span>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removerAnotacao(anotacao.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
 
         {/* Botões de Ação */}
         <div className="flex justify-end gap-4">
@@ -566,15 +797,22 @@ export const FormularioBase: React.FC = () => {
             type="button"
             variant="outline"
             onClick={() => navigate('/admin/gestao-bases')}
+            className="border-gray-300 text-gray-800 hover:bg-gray-800 hover:text-white"
           >
             Cancelar
           </Button>
-          <Button type="submit" disabled={isSaving}>
+          <Button 
+            type="submit" 
+            disabled={isSaving}
+            className="bg-gray-800 hover:bg-gray-700 text-white"
+          >
             <Save className="h-4 w-4 mr-2" />
             {isSaving ? 'Salvando...' : 'Salvar Base'}
           </Button>
         </div>
       </form>
+      </CardContent>
+      </Card>
     </div>
   );
 };

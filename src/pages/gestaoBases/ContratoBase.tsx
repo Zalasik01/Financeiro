@@ -16,6 +16,7 @@ import {
   Building2,
   Users,
   Edit,
+  Download,
 } from "lucide-react";
 
 export const ContratoBase: React.FC = () => {
@@ -80,6 +81,52 @@ export const ContratoBase: React.FC = () => {
     return modalidades[modalidade] || modalidade;
   };
 
+  const downloadContrato = () => {
+    if (!base?.modeloContrato?.templateContent) {
+      toast.error({
+        title: "Erro",
+        description: "Modelo de contrato não encontrado para esta base.",
+      });
+      return;
+    }
+
+    try {
+      // Substituir variáveis no template
+      let contratoContent = base.modeloContrato.templateContent;
+      
+      // Substituições básicas
+      contratoContent = contratoContent.replace(/\[NOME_BASE\]/g, base.name || '[NOME_BASE]');
+      contratoContent = contratoContent.replace(/\[CNPJ\]/g, base.cnpj || '[CNPJ]');
+      contratoContent = contratoContent.replace(/\[VALOR_MENSAL\]/g, 
+        base.contrato?.valorMensal ? formatCurrency(base.contrato.valorMensal) : '[VALOR_MENSAL]');
+      contratoContent = contratoContent.replace(/\[DATA_INICIO\]/g, 
+        base.contrato?.dataInicio ? formatDate(base.contrato.dataInicio) : '[DATA_INICIO]');
+      contratoContent = contratoContent.replace(/\[DATA_VENCIMENTO\]/g, 
+        base.contrato?.dataVencimento ? formatDate(base.contrato.dataVencimento) : '[DATA_VENCIMENTO]');
+      contratoContent = contratoContent.replace(/\[MODALIDADE_PAGAMENTO\]/g, 
+        base.contrato?.modalidadePagamento ? getModalidadePagamento(base.contrato.modalidadePagamento) : '[MODALIDADE_PAGAMENTO]');
+
+      // Criar arquivo para download
+      const element = document.createElement('a');
+      const file = new Blob([contratoContent], { type: 'text/plain' });
+      element.href = URL.createObjectURL(file);
+      element.download = `Contrato_${base.name}_${base.numberId}.txt`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+
+      toast.success({
+        title: "Sucesso",
+        description: "Contrato baixado com sucesso!",
+      });
+    } catch (error) {
+      toast.error({
+        title: "Erro",
+        description: "Erro ao gerar arquivo do contrato.",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -93,28 +140,42 @@ export const ContratoBase: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/admin/gestao-bases')}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </Button>
-        <h1 className="text-3xl font-bold text-gray-900">
-          Contrato - {base.name}
-        </h1>
-        <Badge variant="secondary">ID: {base.numberId}</Badge>
-        <Button
-          onClick={() => navigate(`/admin/gestao-bases/editar/${baseId}`)}
-          className="flex items-center gap-2 ml-auto"
-        >
-          <Edit className="h-4 w-4" />
-          Editar Base
-        </Button>
-      </div>
+    <div className="w-[90%] mx-auto">
+      <Card className="bg-[#F4F4F4]">
+        <CardHeader>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/admin/gestao-bases')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </Button>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Contrato - {base.name}
+            </h1>
+            <Badge variant="secondary">ID: {base.numberId}</Badge>
+            <div className="flex items-center gap-2 ml-auto">
+              <Button
+                onClick={downloadContrato}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Baixar Contrato
+              </Button>
+              <Button
+                onClick={() => navigate(`/admin/gestao-bases/editar/${baseId}`)}
+                className="flex items-center gap-2"
+              >
+                <Edit className="h-4 w-4" />
+                Editar Base
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
 
       {/* Informações da Base */}
       <Card>
@@ -345,6 +406,8 @@ export const ContratoBase: React.FC = () => {
               Nenhum usuário autorizado nesta base.
             </div>
           )}
+        </CardContent>
+      </Card>
         </CardContent>
       </Card>
     </div>

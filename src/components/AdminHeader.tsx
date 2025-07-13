@@ -36,20 +36,10 @@ const AdminHeader: React.FC = () => {
     },
   ];
 
-  const buildTimestamp = import.meta.env.VITE_BUILD_TIMESTAMP;
+  const buildTimestamp = (globalThis as any).__BUILD_TIMESTAMP__;
   let formattedBuildDate = "N/A";
   if (buildTimestamp) {
-    const date = new Date(buildTimestamp);
-    if (!isNaN(date.getTime())) {
-      formattedBuildDate = date.toLocaleString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-    }
+    formattedBuildDate = buildTimestamp;
   }
 
   return (

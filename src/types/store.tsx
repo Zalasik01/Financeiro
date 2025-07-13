@@ -8,6 +8,8 @@ export interface ClientBase {
   cnpj?: string; // CNPJ da loja principal
   responsaveis?: Responsavel[]; // Lista de responsáveis
   contrato?: ContratoData; // Informações do contrato
+  modeloContrato?: ModeloContratoData; // Modelo de contrato
+  anotacoes?: AnotacaoData[]; // Lista de anotações
   authorizedUIDs: {
     [uid: string]: {
       displayName: string;
@@ -26,6 +28,18 @@ export interface ContratoData {
   observacoes?: string;
   modalidadePagamento?: string;
   diaVencimentoMensal?: string;
+}
+
+export interface ModeloContratoData {
+  templateTitle: string;
+  templateContent: string;
+}
+
+export interface AnotacaoData {
+  id: string;
+  texto: string;
+  data: string;
+  dataPersonalizada?: string;
 }
 
 export interface Responsavel {

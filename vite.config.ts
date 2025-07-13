@@ -7,7 +7,7 @@ import { defineConfig } from "vite";
 export default defineConfig(({ mode }) => ({
   define: {
     // Expor a data/hora da compilação para o código da aplicação em horário de Brasília
-    "import.meta.env.VITE_BUILD_TIMESTAMP": JSON.stringify(
+    __BUILD_TIMESTAMP__: JSON.stringify(
       new Date().toLocaleString("pt-BR", {
         timeZone: "America/Sao_Paulo",
         day: "2-digit",

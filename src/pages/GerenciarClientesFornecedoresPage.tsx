@@ -172,7 +172,7 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
   };
 
   return (
-    <div className="w-[90%] mx-auto p-6">
+    <div className="w-full max-w-[90%] mx-auto p-6">
       <Card className="w-full bg-[#F4F4F4] shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">

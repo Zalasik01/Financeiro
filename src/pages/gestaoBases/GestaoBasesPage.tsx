@@ -2,13 +2,14 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Search, Filter, MoreVertical, Download } from "lucide-react";
+import { PlusCircle, Search, Filter, MoreVertical, Download, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ActionButtons } from "@/components/ui/action-buttons";
+import { BaseActionButtons } from "@/components/ui/base-action-buttons";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTable, DataTableHeader, DataTableBody, DataTableRow, DataTableCell, DataTableHeaderCell } from "@/components/ui/data-table";
 import { db } from "@/firebase";
@@ -119,6 +120,10 @@ export const GestaoBasesPage: React.FC = () => {
     navigate(`/admin/gestao-bases/editar/${idRegistro}`);
   };
 
+  const navegarParaContrato = (idRegistro: string) => {
+    navigate(`/admin/gestao-bases/contrato/${idRegistro}`);
+  };
+
   const lidarComDelecao = async (id: string, nome: string) => {
     if (window.confirm(`Tem certeza que deseja remover "${nome}"? Esta ação não pode ser desfeita.`)) {
       // Implementar lógica de deleção quando necessário
@@ -212,10 +217,9 @@ export const GestaoBasesPage: React.FC = () => {
     if (!base.authorizedUIDs) return 0;
     return Object.keys(base.authorizedUIDs).length;
   };
-
   return (
-    <div className="w-[90%] mx-auto p-6">
-        <Card className="w-full bg-[#F4F4F4] shadow-lg">
+    <div className="w-full px-4 py-6">
+      <Card className="w-full bg-[#F4F4F4] shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-2xl font-bold text-gray-800">
@@ -380,8 +384,9 @@ export const GestaoBasesPage: React.FC = () => {
                     <StatusBadge isActive={base.ativo} />
                   </DataTableCell>
                   <DataTableCell align="center">
-                    <ActionButtons
+                    <BaseActionButtons
                       onEdit={() => navegarParaEditar(base.id)}
+                      onContract={() => navegarParaContrato(base.id)}
                       onDelete={() => lidarComDelecao(base.id, base.name)}
                     />
                   </DataTableCell>
