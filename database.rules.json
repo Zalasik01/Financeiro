@@ -72,9 +72,11 @@
       ".indexOn": ["name", "createdBy", "numberId"]
     },
     "invites": {
+      ".read": "true",
+      ".write": "auth != null && root.child('users/' + auth.uid + '/profile/isAdmin').val() === true",
       "$inviteToken": {
         ".read": "true",
-        ".write": "auth != null && root.child('users/' + auth.uid + '/profile/isAdmin').val() === true",
+        ".write": "auth != null && (root.child('users/' + auth.uid + '/profile/isAdmin').val() === true || newData.child('status').val() === 'used')",
         ".validate": "newData.hasChildren(['clientBaseId', 'clientBaseNumberId', 'createdBy', 'createdAt', 'status']) && newData.child('status').val().matches(/^(pending|used|expired)$/)",
         "status": {
           ".write": "auth != null && newData.isString() && newData.val() === 'used'"

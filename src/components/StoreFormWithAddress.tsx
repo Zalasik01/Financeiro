@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { storeSchema, StoreInput } from '@/utils/validation';
 import { FormInput, FormErrors } from '@/components/ui/FormComponents';
@@ -6,6 +6,7 @@ import { AddressForm } from '@/components/AddressForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { maskCNPJ, onlyNumbers } from '@/utils/formatters';
 
 interface StoreFormWithAddressProps {
   store?: StoreInput;
@@ -19,6 +20,7 @@ export const StoreFormWithAddress: React.FC<StoreFormWithAddressProps> = ({
   onCancel,
 }) => {
   const { toast } = useToast();
+  const [displayCNPJ, setDisplayCNPJ] = useState('');
 
   const {
     values,
@@ -50,6 +52,26 @@ export const StoreFormWithAddress: React.FC<StoreFormWithAddressProps> = ({
       }
     },
   });
+
+  // Atualiza o display do CNPJ quando o valor mudar
+  useEffect(() => {
+    if (values.cnpj) {
+      setDisplayCNPJ(maskCNPJ(values.cnpj));
+    }
+  }, [values.cnpj]);
+
+  // Inicializa o display do CNPJ se houver valor inicial
+  useEffect(() => {
+    if (store?.cnpj) {
+      setDisplayCNPJ(maskCNPJ(store.cnpj));
+    }
+  }, [store?.cnpj]);
+
+  const handleCNPJChange = (value: string) => {
+    const cleanCNPJ = onlyNumbers(value);
+    updateField('cnpj', cleanCNPJ);
+    setDisplayCNPJ(maskCNPJ(cleanCNPJ));
+  };
 
   const handleAddressChange = (addressData: any) => {
     setFieldValues({
@@ -87,11 +109,12 @@ export const StoreFormWithAddress: React.FC<StoreFormWithAddressProps> = ({
 
                 <FormInput
                   label="CNPJ"
-                  value={values.cnpj || ''}
-                  onChange={(e) => updateField('cnpj', e.target.value)}
+                  value={displayCNPJ}
+                  onChange={(e) => handleCNPJChange(e.target.value)}
                   onBlur={() => validateField('cnpj')}
                   error={getFieldError('cnpj')}
                   placeholder="00.000.000/0000-00"
+                  maxLength={18}
                 />
               </div>
             </div>

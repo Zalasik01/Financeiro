@@ -9,6 +9,7 @@ import { db } from "@/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/lib/toast";
 import type { ClientBase } from "@/types/store";
+import { maskCNPJ, onlyNumbers } from "@/utils/formatters";
 import { push, ref, serverTimestamp, set, update } from "firebase/database";
 import {
   Copy,
@@ -60,6 +61,7 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
   const [newBaseName, setNewBaseName] = useState("");
   const [newBaseLimit, setNewBaseLimit] = useState<string>(""); // Estado para o limite da nova base
   const [newBaseCNPJ, setNewBaseCNPJ] = useState("");
+  const [displayNewBaseCNPJ, setDisplayNewBaseCNPJ] = useState("");
   const [newBaseResponsaveis, setNewBaseResponsaveis] = useState([
     {
       nome: "",
@@ -89,6 +91,7 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
   const [editingBaseId, setEditingBaseId] = useState<string | null>(null);
   const [editingBaseName, setEditingBaseName] = useState("");
   const [editingBaseCNPJ, setEditingBaseCNPJ] = useState("");
+  const [displayEditingBaseCNPJ, setDisplayEditingBaseCNPJ] = useState("");
   const [editingBaseResponsaveis, setEditingBaseResponsaveis] = useState<
     Array<{
       nome: string;
@@ -111,6 +114,19 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
     }
   }, [generatedInviteLink, lastGeneratedBaseId]);
 
+  // Funções para formatação de CNPJ
+  const handleNewBaseCNPJChange = (value: string) => {
+    const cleanCNPJ = onlyNumbers(value);
+    setNewBaseCNPJ(cleanCNPJ);
+    setDisplayNewBaseCNPJ(maskCNPJ(cleanCNPJ));
+  };
+
+  const handleEditingBaseCNPJChange = (value: string) => {
+    const cleanCNPJ = onlyNumbers(value);
+    setEditingBaseCNPJ(cleanCNPJ);
+    setDisplayEditingBaseCNPJ(maskCNPJ(cleanCNPJ));
+  };
+
   const handleAddClientBase = async (e: FormEvent) => {
     e.preventDefault();
     if (!newBaseName.trim() || !currentUser || nextNumberId === null) {
@@ -120,6 +136,12 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
 
     if (!newBaseCNPJ.trim()) {
       toast.validationError("CNPJ da loja principal é obrigatório.");
+      return;
+    }
+
+    // Validar se CNPJ tem 14 dígitos
+    if (newBaseCNPJ.length !== 14) {
+      toast.validationError("CNPJ deve ter 14 dígitos.");
       return;
     }
 
@@ -166,7 +188,7 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
       createdBy: currentUser.uid,
       ativo: true,
       motivo_inativo: null,
-      cnpj: newBaseCNPJ.trim(),
+      cnpj: newBaseCNPJ, // Já está limpo (somente números)
       responsaveis: responsaveisValidos.map((r) => ({
         nome: r.nome.trim(),
         telefone: r.telefone.trim(),
@@ -184,6 +206,7 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
       setNewBaseName("");
       setNewBaseLimit("");
       setNewBaseCNPJ("");
+      setDisplayNewBaseCNPJ("");
       setNewBaseResponsaveis([
         {
           nome: "",
@@ -326,6 +349,7 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
     setEditingBaseId(base.id);
     setEditingBaseName(base.name);
     setEditingBaseCNPJ(base.cnpj || "");
+    setDisplayEditingBaseCNPJ(base.cnpj ? maskCNPJ(base.cnpj) : "");
     const responsaveis =
       base.responsaveis?.map((r) => ({
         nome: r.nome,
@@ -362,6 +386,12 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
       return;
     }
 
+    // Validar se CNPJ tem 14 dígitos
+    if (editingBaseCNPJ.length !== 14) {
+      toast.validationError("CNPJ deve ter 14 dígitos.");
+      return;
+    }
+
     // Validar se pelo menos um responsável tem nome e telefone
     const responsaveisValidos = editingBaseResponsaveis.filter(
       (r) => r.nome.trim() !== "" && r.telefone.trim() !== ""
@@ -379,7 +409,7 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
       const baseUpdateRef = ref(db, `clientBases/${baseId}`);
       await update(baseUpdateRef, {
         name: editingBaseName.trim(),
-        cnpj: editingBaseCNPJ.trim(),
+        cnpj: editingBaseCNPJ, // Já está limpo (somente números)
         responsaveis: responsaveisValidos.map((r) => ({
           nome: r.nome.trim(),
           telefone: r.telefone.trim(),
@@ -398,6 +428,7 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
 
   const handleCancelEdit = () => {
     setEditingBaseId(null);
+    setDisplayEditingBaseCNPJ("");
   };
 
   // Funções para gerenciar responsáveis na edição
@@ -493,9 +524,10 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
               </Label>
               <Input
                 id="newBaseCNPJ"
-                value={newBaseCNPJ}
-                onChange={(e) => setNewBaseCNPJ(e.target.value)}
+                value={displayNewBaseCNPJ}
+                onChange={(e) => handleNewBaseCNPJChange(e.target.value)}
                 placeholder="00.000.000/0000-00"
+                maxLength={18}
                 required
                 className="text-sm"
               />
@@ -767,11 +799,12 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
                               CNPJ da Loja Principal *
                             </Label>
                             <Input
-                              value={editingBaseCNPJ}
+                              value={displayEditingBaseCNPJ}
                               onChange={(e) =>
-                                setEditingBaseCNPJ(e.target.value)
+                                handleEditingBaseCNPJChange(e.target.value)
                               }
                               placeholder="00.000.000/0000-00"
+                              maxLength={18}
                               className="text-sm max-w-sm"
                             />
                           </div>

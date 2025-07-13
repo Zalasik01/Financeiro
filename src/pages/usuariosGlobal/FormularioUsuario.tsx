@@ -47,6 +47,7 @@ export const FormularioUsuario: React.FC = () => {
   const [modalConviteAberto, setModalConviteAberto] = useState(false);
   const [linkConvite, setLinkConvite] = useState("");
   const [linkCopiado, setLinkCopiado] = useState(false);
+  const [mensagemCopiada, setMensagemCopiada] = useState(false);
 
   // Carregamento das bases
   useEffect(() => {
@@ -243,6 +244,53 @@ export const FormularioUsuario: React.FC = () => {
       toast.error({
         title: "Erro",
         description: "Não foi possível copiar o link.",
+      });
+    }
+  };
+
+  const copiarMensagemCompleta = async () => {
+    const mensagem = `🎉 Parabéns! Sua conta foi criada com sucesso!
+
+Olá ${formData.displayName},
+
+Sua conta no sistema financeiro foi criada e está pronta para uso. Para acessar, siga os passos abaixo:
+
+1. Abra o link abaixo em seu navegador:
+${linkConvite}
+
+2. Durante o primeiro acesso, você será solicitado a criar uma senha segura
+3. Após definir sua senha, você terá acesso completo ao sistema
+
+Se tiver alguma dúvida, entre em contato com o administrador.
+
+Bem-vindo ao sistema! 🚀`;
+
+    try {
+      await navigator.clipboard.writeText(mensagem);
+      setMensagemCopiada(true);
+      setTimeout(() => setMensagemCopiada(false), 2000);
+      toast.success({
+        title: "Mensagem copiada!",
+        description: "A mensagem completa foi copiada para a área de transferência.",
+      });
+    } catch (error) {
+      toast.error({
+        title: "Erro",
+        description: "Não foi possível copiar a mensagem.",
+      });
+    }
+  };
+
+  const gerarNovoConvite = async () => {
+    if (!uid || !isEdicao) return;
+
+    const linkGerado = await gerarLinkConvite(uid);
+    if (linkGerado) {
+      setLinkConvite(linkGerado);
+      setModalConviteAberto(true);
+      toast.success({
+        title: "Novo convite gerado!",
+        description: "Um novo link de convite foi criado para este usuário.",
       });
     }
   };
@@ -477,74 +525,88 @@ export const FormularioUsuario: React.FC = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-semibold">Bases Associadas</CardTitle>
-                  <Dialog open={modalVincularAberto} onOpenChange={setModalVincularAberto}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Vincular Base
+                  <div className="flex items-center gap-2">
+                    {/* Botão para gerar convite novamente - apenas para edição */}
+                    {isEdicao && formData.associatedBases.length > 0 && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={gerarNovoConvite}
+                        className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                      >
+                        <User className="h-4 w-4 mr-2" />
+                        Gerar Convite
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Vincular Base ao Usuário</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="buscaBase">Buscar Base (ID ou Nome)</Label>
-                          <Input
-                            id="buscaBase"
-                            placeholder="Digite o ID ou nome da base..."
-                            value={buscaBase}
-                            onChange={(e) => setBuscaBase(e.target.value)}
-                            className="border-gray-300 hover:border-black focus:border-black"
-                          />
+                    )}
+                    <Dialog open={modalVincularAberto} onOpenChange={setModalVincularAberto}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Vincular Base
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Vincular Base ao Usuário</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="buscaBase">Buscar Base (ID ou Nome)</Label>
+                            <Input
+                              id="buscaBase"
+                              placeholder="Digite o ID ou nome da base..."
+                              value={buscaBase}
+                              onChange={(e) => setBuscaBase(e.target.value)}
+                              className="border-gray-300 hover:border-black focus:border-black"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="baseSelect">Selecione a Base</Label>
+                            <Select
+                              value={baseParaVincular}
+                              onValueChange={setBaseParaVincular}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione uma base..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {clientBases
+                                  .filter(base => !formData.associatedBases.includes(base.id))
+                                  .filter(base => {
+                                    if (!buscaBase.trim()) return true;
+                                    const busca = buscaBase.toLowerCase();
+                                    return (
+                                      base.name.toLowerCase().includes(busca) ||
+                                      base.numberId?.toString().includes(busca)
+                                    );
+                                  })
+                                  .map((base) => (
+                                  <SelectItem key={base.id} value={base.id}>
+                                    #{base.numberId} - {base.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setModalVincularAberto(false);
+                                setBuscaBase("");
+                                setBaseParaVincular("");
+                              }}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button onClick={handleVincularBase}>
+                              Vincular
+                            </Button>
+                          </div>
                         </div>
-                        <div>
-                          <Label htmlFor="baseSelect">Selecione a Base</Label>
-                          <Select
-                            value={baseParaVincular}
-                            onValueChange={setBaseParaVincular}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma base..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {clientBases
-                                .filter(base => !formData.associatedBases.includes(base.id))
-                                .filter(base => {
-                                  if (!buscaBase.trim()) return true;
-                                  const busca = buscaBase.toLowerCase();
-                                  return (
-                                    base.name.toLowerCase().includes(busca) ||
-                                    base.numberId?.toString().includes(busca)
-                                  );
-                                })
-                                .map((base) => (
-                                <SelectItem key={base.id} value={base.id}>
-                                  #{base.numberId} - {base.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setModalVincularAberto(false);
-                              setBuscaBase("");
-                              setBaseParaVincular("");
-                            }}
-                          >
-                            Cancelar
-                          </Button>
-                          <Button onClick={handleVincularBase}>
-                            Vincular
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -644,6 +706,44 @@ export const FormularioUsuario: React.FC = () => {
                       <li>• Durante a ativação, ele irá definir sua senha</li>
                       <li>• O link é válido apenas para uma ativação</li>
                     </ul>
+                  </div>
+
+                  {/* Mensagem personalizada para copiar */}
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-purple-900">Mensagem para o Usuário</h4>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={copiarMensagemCompleta}
+                        className="shrink-0"
+                      >
+                        {mensagemCopiada ? (
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                        <span className="ml-1">Copiar Mensagem</span>
+                      </Button>
+                    </div>
+                    <div className="text-sm text-purple-800 bg-white/50 rounded p-3 font-mono whitespace-pre-line">
+                      {`🎉 Parabéns! Sua conta foi criada com sucesso!
+
+Olá ${formData.displayName},
+
+Sua conta no sistema financeiro foi criada e está pronta para uso. Para acessar, siga os passos abaixo:
+
+1. Abra o link abaixo em seu navegador:
+${linkConvite}
+
+2. Durante o primeiro acesso, você será solicitado a criar uma senha segura
+3. Após definir sua senha, você terá acesso completo ao sistema
+
+Se tiver alguma dúvida, entre em contato com o administrador.
+
+Bem-vindo ao sistema! 🚀`}
+                    </div>
                   </div>
 
                   <div className="flex justify-end gap-2">

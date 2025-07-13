@@ -15,31 +15,7 @@ import { ClienteFornecedor, ContatoTelefone, ContatoEmail } from "@/types/client
 import { useToast } from "@/hooks/use-toast";
 import { FormCEPInput } from "@/components/ui/FormComponents";
 import { useViaCEP, AddressData } from "@/hooks/useViaCEP";
-
-// Função para formatar CPF (XXX.XXX.XXX-XX)
-const formatCPF = (value: string) => {
-  const cleanValue = value.replace(/\D/g, '');
-  if (cleanValue.length <= 11) {
-    return cleanValue
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})/, '$1-$2');
-  }
-  return cleanValue;
-};
-
-// Função para formatar CNPJ (XX.XXX.XXX/XXXX-XX)
-const formatCNPJ = (value: string) => {
-  const cleanValue = value.replace(/\D/g, '');
-  if (cleanValue.length <= 14) {
-    return cleanValue
-      .replace(/(\d{2})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1/$2')
-      .replace(/(\d{4})(\d{1,2})/, '$1-$2');
-  }
-  return cleanValue;
-};
+import { maskCPF, maskCNPJ, onlyNumbers } from "@/utils/formatters";
 
 // Função para formatar telefone (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
 const formatTelefone = (value: string) => {
@@ -134,7 +110,7 @@ export const EditarClienteFornecedor: React.FC = () => {
         const dadosFormatados = {
           ...cf,
           numeroDocumento: cf.numeroDocumento && cf.tipoDocumento 
-            ? (cf.tipoDocumento === 'CPF' ? formatCPF(cf.numeroDocumento) : formatCNPJ(cf.numeroDocumento))
+            ? (cf.tipoDocumento === 'CPF' ? maskCPF(cf.numeroDocumento) : maskCNPJ(cf.numeroDocumento))
             : cf.numeroDocumento,
           telefones: cf.telefones || [],
           emails: cf.emails || []
@@ -316,14 +292,14 @@ export const EditarClienteFornecedor: React.FC = () => {
   const handleInputChange = (field: string, value: any) => {
     if (field === 'numeroDocumento') {
       // Remove caracteres não numéricos para validação
-      const cleanValue = value.replace(/\D/g, '');
+      const cleanValue = onlyNumbers(value);
       const maxLength = formData.tipoDocumento === 'CPF' ? 11 : 14;
       
       if (cleanValue.length <= maxLength) {
         // Aplica formatação baseada no tipo de documento
         const formattedValue = formData.tipoDocumento === 'CPF' 
-          ? formatCPF(value) 
-          : formatCNPJ(value);
+          ? maskCPF(cleanValue) 
+          : maskCNPJ(cleanValue);
         
         setFormData(prev => ({
           ...prev,
@@ -386,7 +362,7 @@ export const EditarClienteFornecedor: React.FC = () => {
 
     // Validação de documento se preenchido
     if (formData.numeroDocumento?.trim()) {
-      const cleanDocument = formData.numeroDocumento.replace(/\D/g, '');
+      const cleanDocument = onlyNumbers(formData.numeroDocumento);
       const expectedLength = formData.tipoDocumento === 'CPF' ? 11 : 14;
       if (cleanDocument.length !== expectedLength) {
         toast({
@@ -403,7 +379,7 @@ export const EditarClienteFornecedor: React.FC = () => {
       // Prepara os dados para salvamento, limpando formatação do documento
       const dadosParaSalvar = {
         ...formData,
-        numeroDocumento: formData.numeroDocumento ? formData.numeroDocumento.replace(/\D/g, '') : ''
+        numeroDocumento: formData.numeroDocumento ? onlyNumbers(formData.numeroDocumento) : ''
       };
 
       if (isNovoCliente) {
@@ -531,7 +507,7 @@ export const EditarClienteFornecedor: React.FC = () => {
                     {formData.tipoDocumento === 'CPF' ? 'CPF' : 'CNPJ'} 
                     {formData.numeroDocumento && (
                       <span className="text-sm text-gray-500 ml-1">
-                        ({(formData.numeroDocumento || '').replace(/\D/g, '').length}/{formData.tipoDocumento === 'CPF' ? '11' : '14'})
+                        ({onlyNumbers(formData.numeroDocumento || '').length}/{formData.tipoDocumento === 'CPF' ? '11' : '14'})
                       </span>
                     )}
                   </Label>
@@ -540,6 +516,7 @@ export const EditarClienteFornecedor: React.FC = () => {
                     value={formData.numeroDocumento || ""}
                     onChange={(e) => handleInputChange("numeroDocumento", e.target.value)}
                     placeholder={`Digite o ${formData.tipoDocumento === 'CPF' ? 'CPF' : 'CNPJ'}`}
+                    maxLength={formData.tipoDocumento === 'CPF' ? 14 : 18}
                     className="border-gray-300 hover:border-black focus:border-black"
                   />
                 </div>

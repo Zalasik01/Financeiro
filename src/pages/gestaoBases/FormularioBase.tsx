@@ -33,6 +33,7 @@ import {
   Edit3,
   Trash2,
 } from "lucide-react";
+import { maskCNPJ, onlyNumbers } from "@/utils/formatters";
 
 interface ResponsavelData {
   nome: string;
@@ -113,6 +114,16 @@ export const FormularioBase: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Função para formatar CNPJ
+  const handleCnpjChange = (value: string) => {
+    const numerosSomente = onlyNumbers(value);
+    // Limita a 14 dígitos (CNPJ)
+    if (numerosSomente.length <= 14) {
+      const cnpjFormatado = maskCNPJ(numerosSomente);
+      setCnpj(cnpjFormatado);
+    }
+  };
+
   // Carregar próximo ID
   useEffect(() => {
     const clientBasesRef = ref(db, "clientBases");
@@ -141,7 +152,7 @@ export const FormularioBase: React.FC = () => {
         if (snapshot.exists()) {
           const baseData = snapshot.val();
           setNome(baseData.name || '');
-          setCnpj(baseData.cnpj || '');
+          setCnpj(baseData.cnpj ? maskCNPJ(baseData.cnpj) : ''); // Formatar CNPJ ao carregar
           setLimiteUsuarios(baseData.limite_acesso?.toString() || '');
           setAtivo(baseData.ativo !== false);
           setCurrentNumberId(baseData.numberId || null);
@@ -274,6 +285,13 @@ export const FormularioBase: React.FC = () => {
       return;
     }
 
+    // Validar se CNPJ tem 14 dígitos
+    const cnpjSomenteNumeros = onlyNumbers(cnpj);
+    if (cnpjSomenteNumeros.length !== 14) {
+      toast.validationError("CNPJ deve conter 14 dígitos.");
+      return;
+    }
+
     // Validar responsáveis
     const responsaveisValidos = responsaveis.filter(r => 
       r.nome.trim() && r.telefone.trim()
@@ -289,7 +307,7 @@ export const FormularioBase: React.FC = () => {
     try {
       const baseData: any = {
         name: nome.trim(),
-        cnpj: cnpj.trim(),
+        cnpj: onlyNumbers(cnpj), // Salvar apenas números
         ativo,
         responsaveis: responsaveisValidos,
         contrato,
@@ -415,9 +433,10 @@ export const FormularioBase: React.FC = () => {
                 <Input
                   id="cnpj"
                   value={cnpj}
-                  onChange={(e) => setCnpj(e.target.value)}
+                  onChange={(e) => handleCnpjChange(e.target.value)}
                   placeholder="00.000.000/0000-00"
                   className="border-gray-300 hover:border-black focus:border-black"
+                  maxLength={18}
                   required
                 />
               </div>
