@@ -13,7 +13,7 @@ import {
 import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
-// import SignupPage from "./pages/SignupPage"; // Página de signup não será mais usada
+import SignupPage from "./pages/SignupPage";
 import { useEffect, useMemo } from "react"; // Adicionado useMemo
 import AdminLayout from "./components/AdminLayout";
 import Footer from "./components/Footer";
@@ -86,6 +86,8 @@ const AppContent = () => {
       "/transacao": "Transações",
       "/categoria": "Categorias",
       "/loja": "Lojas",
+      "/loja/editar-loja/:id": "Editar Loja",
+      "/loja/criar-loja": "Criar loja",
       "/fechamento": "Fechamentos",
       "/dre": "DRE",
       "/meta": "Metas",
@@ -97,7 +99,7 @@ const AppContent = () => {
       "/settings": "Configurações",
       "/clientes-fornecedores/novo": "Novo Cliente/Fornecedor",
       "/clientes-fornecedores/editar/:id": "Editar Cliente/Fornecedor",
-      "/clientes-fornecedores": "Clientes e Fornecedores", // Adicionar título para a nova rota
+      "/clientes-fornecedores": "Clientes e Fornecedores",
       "/gerenciar-lojas": "Gerenciar Lojas",
       "/gerenciar-lojas/novo": "Nova Loja",
       "/gerenciar-lojas/editar/:id": "Editar Loja",
@@ -106,6 +108,8 @@ const AppContent = () => {
       "/admin/gestao-bases/editar/:id": "Editar Base",
       "/admin/gestao-bases/contrato/:id": "Contrato da Base",
       "/admin/gestao-bases/usuarios/:id": "Usuários da Base",
+      "/admin/gerenciar-usuarios-global/editar/:uid": "Editar Usuário",
+      "/admin/gerenciar-usuarios-global": "Usuários",
       "/login": "Login",
       "/signup": "Criar Conta",
       "*": "Página Não Encontrada",
@@ -255,7 +259,7 @@ const AppContent = () => {
               </Route>
             </Route>
             <Route path="/login" element={<LoginPage />} />
-            {/* <Route path="/signup" element={<SignupPage />} />  // Rota de signup removida */}
+            <Route path="/signup" element={<SignupPage />} />
             <Route path="/convite/:inviteToken" element={<InvitePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

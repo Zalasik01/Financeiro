@@ -77,7 +77,7 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
   }, [busca, clientesFornecedores, filtros]);
 
   const { sortConfig, handleSort, sortedData: clientesFornecedoresOrdenados } = useTableSort(
-    clientesFornecedoresFiltrados,
+    clientesFiltrados,
     { key: 'nome', direction: 'asc' }
   );
   
@@ -436,10 +436,18 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
                       <StatusBadge isActive={cf.ativo} />
                     </DataTableCell>
                     <DataTableCell align="center">
-                      <ActionButtons
-                        onEdit={() => navegarParaEditar(cf.id)}
-                        onDelete={() => lidarComDelecao(cf.id, cf.nome)}
-                      />
+                      <div className="flex items-center justify-center gap-2">
+                        <ActionButton
+                          type="edit"
+                          onClick={() => navegarParaEditar(cf.id)}
+                          tooltip="Editar cliente/fornecedor"
+                        />
+                        <ActionButton
+                          type="delete"
+                          onClick={() => lidarComDelecao(cf.id, cf.nome)}
+                          tooltip="Deletar cliente/fornecedor"
+                        />
+                      </div>
                     </DataTableCell>
                   </DataTableRow>
                 );

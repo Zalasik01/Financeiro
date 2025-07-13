@@ -456,10 +456,18 @@ const LojaPage: React.FC = () => {
                       <StatusBadge isActive={loja.ativo !== false} />
                     </DataTableCell>
                     <DataTableCell align="center">
-                      <ActionButtons
-                        onEdit={() => navegarParaEditar(loja.id)}
-                        onDelete={() => lidarComDelecao(loja.id, loja.name)}
-                      />
+                      <div className="flex items-center justify-center gap-2">
+                        <ActionButton
+                          type="edit"
+                          onClick={() => navegarParaEditar(loja.id)}
+                          tooltip="Editar loja"
+                        />
+                        <ActionButton
+                          type="delete"
+                          onClick={() => lidarComDelecao(loja.id, loja.name)}
+                          tooltip="Deletar loja"
+                        />
+                      </div>
                     </DataTableCell>
                   </DataTableRow>
                 );

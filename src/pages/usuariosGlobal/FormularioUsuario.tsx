@@ -529,9 +529,14 @@ Bem-vindo ao sistema! 🚀`;
                     {/* Botão para gerar convite novamente - apenas para edição */}
                     {isEdicao && formData.associatedBases.length > 0 && (
                       <Button 
+                        type="button"
                         variant="outline" 
                         size="sm"
-                        onClick={gerarNovoConvite}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          gerarNovoConvite();
+                        }}
                         className="text-purple-600 border-purple-300 hover:bg-purple-50"
                       >
                         <User className="h-4 w-4 mr-2" />
@@ -751,10 +756,9 @@ Bem-vindo ao sistema! 🚀`}
                       type="button"
                       onClick={() => {
                         setModalConviteAberto(false);
-                        navigate('/admin/gerenciar-usuarios-global');
                       }}
                     >
-                      Finalizar
+                      Fechar
                     </Button>
                   </div>
                 </div>

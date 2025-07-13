@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Search, Filter, MoreVertical, Download, FileText } from "lucide-react";
+import { PlusCircle, Search, Filter, MoreVertical, Download, FileText, Ban } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -464,11 +464,37 @@ export const GestaoBasesPage: React.FC = () => {
                     <StatusBadge isActive={base.ativo} />
                   </DataTableCell>
                   <DataTableCell align="center">
-                    <BaseActionButtons
-                      onEdit={() => navegarParaEditar(base.id)}
-                      onContract={() => navegarParaContrato(base.id)}
-                      onInactivate={() => abrirModalInativacao(base.id, base.name)}
-                    />
+                    <div className="flex items-center justify-center gap-2">
+                      <ActionButton
+                        type="edit"
+                        onClick={() => navegarParaEditar(base.id)}
+                        tooltip="Editar base"
+                      />
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navegarParaContrato(base.id);
+                        }} 
+                        title="Imprimir Contrato"
+                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          abrirModalInativacao(base.id, base.name);
+                        }} 
+                        title="Inativar base"
+                      >
+                        <Ban className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </DataTableCell>
                 </DataTableRow>
               ))}

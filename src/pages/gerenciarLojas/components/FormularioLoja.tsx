@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { ActionButton } from "@/components/ui/ActionButton";
 import { Store, ContatoTelefone, ContatoEmail } from "@/types/store";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ImageUpload";
@@ -456,24 +457,16 @@ export const FormularioLoja: React.FC<FormularioLojaProps> = ({
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-1">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
+                                <ActionButton
+                                  type="edit"
                                   onClick={() => abrirDialogoContato('telefone', telefone)}
-                                  className="h-8 w-8 p-0 text-gray-800 hover:bg-gray-800 hover:text-white"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
+                                  tooltip="Editar telefone"
+                                />
+                                <ActionButton
+                                  type="delete"
                                   onClick={() => removerContato('telefone', index)}
-                                  className="h-8 w-8 p-0 text-red-600 hover:bg-red-600 hover:text-white"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                  tooltip="Remover telefone"
+                                />
                               </div>
                             </TableCell>
                           </TableRow>
@@ -532,24 +525,16 @@ export const FormularioLoja: React.FC<FormularioLojaProps> = ({
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-1">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
+                                <ActionButton
+                                  type="edit"
                                   onClick={() => abrirDialogoContato('email', email)}
-                                  className="h-8 w-8 p-0 text-gray-800 hover:bg-gray-800 hover:text-white"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
+                                  tooltip="Editar email"
+                                />
+                                <ActionButton
+                                  type="delete"
                                   onClick={() => removerContato('email', index)}
-                                  className="h-8 w-8 p-0 text-red-600 hover:bg-red-600 hover:text-white"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                  tooltip="Remover email"
+                                />
                               </div>
                             </TableCell>
                           </TableRow>

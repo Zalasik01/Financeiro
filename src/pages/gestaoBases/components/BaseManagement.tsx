@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ActionButton } from "@/components/ui/ActionButton";
 import { db } from "@/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/lib/toast";
@@ -609,15 +610,11 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
                       />
                     </div>
                     {newBaseResponsaveis.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
+                      <ActionButton
+                        type="delete"
                         onClick={() => removeResponsavel(index)}
-                        className="h-9 w-9 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
+                        tooltip="Remover responsável"
+                      />
                     )}
                   </div>
                 </div>
@@ -870,17 +867,13 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
                                         />
                                       </div>
                                       {editingBaseResponsaveis.length > 1 && (
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
+                                        <ActionButton
+                                          type="delete"
                                           onClick={() =>
                                             removeEditResponsavel(index)
                                           }
-                                          className="h-9 w-9 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                          <Minus className="h-4 w-4" />
-                                        </Button>
+                                          tooltip="Remover responsável"
+                                        />
                                       )}
                                     </div>
                                   </div>
