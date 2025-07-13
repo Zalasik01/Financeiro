@@ -324,6 +324,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   : null;
             } else {
               // Usuário não encontrado na coleção users
+              console.log("⚠️ [useAuth] Usuário não encontrado na coleção users - usando dados padrão");
             }
 
             // Salvar sessão do usuário no localStorage
@@ -343,19 +344,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             if (lastSelectedBaseId) {
               setSelectedBaseId(lastSelectedBaseId);
             }
+            
+            console.log("✅ [useAuth] Usuário configurado com sucesso:", {
+              uid: user.uid,
+              email: user.email,
+              isAdmin: appUser.isAdmin,
+              clientBaseId: appUser.clientBaseId
+            });
           })
           .catch((error) => {
             console.error(
               "❌ [useAuth] Erro ao buscar perfil do usuário:",
               error
             );
+            // Mesmo com erro, definir o usuário com dados básicos
             setCurrentUser({ ...user, isAdmin: false, clientBaseId: null });
           })
           .finally(() => {
+            console.log("🏁 [useAuth] Finalizando carregamento do usuário");
             setLoading(false);
           });
       } else {
         // Limpar localStorage quando não há usuário autenticado
+        console.log("🚪 [useAuth] Usuário deslogado - limpando sessão");
         clearSession();
         setCurrentUser(null);
         setLoading(false);

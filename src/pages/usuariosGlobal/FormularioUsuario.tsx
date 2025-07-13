@@ -662,7 +662,7 @@ Bem-vindo ao sistema! 🚀`;
             </Card>
 
             {/* Modal de Link de Convite */}
-            <Dialog open={modalConviteAberto} onOpenChange={() => {}}>
+            <Dialog open={modalConviteAberto} onOpenChange={setModalConviteAberto}>
               <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
