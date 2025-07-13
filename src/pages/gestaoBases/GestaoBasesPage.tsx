@@ -7,15 +7,18 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ActionButtons } from "@/components/ui/action-buttons";
 import { BaseActionButtons } from "@/components/ui/base-action-buttons";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTable, DataTableHeader, DataTableBody, DataTableRow, DataTableCell, DataTableHeaderCell } from "@/components/ui/data-table";
 import { db } from "@/firebase";
+import { toast } from "@/lib/toast";
 import { useAuth } from "@/hooks/useAuth";
 import type { ClientBase } from "@/types/store";
-import { onValue, ref } from "firebase/database";
+import { onValue, ref, update } from "firebase/database";
 
 interface AppUser {
   uid: string;
@@ -36,6 +39,11 @@ export const GestaoBasesPage: React.FC = () => {
   const [busca, setBusca] = useState("");
   
   const [modalPesquisaAberto, setModalPesquisaAberto] = useState(false);
+  const [modalInativacaoAberto, setModalInativacaoAberto] = useState(false);
+  const [baseParaInativar, setBaseParaInativar] = useState<{id: string, nome: string} | null>(null);
+  const [motivoInativacao, setMotivoInativacao] = useState("");
+  const [motivoPersonalizado, setMotivoPersonalizado] = useState("");
+  const [usarMotivoPersonalizado, setUsarMotivoPersonalizado] = useState(false);
   const [filtros, setFiltros] = useState({
     status: "todos",
     tipo: "todos"
@@ -124,10 +132,60 @@ export const GestaoBasesPage: React.FC = () => {
     navigate(`/admin/gestao-bases/contrato/${idRegistro}`);
   };
 
-  const lidarComDelecao = async (id: string, nome: string) => {
-    if (window.confirm(`Tem certeza que deseja remover "${nome}"? Esta ação não pode ser desfeita.`)) {
-      // Implementar lógica de deleção quando necessário
-      console.log(`Deletar base: ${id}`);
+  const abrirModalInativacao = (id: string, nome: string) => {
+    setBaseParaInativar({ id, nome });
+    setModalInativacaoAberto(true);
+  };
+
+  const lidarComInativacao = async () => {
+    if (!baseParaInativar) return;
+
+    let motivoFinal = "";
+    if (usarMotivoPersonalizado) {
+      const motivoLimpo = motivoPersonalizado.replace(/\s/g, '');
+      if (motivoLimpo.length < 5) {
+        toast.error({
+          title: "Erro",
+          description: "O motivo personalizado deve ter no mínimo 5 caracteres (sem contar espaços).",
+        });
+        return;
+      }
+      motivoFinal = motivoPersonalizado;
+    } else {
+      if (!motivoInativacao) {
+        toast.error({
+          title: "Erro",
+          description: "Por favor, selecione um motivo para a inativação.",
+        });
+        return;
+      }
+      motivoFinal = motivoInativacao;
+    }
+
+    try {
+      const baseRef = ref(db, `clientBases/${baseParaInativar.id}`);
+      await update(baseRef, {
+        ativo: false,
+        motivo_inativo: motivoFinal,
+        data_inativacao: new Date().toISOString(),
+        inativado_por: currentUser?.uid,
+      });
+
+      toast.success({
+        title: "Sucesso",
+        description: `Base "${baseParaInativar.nome}" inativada com sucesso!`,
+      });
+
+      setModalInativacaoAberto(false);
+      setBaseParaInativar(null);
+      setMotivoInativacao("");
+      setMotivoPersonalizado("");
+      setUsarMotivoPersonalizado(false);
+    } catch (error) {
+      toast.error({
+        title: "Erro",
+        description: "Erro ao inativar a base. Tente novamente.",
+      });
     }
   };
 
@@ -387,7 +445,7 @@ export const GestaoBasesPage: React.FC = () => {
                     <BaseActionButtons
                       onEdit={() => navegarParaEditar(base.id)}
                       onContract={() => navegarParaContrato(base.id)}
-                      onDelete={() => lidarComDelecao(base.id, base.name)}
+                      onInactivate={() => abrirModalInativacao(base.id, base.name)}
                     />
                   </DataTableCell>
                 </DataTableRow>
@@ -405,6 +463,98 @@ export const GestaoBasesPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal de Inativação */}
+      <Dialog open={modalInativacaoAberto} onOpenChange={setModalInativacaoAberto}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Inativar Base</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-gray-600 mb-4">
+                Tem certeza que deseja inativar a base <strong>"{baseParaInativar?.nome}"</strong>?
+              </p>
+              
+              {!usarMotivoPersonalizado ? (
+                <div>
+                  <Label htmlFor="motivo">Motivo da inativação *</Label>
+                  <Select value={motivoInativacao} onValueChange={setMotivoInativacao}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Selecione um motivo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="inadimplencia">Inadimplência</SelectItem>
+                      <SelectItem value="solicitacao_cliente">Solicitação do cliente</SelectItem>
+                      <SelectItem value="fim_contrato">Fim de contrato</SelectItem>
+                      <SelectItem value="fusao_empresa">Fusão/Aquisição da empresa</SelectItem>
+                      <SelectItem value="falencia">Falência/Encerramento</SelectItem>
+                      <SelectItem value="migracao_sistema">Migração para outro sistema</SelectItem>
+                      <SelectItem value="descumprimento_contrato">Descumprimento de contrato</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="link"
+                    className="p-0 h-auto text-sm mt-2"
+                    onClick={() => setUsarMotivoPersonalizado(true)}
+                  >
+                    Informar motivo personalizado
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor="motivoPersonalizado">Motivo personalizado *</Label>
+                  <Textarea
+                    id="motivoPersonalizado"
+                    value={motivoPersonalizado}
+                    onChange={(e) => setMotivoPersonalizado(e.target.value)}
+                    placeholder="Descreva o motivo da inativação... (mínimo 5 caracteres)"
+                    className="mt-1"
+                    rows={3}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Caracteres: {motivoPersonalizado.replace(/\s/g, '').length}/5 (sem contar espaços)
+                  </p>
+                  <Button
+                    variant="link"
+                    className="p-0 h-auto text-sm mt-2"
+                    onClick={() => {
+                      setUsarMotivoPersonalizado(false);
+                      setMotivoPersonalizado("");
+                    }}
+                  >
+                    Usar motivos padrão
+                  </Button>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setModalInativacaoAberto(false);
+                  setBaseParaInativar(null);
+                  setMotivoInativacao("");
+                  setMotivoPersonalizado("");
+                  setUsarMotivoPersonalizado(false);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={lidarComInativacao}
+                variant="destructive"
+                disabled={
+                  (!usarMotivoPersonalizado && !motivoInativacao) ||
+                  (usarMotivoPersonalizado && motivoPersonalizado.replace(/\s/g, '').length < 5)
+                }
+              >
+                Inativar Base
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

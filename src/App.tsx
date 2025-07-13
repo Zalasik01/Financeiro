@@ -25,7 +25,8 @@ import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { useStores } from "./hooks/useStores";
 import AdminPage from "./pages/AdminPage";
 import AdminDashboard from "./pages/AdminPage/AdminDashboard";
-import GerenciarUsuariosGlobalPage from "./pages/AdminPage/GerenciarUsuariosGlobalPage"; // Certifique-se que a importação está correta
+import GerenciarUsuariosGlobalPage from "./pages/usuariosGlobal/GerenciarUsuariosGlobalPage"; // Novo componente
+import { GerenciarUsuariosPage } from "./pages/gerenciarUsuarios/GerenciarUsuariosPage"; // Novo componente
 import CategoriaPage from "./pages/CategoriaPage";
 import DREPage from "./pages/DREPage";
 import EditarPerfilPage from "./pages/EditarPerfilPage";
@@ -36,6 +37,7 @@ import GerenciarTipoMovimentacaoPage from "./pages/GerenciarTipoMovimentacaoPage
 import GerenciarUsuarioPage from "./pages/GerenciarUsuarioPage";
 import { GestaoBasesPage } from "./pages/gestaoBases/GestaoBasesPage"; // Nova importação
 import { FormularioBase } from "./pages/gestaoBases/FormularioBase"; // Nova importação
+import FormularioUsuario from "./pages/usuariosGlobal/FormularioUsuario";
 import { ContratoBase } from "./pages/gestaoBases/ContratoBase"; // Nova importação
 import InvitePage from "./pages/InvitePage";
 import LojaPage from "./pages/LojaPage";
@@ -235,6 +237,14 @@ const AppContent = () => {
                 <Route
                   path="gerenciar-usuarios-global"
                   element={<GerenciarUsuariosGlobalPage />}
+                />
+                <Route
+                  path="gerenciar-usuarios-global/novo"
+                  element={<FormularioUsuario />}
+                />
+                <Route
+                  path="gerenciar-usuarios-global/editar/:uid"
+                  element={<FormularioUsuario />}
                 />
                 {/* Rotas de compatibilidade */}
                 <Route

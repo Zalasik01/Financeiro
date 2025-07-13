@@ -106,23 +106,41 @@ export const ContratoBase: React.FC = () => {
       contratoContent = contratoContent.replace(/\[MODALIDADE_PAGAMENTO\]/g, 
         base.contrato?.modalidadePagamento ? getModalidadePagamento(base.contrato.modalidadePagamento) : '[MODALIDADE_PAGAMENTO]');
 
-      // Criar arquivo para download
-      const element = document.createElement('a');
-      const file = new Blob([contratoContent], { type: 'text/plain' });
-      element.href = URL.createObjectURL(file);
-      element.download = `Contrato_${base.name}_${base.numberId}.txt`;
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
+      // Abrir nova janela para impressão (simulando PDF)
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Contrato - ${base.name}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
+              h1 { color: #333; text-align: center; }
+              .content { white-space: pre-wrap; }
+              @media print {
+                body { padding: 0; }
+              }
+            </style>
+          </head>
+          <body>
+            <h1>${base.modeloContrato.templateTitle || 'Contrato de Prestação de Serviços'}</h1>
+            <div class="content">${contratoContent}</div>
+          </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+      }
 
       toast.success({
         title: "Sucesso",
-        description: "Contrato baixado com sucesso!",
+        description: "Contrato aberto para impressão/download em PDF!",
       });
     } catch (error) {
       toast.error({
         title: "Erro",
-        description: "Erro ao gerar arquivo do contrato.",
+        description: "Erro ao gerar contrato para impressão.",
       });
     }
   };
@@ -163,7 +181,7 @@ export const ContratoBase: React.FC = () => {
                 className="flex items-center gap-2"
               >
                 <Download className="h-4 w-4" />
-                Baixar Contrato
+                Imprimir PDF
               </Button>
               <Button
                 onClick={() => navigate(`/admin/gestao-bases/editar/${baseId}`)}

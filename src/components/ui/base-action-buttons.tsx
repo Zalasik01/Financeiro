@@ -1,22 +1,22 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, FileText } from "lucide-react";
+import { Edit2, Ban, FileText } from "lucide-react";
 
 interface BaseActionButtonsProps {
   onEdit: () => void;
-  onDelete: () => void;
+  onInactivate: () => void;
   onContract: () => void;
   editTitle?: string;
-  deleteTitle?: string;
+  inactivateTitle?: string;
   contractTitle?: string;
 }
 
 export const BaseActionButtons: React.FC<BaseActionButtonsProps> = ({
   onEdit,
-  onDelete,
+  onInactivate,
   onContract,
   editTitle = "Editar",
-  deleteTitle = "Remover",
+  inactivateTitle = "Inativar",
   contractTitle = "Imprimir Contrato"
 }) => {
   return (
@@ -50,11 +50,11 @@ export const BaseActionButtons: React.FC<BaseActionButtonsProps> = ({
         className="text-red-500 hover:text-red-700" 
         onClick={(e) => {
           e.stopPropagation();
-          onDelete();
+          onInactivate();
         }} 
-        title={deleteTitle}
+        title={inactivateTitle}
       >
-        <Trash2 className="h-4 w-4" />
+        <Ban className="h-4 w-4" />
       </Button>
     </div>
   );
