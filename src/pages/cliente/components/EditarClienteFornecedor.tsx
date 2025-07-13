@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useClientesFornecedores } from "@/hooks/useClientesFornecedores";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { ArrowLeft, Save, Plus, Trash2, Edit, MessageCircle } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, Edit, MessageCircle, User, Phone, Mail, MapPin, FileText, Building } from "lucide-react";
 import { ClienteFornecedor, ContatoTelefone, ContatoEmail } from "@/types/clienteFornecedor";
 import { useToast } from "@/hooks/use-toast";
 
@@ -459,7 +459,10 @@ export const EditarClienteFornecedor: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* BLOCO 1: Informações Básicas */}
             <div className="bg-white p-6 rounded-lg border">
-              <h3 className="text-lg font-semibold mb-6 text-gray-800 border-b pb-2">Informações Básicas</h3>
+              <h3 className="text-lg font-semibold mb-6 text-gray-800 border-b pb-2 flex items-center gap-2">
+                <User size={20} />
+                Informações Básicas
+              </h3>
               
               {/* Status - Ativo, Cliente e Fornecedor no topo */}
               <div className="flex flex-wrap gap-6 p-4 bg-gray-50 rounded-lg mb-6">
@@ -557,7 +560,10 @@ export const EditarClienteFornecedor: React.FC = () => {
 
             {/* BLOCO 2: Contatos */}
             <div className="bg-white p-6 rounded-lg border">
-              <h3 className="text-lg font-semibold mb-6 text-gray-800 border-b pb-2">Contatos</h3>
+              <h3 className="text-lg font-semibold mb-6 text-gray-800 border-b pb-2 flex items-center gap-2">
+                <MessageCircle size={20} />
+                Contatos
+              </h3>
               
               {/* Telefones */}
               <div className="mb-6">
@@ -874,7 +880,10 @@ export const EditarClienteFornecedor: React.FC = () => {
 
             {/* BLOCO 3: Endereço */}
             <div className="bg-white p-6 rounded-lg border">
-              <h3 className="text-lg font-semibold mb-6 text-gray-800 border-b pb-2">Endereço</h3>
+              <h3 className="text-lg font-semibold mb-6 text-gray-800 border-b pb-2 flex items-center gap-2">
+                <MapPin size={20} />
+                Endereço
+              </h3>
               
               {/* Primeira linha: CEP, Estado, Cidade */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -963,7 +972,10 @@ export const EditarClienteFornecedor: React.FC = () => {
             {/* BLOCO 4: Informações CNPJ (se aplicável) */}
             {formData.tipoDocumento === "CNPJ" && (
               <div className="bg-white p-6 rounded-lg border">
-                <h3 className="text-lg font-semibold mb-6 text-gray-800 border-b pb-2">Informações CNPJ</h3>
+                <h3 className="text-lg font-semibold mb-6 text-gray-800 border-b pb-2 flex items-center gap-2">
+                  <Building size={20} />
+                  Informações CNPJ
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="cnaeFiscal">CNAE Fiscal</Label>
@@ -991,7 +1003,10 @@ export const EditarClienteFornecedor: React.FC = () => {
 
             {/* BLOCO 5: Observações */}
             <div className="bg-white p-6 rounded-lg border">
-              <h3 className="text-lg font-semibold mb-6 text-gray-800 border-b pb-2">Observações</h3>
+              <h3 className="text-lg font-semibold mb-6 text-gray-800 border-b pb-2 flex items-center gap-2">
+                <FileText size={20} />
+                Observações
+              </h3>
               <div>
                 <Label htmlFor="observacoes">Observações Adicionais</Label>
                 <Textarea

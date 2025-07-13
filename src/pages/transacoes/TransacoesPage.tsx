@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useClientesFornecedores } from '@/hooks/useClientesFornecedores';
 import { useFinance } from "@/hooks/useFinance";
 import { TransactionManager } from "@/components/TransactionManager";
 import { Transaction } from '@/types/finance';
 
 const TransacoesPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const [tipoInicial, setTipoInicial] = useState<"Receita" | "Despesa" | undefined>();
+  
   const {
     categories,
     transactions,
@@ -13,6 +17,15 @@ const TransacoesPage: React.FC = () => {
     deleteTransaction,
   } = useFinance();
   const { clientesFornecedores, carregando: carregandoCF } = useClientesFornecedores();
+
+  useEffect(() => {
+    const tipo = searchParams.get('tipo');
+    if (tipo === 'receita') {
+      setTipoInicial('Receita');
+    } else if (tipo === 'despesa') {
+      setTipoInicial('Despesa');
+    }
+  }, [searchParams]);
 
   const handleAddTransactionWithPerson = async (transactionData: Omit<Transaction, 'id'>) => {
     return addTransaction(transactionData);
@@ -33,6 +46,7 @@ const TransacoesPage: React.FC = () => {
         onDeleteTransaction={deleteTransaction}
         clientesFornecedores={clientesFornecedores}
         carregandoCF={carregandoCF}
+        tipoInicial={tipoInicial}
       />
     </div>
   );

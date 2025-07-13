@@ -7,7 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { functions } from "@/firebase"; // Importar 'functions'
 import { httpsCallable } from "firebase/functions"; // Importar httpsCallable
-import { Users, UserPlus, ShieldOff } from "lucide-react";
+import { Users, UserPlus, ShieldOff, Database, Store } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface AppUser {
   uid: string;
@@ -19,14 +20,17 @@ interface AppUser {
 interface AdminManagementProps {
   adminUsers: AppUser[];
   onSetUserToRevoke: (user: AppUser | null) => void;
+  onOpenBasesModal: () => void;
 }
 
 export const AdminManagement: React.FC<AdminManagementProps> = ({
   adminUsers,
   onSetUserToRevoke,
+  onOpenBasesModal,
 }) => {
   const { currentUser } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   // A função signup do useAuth não será mais usada aqui para criar admins
 
   const [newAdminEmail, setNewAdminEmail] = useState("");
@@ -75,7 +79,29 @@ export const AdminManagement: React.FC<AdminManagementProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6" /> Gerenciar Administradores</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-6 w-6" /> Gerenciar Administradores
+          </CardTitle>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => navigate("/gerenciar-lojas")} 
+              variant="outline"
+              className="bg-gray-800 text-white border-gray-800 hover:bg-gray-700"
+            >
+              <Store className="mr-2 h-4 w-4" />
+              Gerenciar Lojas
+            </Button>
+            <Button 
+              onClick={onOpenBasesModal} 
+              variant="outline"
+              className="bg-gray-800 text-white border-gray-800 hover:bg-gray-700"
+            >
+              <Database className="mr-2 h-4 w-4" />
+              Gerenciar Bases
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <form onSubmit={handleCreateAdmin} className="space-y-4 p-4 border rounded-md bg-slate-50 dark:bg-slate-900">

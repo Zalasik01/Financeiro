@@ -17,12 +17,13 @@ interface TransactionManagerProps {
     transaction: Partial<Transaction> | null
   ) => void;
   onDeleteTransaction: (id: string) => void;
-  clientesFornecedores: ClienteFornecedor[]; // Adicionar prop
-  carregandoCF: boolean; // Adicionar prop
+  clientesFornecedores: ClienteFornecedor[];
+  carregandoCF: boolean;
+  tipoInicial?: "Receita" | "Despesa";
 }
 
 interface LastUsedTransactionFields {
-  type?: "income" | "expense";
+  type?: "Receita" | "Despesa";
   storeId?: string;
   categoryId?: string;
 }
@@ -33,8 +34,9 @@ export const TransactionManager = ({
   onAddTransaction,
   onUpdateTransaction,
   onDeleteTransaction,
-  clientesFornecedores, // Receber prop
-  carregandoCF, // Receber prop
+  clientesFornecedores,
+  carregandoCF,
+  tipoInicial,
 }: TransactionManagerProps) => {
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
@@ -72,12 +74,12 @@ export const TransactionManager = ({
       <CardContent className="space-y-6">
         <TransactionForm
           categories={categories}
-          onAddTransaction={handleAddTransaction} // Usa o novo handler
+          onAddTransaction={handleAddTransaction}
           onUpdateTransaction={handleUpdateTransaction}
           editingTransaction={editingTransaction}
-          lastUsedFields={lastUsedFields} // Passa os campos para o formulário
-          clientesFornecedores={clientesFornecedores} // Passar para o TransactionForm
-          carregandoCF={carregandoCF} // Passar para o TransactionForm
+          lastUsedFields={tipoInicial ? { ...lastUsedFields, type: tipoInicial } : lastUsedFields}
+          clientesFornecedores={clientesFornecedores}
+          carregandoCF={carregandoCF}
         />
 
         <TransactionList

@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { db } from "@/firebase";
@@ -25,7 +26,7 @@ import {
   set,
   update,
 } from "firebase/database";
-import { Users } from "lucide-react";
+import { Users, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { AdminManagement } from "./AdminPage/components/AdminManagement";
 import { BaseManagement } from "./AdminPage/components/BaseManagement";
@@ -68,10 +69,11 @@ const AdminPage: React.FC = () => {
   );
   const [baseToDelete, setBaseToDelete] = useState<ClientBase | null>(null); // Estado para a base a ser excluída
   const [baseToToggleStatus, setBaseToToggleStatus] =
-    useState<ClientBase | null>(null); // Estado para ativar/inativar base
-  const [inactivationReason, setInactivationReason] = useState<string>(""); // Estado para o motivo da inativação
+    useState<ClientBase | null>(null);
+  const [inactivationReason, setInactivationReason] = useState<string>("");
   const [selectedPredefinedReason, setSelectedPredefinedReason] =
     useState<string>("");
+  const [modalBasesAberto, setModalBasesAberto] = useState(false);
 
   const predefinedInactivationReasons = [
     "Pagamento pendente",
@@ -549,8 +551,38 @@ const AdminPage: React.FC = () => {
         <AdminManagement
           adminUsers={adminUsers}
           onSetUserToRevoke={setUserToRevoke}
+          onOpenBasesModal={() => setModalBasesAberto(true)}
         />
       </div>
+      
+      {modalBasesAberto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Gerenciar Bases</h2>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setModalBasesAberto(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="h-6 w-6" />
+                </Button>
+              </div>
+              <BaseManagement
+                clientBases={clientBases}
+                nextNumberId={nextNumberId}
+                baseCreatorsMap={baseCreatorsMap}
+                onGenerateInviteLink={handleGenerateInviteLinkForBase}
+                generatedInviteLink={generatedInviteLink}
+                onSetUserToRemove={setUserToRemove}
+                onSetBaseToDelete={handleSetBaseToDelete}
+                onSetBaseToToggleStatus={handleSetBaseToToggleStatus}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

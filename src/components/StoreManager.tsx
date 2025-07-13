@@ -4,12 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Store } from "@/types/store";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Store, ContatoTelefone, ContatoEmail } from "@/types/store";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "./ImageUpload";
 import { maskCNPJ, onlyNumbers } from "@/utils/formatters";
-import { Star } from "lucide-react"; // Ícone de estrela
-import { HelpTooltip } from "@/components/ui/HelpToolTip"; // Importar
+import { Star, Plus, Edit2, Trash2, MessageCircle } from "lucide-react";
+import { HelpTooltip } from "@/components/ui/HelpToolTip";
 
 interface StoreManagerProps {
   stores: Store[];
@@ -155,7 +159,7 @@ export const StoreManager = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <span>
-            🏪 Gerenciar Lojas
+            Gerenciar Lojas
           </span>
           <HelpTooltip dicaKey="gerenciarLojas" side="bottom" />
         </CardTitle>

@@ -21,18 +21,21 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
 
   const [busca, setBusca] = useState("");
   
-  // Estados para pesquisa avançada
   const [modalPesquisaAberto, setModalPesquisaAberto] = useState(false);
   const [filtros, setFiltros] = useState({
-    ativo: "todos", // "todos", "ativo", "inativo"
-    perfil: "todos", // "todos", "cliente", "fornecedor"
-    tipo: "todos" // "todos", "fisica", "juridica"
+    ativo: "todos",
+    perfil: "todos",
+    tipo: "todos"
+  });
+  const [filtrosTemporarios, setFiltrosTemporarios] = useState({
+    ativo: "todos",
+    perfil: "todos",
+    tipo: "todos"
   });
 
   const clientesFiltrados = useMemo(() => {
     let resultado = clientesFornecedores;
     
-    // Filtro por texto de busca
     const termo = busca.trim().toLowerCase();
     if (termo) {
       resultado = resultado.filter((cf) => {
@@ -43,14 +46,11 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
       });
     }
     
-    // Filtros avançados
-    // Filtro por status ativo/inativo
     if (filtros.ativo !== "todos") {
       const isAtivo = filtros.ativo === "ativo";
       resultado = resultado.filter(cf => cf.ativo === isAtivo);
     }
     
-    // Filtro por perfil (cliente/fornecedor)
     if (filtros.perfil !== "todos") {
       if (filtros.perfil === "cliente") {
         resultado = resultado.filter(cf => cf.ehCliente);
@@ -59,7 +59,6 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
       }
     }
     
-    // Filtro por tipo (física/jurídica)
     if (filtros.tipo !== "todos") {
       if (filtros.tipo === "fisica") {
         resultado = resultado.filter(cf => cf.tipoDocumento === "CPF");
@@ -73,55 +72,56 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
   
   const navigate = useNavigate();
 
-  // Abre o modal para um novo cadastro
   const navegarParaNovoCadastro = () => {
     navigate("/clientes-fornecedores/novo");
   };
 
-  // Navega para a página de edição
   const navegarParaEditar = (idRegistro: string) => {
     navigate(`/clientes-fornecedores/editar/${idRegistro}`);
   };
 
-  // Navega para visualizar/editar cliente
   const navegarParaVisualizarCliente = (idRegistro: string) => {
     navigate(`/clientes-fornecedores/editar/${idRegistro}`);
   };
 
-  // Lida com a exclusão de um registro
   const lidarComDelecao = async (id: string, nome: string) => {
     if (window.confirm(`Tem certeza que deseja remover "${nome}"? Esta ação não pode ser desfeita.`)) {
       await deletarClienteFornecedor(id, nome);
     }
   };
 
-  // Funções para pesquisa avançada
   const aplicarFiltros = () => {
+    setFiltros(filtrosTemporarios);
     setModalPesquisaAberto(false);
   };
 
   const limparFiltros = () => {
-    setFiltros({
+    const filtrosLimpos = {
       ativo: "todos",
       perfil: "todos",
       tipo: "todos"
-    });
+    };
+    setFiltros(filtrosLimpos);
+    setFiltrosTemporarios(filtrosLimpos);
     setBusca("");
+    setModalPesquisaAberto(false);
   };
 
   const handleFiltroChange = (campo: string, valor: string) => {
-    setFiltros(prev => ({
+    setFiltrosTemporarios(prev => ({
       ...prev,
       [campo]: valor
     }));
   };
 
-  // Verifica se há filtros ativos
+  const abrirModalPesquisa = () => {
+    setFiltrosTemporarios(filtros);
+    setModalPesquisaAberto(true);
+  };
+
   const temFiltrosAtivos = filtros.ativo !== "todos" || filtros.perfil !== "todos" || filtros.tipo !== "todos";
 
-  // Função para exportar CSV
   const exportarCSV = () => {
-    // Cabeçalhos do CSV
     const cabecalhos = [
       "Nome/Razão Social",
       "Tipo",
@@ -134,7 +134,6 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
       "Status"
     ];
 
-    // Converter dados para CSV
     const linhasCSV = clientesFiltrados.map(cf => {
       const telefonePrincipal = cf.telefones?.find(t => t.principal) || cf.telefones?.[0];
       const emailPrincipal = cf.emails?.find(e => e.principal) || cf.emails?.[0];
@@ -152,16 +151,13 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
       ].join(",");
     });
 
-    // Combinar cabeçalhos e dados
     const csvContent = [cabecalhos.join(","), ...linhasCSV].join("\n");
 
-    // Criar e baixar arquivo
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
     
-    // Nome do arquivo com data atual
     const dataAtual = new Date().toISOString().split('T')[0];
     const nomeArquivo = `clientes-fornecedores-${dataAtual}.csv`;
     link.setAttribute("download", nomeArquivo);
@@ -181,13 +177,12 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
               Gerenciar Clientes e Fornecedores
             </CardTitle>
             <div className="flex items-center gap-3">
-              {/* Menu de Opções */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="outline"
                     size="sm"
-                    className="bg-[#1a365d] text-white border-[#1a365d] hover:bg-[#2d5a87] hover:border-[#2d5a87]"
+                    className="bg-gray-800 text-white border-gray-800 hover:bg-gray-700 hover:border-gray-700"
                   >
                     <MoreVertical className="h-4 w-4" />
                   </Button>
@@ -200,10 +195,9 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Botão Novo Cadastro */}
               <Button 
                 onClick={navegarParaNovoCadastro} 
-                className="bg-[#1a365d] hover:bg-[#2d5a87] text-white"
+                className="bg-gray-800 hover:bg-gray-700 text-white"
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Novo Cadastro
@@ -225,18 +219,19 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
               />
             </div>
             
-            {/* Botão de Pesquisa Avançada */}
             <Dialog open={modalPesquisaAberto} onOpenChange={setModalPesquisaAberto}>
               <DialogTrigger asChild>
                 <Button 
                   variant="outline" 
-                  className={`px-4 ${temFiltrosAtivos ? 'bg-[#1a365d] text-white border-[#1a365d] hover:bg-[#2d5a87]' : 'border-[#1a365d] text-[#1a365d] hover:bg-[#1a365d] hover:text-white'}`}
+                  className={`px-4 ${temFiltrosAtivos ? 'bg-gray-800 text-white border-gray-800 hover:bg-gray-700' : 'border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white'}`}
                   title="Pesquisa Avançada"
+                  onClick={abrirModalPesquisa}
                 >
                   <Filter className="h-4 w-4" />
+                  <span className="ml-2">Filtros</span>
                   {temFiltrosAtivos && (
-                    <span className="ml-2 bg-white text-[#1a365d] text-xs px-2 py-0.5 rounded-full">
-                      Filtros
+                    <span className="ml-2 bg-white text-gray-800 text-xs px-2 py-0.5 rounded-full">
+                      Ativo
                     </span>
                   )}
                 </Button>
@@ -250,7 +245,7 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
                   <div>
                     <Label htmlFor="filtroAtivo">Status</Label>
                     <Select 
-                      value={filtros.ativo} 
+                      value={filtrosTemporarios.ativo} 
                       onValueChange={(value) => handleFiltroChange("ativo", value)}
                     >
                       <SelectTrigger>
@@ -268,7 +263,7 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
                   <div>
                     <Label htmlFor="filtroPerfil">Perfil</Label>
                     <Select 
-                      value={filtros.perfil} 
+                      value={filtrosTemporarios.perfil} 
                       onValueChange={(value) => handleFiltroChange("perfil", value)}
                     >
                       <SelectTrigger>
@@ -286,7 +281,7 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
                   <div>
                     <Label htmlFor="filtroTipo">Tipo de Pessoa</Label>
                     <Select 
-                      value={filtros.tipo} 
+                      value={filtrosTemporarios.tipo} 
                       onValueChange={(value) => handleFiltroChange("tipo", value)}
                     >
                       <SelectTrigger>
@@ -300,12 +295,11 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
                     </Select>
                   </div>
 
-                  {/* Botões */}
                   <div className="flex gap-2 pt-4">
                     <Button 
                       type="button"
                       onClick={aplicarFiltros}
-                      className="flex-1 bg-[#1a365d] hover:bg-[#2d5a87] text-white"
+                      className="flex-1 bg-gray-800 hover:bg-gray-700 text-white"
                     >
                       Aplicar
                     </Button>
@@ -313,7 +307,7 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
                       type="button"
                       variant="outline" 
                       onClick={limparFiltros}
-                      className="flex-1 border-[#1a365d] text-[#1a365d] hover:bg-[#1a365d] hover:text-white"
+                      className="flex-1 border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white"
                     >
                       Limpar
                     </Button>
@@ -323,21 +317,20 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
             </Dialog>
           </div>
 
-          {/* Indicadores de Filtros Ativos */}
           {temFiltrosAtivos && (
             <div className="mb-4 flex flex-wrap gap-2">
               {filtros.ativo !== "todos" && (
-                <Badge variant="secondary" className="bg-[#1a365d] text-white">
+                <Badge variant="secondary" className="bg-gray-800 text-white">
                   Status: {filtros.ativo === "ativo" ? "Ativo" : "Inativo"}
                 </Badge>
               )}
               {filtros.perfil !== "todos" && (
-                <Badge variant="secondary" className="bg-[#1a365d] text-white">
+                <Badge variant="secondary" className="bg-gray-800 text-white">
                   Perfil: {filtros.perfil === "cliente" ? "Cliente" : "Fornecedor"}
                 </Badge>
               )}
               {filtros.tipo !== "todos" && (
-                <Badge variant="secondary" className="bg-[#1a365d] text-white">
+                <Badge variant="secondary" className="bg-gray-800 text-white">
                   Tipo: {filtros.tipo === "fisica" ? "Pessoa Física" : "Pessoa Jurídica"}
                 </Badge>
               )}
@@ -392,7 +385,7 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
                           <div className="flex items-center gap-1">
                             <span>{telefonePrincipal.numero}</span>
                             {telefonePrincipal.principal && (
-                              <span className="text-xs bg-[#1a365d] text-white px-1 py-0.5 rounded">P</span>
+                              <span className="text-xs bg-gray-800 text-white px-1 py-0.5 rounded">P</span>
                             )}
                           </div>
                         ) : (cf.telefone || "-")}
@@ -402,7 +395,7 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
                           <div className="flex items-center gap-1">
                             <span className="truncate max-w-32">{emailPrincipal.email}</span>
                             {emailPrincipal.principal && (
-                              <span className="text-xs bg-[#1a365d] text-white px-1 py-0.5 rounded">P</span>
+                              <span className="text-xs bg-gray-800 text-white px-1 py-0.5 rounded">P</span>
                             )}
                           </div>
                         ) : (cf.email || "-")}
@@ -457,7 +450,7 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
           <div className="mt-4 text-sm text-gray-600">
             Total: <strong>{clientesFiltrados.length}</strong> registro(s)
             {temFiltrosAtivos && (
-              <span className="ml-2 text-[#1a365d] font-medium">
+              <span className="ml-2 text-gray-800 font-medium">
                 (filtrado de {clientesFornecedores.length} registros)
               </span>
             )}

@@ -17,8 +17,9 @@ import NotFound from "./pages/NotFound";
 import { useEffect, useMemo } from "react"; // Adicionado useMemo
 import AdminLayout from "./components/AdminLayout";
 import Footer from "./components/Footer";
-import Navbar from "./components/Navbar"; // Corrigido: Navbar já estava importado
+import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { BotaoFlutuanteTransacao } from "./components/BotaoFlutuanteTransacao";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { useStores } from "./hooks/useStores";
 import AdminPage from "./pages/AdminPage";
@@ -36,19 +37,28 @@ import InvitePage from "./pages/InvitePage";
 import LojaPage from "./pages/LojaPage";
 import MetaPage from "./pages/MetaPage";
 import { EditarClienteFornecedor } from "./pages/cliente/components/EditarClienteFornecedor";
+import { GerenciarLojasPage } from "./pages/gerenciarLojas/GerenciarLojasPage";
+import { NovaLojaPage } from "./pages/gerenciarLojas/NovaLojaPage";
+import { EditarLojaPage } from "./pages/gerenciarLojas/EditarLojaPage";
 import SettingsPage from "./pages/SettingsPage";
 import TransacoesPage from "./pages/transacoes/TransacoesPage";
 
 const queryClient = new QueryClient();
 
-const ProtectedPagesLayout = () => (
-  <>
-    <Navbar />
-    <main className="flex-grow">
-      <Outlet />
-    </main>
-  </>
-);
+const ProtectedPagesLayout = () => {
+  const location = useLocation();
+  const showFAB = !location.pathname.startsWith("/login") && !location.pathname.startsWith("/convite");
+  
+  return (
+    <>
+      <Navbar />
+      <main className="flex-grow">
+        <Outlet />
+      </main>
+      {showFAB && <BotaoFlutuanteTransacao />}
+    </>
+  );
+};
 const App = () => (
   <BrowserRouter>
     <AuthProvider>
@@ -80,6 +90,9 @@ const AppContent = () => {
       "/clientes-fornecedores/novo": "Novo Cliente/Fornecedor",
       "/clientes-fornecedores/editar/:id": "Editar Cliente/Fornecedor",
       "/clientes-fornecedores": "Clientes e Fornecedores", // Adicionar título para a nova rota
+      "/gerenciar-lojas": "Gerenciar Lojas",
+      "/gerenciar-lojas/novo": "Nova Loja",
+      "/gerenciar-lojas/editar/:id": "Editar Loja",
       "/login": "Login",
       "/signup": "Criar Conta",
       "*": "Página Não Encontrada",
@@ -89,12 +102,16 @@ const AppContent = () => {
 
   useEffect(() => {
     const pageTitle =
-      routeTitles[location.pathname] ||
       (location.pathname.startsWith("/clientes-fornecedores/novo")
         ? routeTitles["/clientes-fornecedores/novo"]
         : location.pathname.startsWith("/clientes-fornecedores/editar/")
         ? routeTitles["/clientes-fornecedores/editar/:id"]
-        : routeTitles["*"]);
+        : location.pathname.startsWith("/gerenciar-lojas/novo")
+        ? routeTitles["/gerenciar-lojas/novo"]
+        : location.pathname.startsWith("/gerenciar-lojas/editar/")
+        ? routeTitles["/gerenciar-lojas/editar/:id"]
+        : routeTitles[location.pathname]) ||
+      routeTitles["*"];
     document.title = `Financeiro App - ${pageTitle}`;
   }, [location.pathname, routeTitles]); // routeTitles is now stable due to useMemo
   useEffect(() => {
@@ -140,6 +157,8 @@ const AppContent = () => {
                 <Route path="/transacao" element={<TransacoesPage />} />
                 <Route path="/categoria" element={<CategoriaPage />} />
                 <Route path="/loja" element={<LojaPage />} />
+                <Route path="/loja/criar-loja" element={<NovaLojaPage />} />
+                <Route path="/loja/editar-loja/:id" element={<EditarLojaPage />} />
                 <Route path="/fechamento" element={<FechamentoPage />} />
                 <Route path="/dre" element={<DREPage />} />
                 <Route path="/meta" element={<MetaPage />} />
@@ -168,6 +187,18 @@ const AppContent = () => {
                 <Route
                   path="/clientes-fornecedores/editar/:id"
                   element={<EditarClienteFornecedor />}
+                />
+                <Route
+                  path="/gerenciar-lojas"
+                  element={<GerenciarLojasPage />}
+                />
+                <Route
+                  path="/gerenciar-lojas/novo"
+                  element={<NovaLojaPage />}
+                />
+                <Route
+                  path="/gerenciar-lojas/editar/:id"
+                  element={<EditarLojaPage />}
                 />
               </Route>
             </Route>
