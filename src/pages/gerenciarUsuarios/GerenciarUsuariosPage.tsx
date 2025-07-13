@@ -8,6 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ActionButton } from "@/components/ui/ActionButton";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { SortableTableHeader } from "@/components/ui/SortableTableHeader";
+import { useTableSort } from "@/hooks/useTableSort";
 import { DataTable, DataTableHeader, DataTableBody, DataTableRow, DataTableCell, DataTableHeaderCell } from "@/components/ui/data-table";
 import { db } from "@/firebase";
 import { toast } from "@/lib/toast";
@@ -178,6 +182,9 @@ export const GerenciarUsuariosPage: React.FC = () => {
     });
   }, [usuarios, busca, filtros]);
 
+  // Hook para ordenação
+  const { sortedData: usuariosOrdenados, sortConfig, handleSort } = useTableSort(usuariosFiltrados, 'displayName');
+
   const temFiltrosAtivos = busca.trim() || filtros.status !== "todos" || filtros.tipo !== "todos";
 
   const formatDate = (timestamp: number) => {
@@ -296,16 +303,26 @@ export const GerenciarUsuariosPage: React.FC = () => {
           <DataTable>
             <DataTableHeader>
               <DataTableRow>
-                <DataTableHeaderCell>Nome</DataTableHeaderCell>
-                <DataTableHeaderCell>Email</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">Tipo</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">Status</DataTableHeaderCell>
-                <DataTableHeaderCell>Bases Associadas</DataTableHeaderCell>
+                <SortableTableHeader sortKey="displayName" currentSort={sortConfig} onSort={handleSort}>
+                  Nome
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="email" currentSort={sortConfig} onSort={handleSort}>
+                  Email
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="isAdmin" currentSort={sortConfig} onSort={handleSort} align="center">
+                  Tipo
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="authDisabled" currentSort={sortConfig} onSort={handleSort} align="center">
+                  Status
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="associatedBases.length" currentSort={sortConfig} onSort={handleSort}>
+                  Bases Associadas
+                </SortableTableHeader>
                 <DataTableHeaderCell align="center">Ações</DataTableHeaderCell>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
-              {usuariosFiltrados.map((usuario) => (
+              {usuariosOrdenados.map((usuario) => (
                 <DataTableRow key={usuario.uid}>
                   <DataTableCell className="font-medium">
                     {usuario.displayName || 'Nome não informado'}
@@ -323,15 +340,7 @@ export const GerenciarUsuariosPage: React.FC = () => {
                     )}
                   </DataTableCell>
                   <DataTableCell align="center">
-                    {usuario.authDisabled ? (
-                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                        Inativo
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                        Ativo
-                      </Badge>
-                    )}
+                    <StatusBadge isActive={!usuario.authDisabled} />
                   </DataTableCell>
                   <DataTableCell>
                     <span className="text-sm">

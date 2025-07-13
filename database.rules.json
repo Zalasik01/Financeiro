@@ -3,11 +3,11 @@
     "users": {
       ".read": "auth != null && root.child('users/' + auth.uid + '/profile/isAdmin').val() === true",
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid",
+        ".read": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/profile/isAdmin').val() === true)",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/profile/isAdmin').val() === true)",
         "profile": {
-          ".read": "auth != null && auth.uid === $uid",
-          ".write": "auth != null && auth.uid === $uid",
+          ".read": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/profile/isAdmin').val() === true)",
+          ".write": "auth != null && (auth.uid === $uid || root.child('users/' + auth.uid + '/profile/isAdmin').val() === true)",
           "isAdmin": {
             ".write": "auth != null && root.child('users/' + auth.uid + '/profile/isAdmin').val() === true"
           },

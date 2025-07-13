@@ -13,7 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionButtons } from "@/components/ui/action-buttons";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ActionButton } from "@/components/ui/ActionButton";
+import { SortableTableHeader } from "@/components/ui/SortableTableHeader";
 import { DataTable, DataTableHeader, DataTableBody, DataTableRow, DataTableCell, DataTableHeaderCell } from "@/components/ui/data-table";
+import { useTableSort } from "@/hooks/useTableSort";
 
 export const GerenciarClientesFornecedoresPage: React.FC = () => {
   const {
@@ -72,6 +75,11 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
     
     return resultado;
   }, [busca, clientesFornecedores, filtros]);
+
+  const { sortConfig, handleSort, sortedData: clientesFornecedoresOrdenados } = useTableSort(
+    clientesFornecedoresFiltrados,
+    { key: 'nome', direction: 'asc' }
+  );
   
   const navigate = useNavigate();
 
@@ -344,14 +352,30 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
           <DataTable>
             <DataTableHeader>
               <DataTableRow>
-                <DataTableHeaderCell>Nome/Razão Social</DataTableHeaderCell>
-                <DataTableHeaderCell>Tipo</DataTableHeaderCell>
-                <DataTableHeaderCell>Documento</DataTableHeaderCell>
-                <DataTableHeaderCell>Telefone</DataTableHeaderCell>
-                <DataTableHeaderCell>Email</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">Cliente</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">Fornecedor</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">Status</DataTableHeaderCell>
+                <SortableTableHeader sortKey="nome" currentSort={sortConfig} onSort={handleSort}>
+                  Nome/Razão Social
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="tipoDocumento" currentSort={sortConfig} onSort={handleSort}>
+                  Tipo
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="numeroDocumento" currentSort={sortConfig} onSort={handleSort}>
+                  Documento
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="telefone" currentSort={sortConfig} onSort={handleSort}>
+                  Telefone
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="email" currentSort={sortConfig} onSort={handleSort}>
+                  Email
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="ehCliente" currentSort={sortConfig} onSort={handleSort} align="center">
+                  Cliente
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="ehFornecedor" currentSort={sortConfig} onSort={handleSort} align="center">
+                  Fornecedor
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="ativo" currentSort={sortConfig} onSort={handleSort} align="center">
+                  Status
+                </SortableTableHeader>
                 <DataTableHeaderCell align="center">Ações</DataTableHeaderCell>
               </DataTableRow>
             </DataTableHeader>
@@ -363,14 +387,14 @@ export const GerenciarClientesFornecedoresPage: React.FC = () => {
                   </DataTableCell>
                 </DataTableRow>
               )}
-              {!carregando && clientesFiltrados.length === 0 && (
+              {!carregando && clientesFornecedoresOrdenados.length === 0 && (
                 <DataTableRow>
                   <DataTableCell className="py-8 text-gray-500" align="center" colSpan={9}>
                     Nenhum cliente ou fornecedor encontrado.
                   </DataTableCell>
                 </DataTableRow>
               )}
-              {!carregando && clientesFiltrados.length > 0 && clientesFiltrados.map((cf) => {
+              {!carregando && clientesFornecedoresOrdenados.length > 0 && clientesFornecedoresOrdenados.map((cf) => {
                 // Busca telefone principal ou primeiro telefone
                 const telefonePrincipal = cf.telefones?.find(t => t.principal) || cf.telefones?.[0];
                 const emailPrincipal = cf.emails?.find(e => e.principal) || cf.emails?.[0];

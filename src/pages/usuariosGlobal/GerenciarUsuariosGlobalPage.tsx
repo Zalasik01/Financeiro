@@ -8,8 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ActionButtons } from "@/components/ui/action-buttons";
+import { ActionButton } from "@/components/ui/ActionButton";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { SortableTableHeader } from "@/components/ui/SortableTableHeader";
+import { useTableSort } from "@/hooks/useTableSort";
 import { DataTable, DataTableHeader, DataTableBody, DataTableRow, DataTableCell, DataTableHeaderCell } from "@/components/ui/data-table";
 import { db } from "@/firebase";
 import { toast } from "@/lib/toast";
@@ -152,10 +154,7 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
   };
 
   const getStatusBadge = (user: UserWithBaseInfo) => {
-    if (user.authDisabled) {
-      return <Badge variant="destructive">Desabilitado</Badge>;
-    }
-    return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Ativo</Badge>;
+    return <StatusBadge isActive={!user.authDisabled} activeText="Ativo" inactiveText="Desabilitado" />;
   };
 
   const getTipoBadge = (user: UserWithBaseInfo) => {
@@ -216,6 +215,9 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
 
     return filtered;
   }, [usuarios, busca, filtros]);
+
+  // Hook para ordenação
+  const { sortedData: usuariosOrdenados, sortConfig, handleSort } = useTableSort(usuariosFiltrados, 'displayName');
 
   const temFiltrosAtivos = busca.trim() || 
     filtros.status !== "todos" || 
@@ -287,19 +289,29 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
           <DataTable>
             <DataTableHeader>
               <DataTableRow>
-                <DataTableHeaderCell>Nome</DataTableHeaderCell>
-                <DataTableHeaderCell>Email</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">Tipo</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">Status</DataTableHeaderCell>
-                <DataTableHeaderCell>Bases Associadas</DataTableHeaderCell>
-                <DataTableHeaderCell>Criado em</DataTableHeaderCell>
+                <SortableTableHeader sortKey="displayName" currentSort={sortConfig} onSort={handleSort}>
+                  Nome
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="email" currentSort={sortConfig} onSort={handleSort}>
+                  Email
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="isAdmin" currentSort={sortConfig} onSort={handleSort} align="center">
+                  Tipo
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="authDisabled" currentSort={sortConfig} onSort={handleSort} align="center">
+                  Status
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="associatedBases.length" currentSort={sortConfig} onSort={handleSort}>
+                  Bases Associadas
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="createdAt" currentSort={sortConfig} onSort={handleSort}>
+                  Criado em
+                </SortableTableHeader>
                 <DataTableHeaderCell align="center">Ações</DataTableHeaderCell>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
-              {usuariosFiltrados
-                .sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''))
-                .map((user) => (
+              {usuariosOrdenados.map((user) => (
                 <DataTableRow key={user.uid} onClick={() => navegarParaEditar(user.uid)}>
                   <DataTableCell className="font-medium">
                     {user.displayName || 'Sem nome'}
@@ -314,10 +326,18 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
                   <DataTableCell>{getBasesText(user)}</DataTableCell>
                   <DataTableCell>{formatDate(user.createdAt || 0)}</DataTableCell>
                   <DataTableCell align="center">
-                    <ActionButtons
-                      onEdit={() => navegarParaEditar(user.uid)}
-                      onDelete={() => console.log('Deletar usuário:', user.uid)}
-                    />
+                    <div className="flex items-center justify-center gap-2">
+                      <ActionButton
+                        type="edit"
+                        onClick={() => navegarParaEditar(user.uid)}
+                        tooltip="Editar usuário"
+                      />
+                      <ActionButton
+                        type="delete"
+                        onClick={() => console.log('Deletar usuário:', user.uid)}
+                        tooltip="Deletar usuário"
+                      />
+                    </div>
                   </DataTableCell>
                 </DataTableRow>
               ))}
@@ -325,7 +345,7 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
           </DataTable>
           
           <div className="mt-4 text-sm text-gray-600">
-            Total: <strong>{usuariosFiltrados.length}</strong> registro(s)
+            Total: <strong>{usuariosOrdenados.length}</strong> registro(s)
             {temFiltrosAtivos && (
               <span className="ml-2 text-gray-500">
                 (filtrado de {usuarios.length} registros)

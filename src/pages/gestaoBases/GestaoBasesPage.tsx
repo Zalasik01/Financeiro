@@ -13,10 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ActionButtons } from "@/components/ui/action-buttons";
 import { BaseActionButtons } from "@/components/ui/base-action-buttons";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ActionButton } from "@/components/ui/ActionButton";
+import { SortableTableHeader } from "@/components/ui/SortableTableHeader";
 import { DataTable, DataTableHeader, DataTableBody, DataTableRow, DataTableCell, DataTableHeaderCell } from "@/components/ui/data-table";
 import { db } from "@/firebase";
 import { toast } from "@/lib/toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useTableSort } from "@/hooks/useTableSort";
 import type { ClientBase } from "@/types/store";
 import { onValue, ref, update } from "firebase/database";
 
@@ -115,6 +118,11 @@ export const GestaoBasesPage: React.FC = () => {
     
     return resultado;
   }, [busca, clientBases, filtros]);
+
+  const { sortConfig, handleSort, sortedData: basesOrdenadas } = useTableSort(
+    basesFiltradas,
+    { key: 'name', direction: 'asc' }
+  );
 
   const navegarParaNovoCadastro = () => {
     navigate("/admin/gestao-bases/nova");
@@ -402,28 +410,42 @@ export const GestaoBasesPage: React.FC = () => {
           <DataTable>
             <DataTableHeader>
               <DataTableRow>
-                <DataTableHeaderCell>ID</DataTableHeaderCell>
-                <DataTableHeaderCell>Nome da Base</DataTableHeaderCell>
-                <DataTableHeaderCell>CNPJ</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">Usuários</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">Limite</DataTableHeaderCell>
-                <DataTableHeaderCell>Criado em</DataTableHeaderCell>
-                <DataTableHeaderCell>Criado por</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">Status</DataTableHeaderCell>
+                <SortableTableHeader sortKey="numberId" currentSort={sortConfig} onSort={handleSort}>
+                  ID
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="name" currentSort={sortConfig} onSort={handleSort}>
+                  Nome da Base
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="cnpj" currentSort={sortConfig} onSort={handleSort}>
+                  CNPJ
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="userCount" currentSort={sortConfig} onSort={handleSort} align="center">
+                  Usuários
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="userLimit" currentSort={sortConfig} onSort={handleSort} align="center">
+                  Limite
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="createdAt" currentSort={sortConfig} onSort={handleSort}>
+                  Criado em
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="createdBy" currentSort={sortConfig} onSort={handleSort}>
+                  Criado por
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="ativo" currentSort={sortConfig} onSort={handleSort} align="center">
+                  Status
+                </SortableTableHeader>
                 <DataTableHeaderCell align="center">Ações</DataTableHeaderCell>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
-              {basesFiltradas.length === 0 && (
+              {basesOrdenadas.length === 0 && (
                 <DataTableRow>
                   <DataTableCell className="py-8 text-gray-500" align="center" colSpan={9}>
                     {clientBases.length === 0 ? 'Nenhuma base cadastrada ainda.' : 'Nenhuma base encontrada com os filtros aplicados.'}
                   </DataTableCell>
                 </DataTableRow>
               )}
-              {basesFiltradas.length > 0 && basesFiltradas
-                .sort((a, b) => (a.numberId || 0) - (b.numberId || 0))
-                .map((base) => (
+              {basesOrdenadas.length > 0 && basesOrdenadas.map((base) => (
                 <DataTableRow key={base.id} onClick={() => navegarParaVisualizarBase(base.id)} className={!base.ativo ? 'opacity-60' : ''}>
                   <DataTableCell className="font-medium">#{base.numberId || 'N/A'}</DataTableCell>
                   <DataTableCell className="font-medium">{base.name}</DataTableCell>

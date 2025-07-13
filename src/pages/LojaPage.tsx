@@ -12,8 +12,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { maskCNPJ } from "@/utils/formatters";
-import { ActionButtons } from "@/components/ui/action-buttons";
+import { ActionButton } from "@/components/ui/ActionButton";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { SortableTableHeader } from "@/components/ui/SortableTableHeader";
+import { useTableSort } from "@/hooks/useTableSort";
 import { DataTable, DataTableHeader, DataTableBody, DataTableRow, DataTableCell, DataTableHeaderCell } from "@/components/ui/data-table";
 
 const LojaPage: React.FC = () => {
@@ -66,6 +68,9 @@ const LojaPage: React.FC = () => {
     
     return resultado;
   }, [busca, stores, filtros]);
+
+  // Hook para ordenação
+  const { sortedData: lojasOrdenadas, sortConfig, handleSort } = useTableSort(lojasFiltradas, 'name');
   
   const navigate = useNavigate();
 
@@ -337,25 +342,39 @@ const LojaPage: React.FC = () => {
           <DataTable>
             <DataTableHeader>
               <DataTableRow>
-                <DataTableHeaderCell>Nome/Razão Social</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">Tipo</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">CNPJ</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">Telefone</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">Email</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">Matriz</DataTableHeaderCell>
-                <DataTableHeaderCell align="center">Status</DataTableHeaderCell>
+                <SortableTableHeader sortKey="name" currentSort={sortConfig} onSort={handleSort}>
+                  Nome/Razão Social
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="isMatriz" currentSort={sortConfig} onSort={handleSort} align="center">
+                  Tipo
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="cnpj" currentSort={sortConfig} onSort={handleSort} align="center">
+                  CNPJ
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="telefone" currentSort={sortConfig} onSort={handleSort} align="center">
+                  Telefone
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="email" currentSort={sortConfig} onSort={handleSort} align="center">
+                  Email
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="isMatriz" currentSort={sortConfig} onSort={handleSort} align="center">
+                  Matriz
+                </SortableTableHeader>
+                <SortableTableHeader sortKey="ativo" currentSort={sortConfig} onSort={handleSort} align="center">
+                  Status
+                </SortableTableHeader>
                 <DataTableHeaderCell align="center">Ações</DataTableHeaderCell>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
-              {lojasFiltradas.length === 0 && (
+              {lojasOrdenadas.length === 0 && (
                 <DataTableRow>
                   <DataTableCell className="py-8 text-gray-500" align="center" colSpan={8}>
                     {stores.length === 0 ? 'Nenhuma loja cadastrada ainda.' : 'Nenhuma loja encontrada com os filtros aplicados.'}
                   </DataTableCell>
                 </DataTableRow>
               )}
-              {lojasFiltradas.length > 0 && lojasFiltradas.map((loja) => {
+              {lojasOrdenadas.length > 0 && lojasOrdenadas.map((loja) => {
                 const telefonePrincipal = loja.telefones?.find(t => t.principal) || loja.telefones?.[0];
                 const emailPrincipal = loja.emails?.find(e => e.principal) || loja.emails?.[0];
                 
