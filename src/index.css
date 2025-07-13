@@ -197,3 +197,14 @@ a {
 .status-bar-safe-area {
   padding-top: env(safe-area-inset-top);
 }
+
+/* Remove outline indesejado de inputs */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+}

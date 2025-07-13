@@ -21,6 +21,7 @@ import {
   useState,
 } from "react";
 import { useToast } from "./use-toast";
+import { handleError } from "@/utils/errorHandler";
 // Importar utilitários do localStorage
 import {
   accessToken,
@@ -89,8 +90,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const { toast } = useToast();
   const hasJustLoggedInRef = useRef(false);
 
-  const getLocalStorageKeyForSelectedBase = (uid: string) =>
-    `financeiroApp_lastSelectedBaseId_${uid}`;
+  const getLocalStorageKeyForSelectedBase = useCallback((uid: string) =>
+    `financeiroApp_lastSelectedBaseId_${uid}`, []);
 
   const setSelectedBaseId = useCallback(
     async (baseId: string | null): Promise<void> => {
@@ -159,7 +160,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         _setSelectedBaseId(null);
       }
     },
-    [toast]
+    [toast, getLocalStorageKeyForSelectedBase]
   );
 
   const signup = async (
@@ -185,17 +186,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
       return userCredential.user;
     } catch (err) {
-      const error = err as AuthError;
-      let errorMessage = "Não foi possível criar a conta.";
-      if (error.code === "auth/email-already-in-use") {
-        errorMessage = "Este e-mail já está cadastrado.";
-      } else if (error.code === "auth/weak-password") {
-        errorMessage = "A senha é muito fraca. Use pelo menos 6 caracteres.";
-      }
-      setError(errorMessage);
+      const errorInfo = handleError(err, 'useAuth.signup');
+      setError(errorInfo.message);
       toast({
         title: "Erro no cadastro",
-        description: errorMessage,
+        description: errorInfo.message,
         variant: "destructive",
       });
       return null;

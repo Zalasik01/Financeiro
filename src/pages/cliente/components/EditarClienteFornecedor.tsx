@@ -13,6 +13,8 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { ArrowLeft, Save, Plus, Trash2, Edit, MessageCircle, User, Phone, Mail, MapPin, FileText, Building } from "lucide-react";
 import { ClienteFornecedor, ContatoTelefone, ContatoEmail } from "@/types/clienteFornecedor";
 import { useToast } from "@/hooks/use-toast";
+import { FormCEPInput } from "@/components/ui/FormComponents";
+import { useViaCEP, AddressData } from "@/hooks/useViaCEP";
 
 // Função para formatar CPF (XXX.XXX.XXX-XX)
 const formatCPF = (value: string) => {
@@ -107,6 +109,21 @@ export const EditarClienteFornecedor: React.FC = () => {
   // Estados para formulários de contato
   const [novoTelefone, setNovoTelefone] = useState({ tipo: "Celular", numero: "", principal: false });
   const [novoEmail, setNovoEmail] = useState({ tipo: "Principal", email: "", principal: false });
+
+  // Hook para integração ViaCEP
+  const handleAddressFound = (address: AddressData) => {
+    setFormData(prev => ({
+      ...prev,
+      endereco: {
+        ...prev.endereco,
+        cep: address.zipCode,
+        logradouro: address.street,
+        bairro: address.neighborhood,
+        cidade: address.city,
+        estado: address.state,
+      }
+    }));
+  };
 
   useEffect(() => {
     if (id && id !== 'novo' && clientesFornecedores.length > 0) {
@@ -498,8 +515,9 @@ export const EditarClienteFornecedor: React.FC = () => {
                   <Select
                     value={formData.tipoDocumento}
                     onValueChange={(value) => handleInputChange("tipoDocumento", value)}
+                    disabled={!isNovoCliente}
                   >
-                    <SelectTrigger className="border-gray-300 hover:border-black focus:border-black">
+                    <SelectTrigger className="border-gray-300 hover:border-black focus:border-black disabled:opacity-50 disabled:cursor-not-allowed">
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
                     <SelectContent>
@@ -574,6 +592,7 @@ export const EditarClienteFornecedor: React.FC = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => setModalTelefoneAberto(true)}
+                        className="border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white"
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         Novo
@@ -640,7 +659,7 @@ export const EditarClienteFornecedor: React.FC = () => {
                             type="button"
                             variant="outline" 
                             onClick={fecharModalTelefone}
-                            className="flex-1"
+                            className="flex-1 border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white"
                           >
                             Cancelar
                           </Button>
@@ -739,6 +758,7 @@ export const EditarClienteFornecedor: React.FC = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => setModalEmailAberto(true)}
+                        className="border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white"
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         Novo
@@ -805,7 +825,7 @@ export const EditarClienteFornecedor: React.FC = () => {
                             type="button"
                             variant="outline" 
                             onClick={fecharModalEmail}
-                            className="flex-1"
+                            className="flex-1 border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white"
                           >
                             Cancelar
                           </Button>
@@ -883,87 +903,85 @@ export const EditarClienteFornecedor: React.FC = () => {
                 <MapPin size={20} />
                 Endereço
               </h3>
-              
-              {/* Primeira linha: CEP, Estado, Cidade */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div>
-                  <Label htmlFor="cep">CEP</Label>
-                  <Input
-                    id="cep"
+
+              <div className="space-y-4">
+                {/* Primeira linha: CEP, Estado, Cidade */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormCEPInput
                     value={formData.endereco?.cep || ""}
                     onChange={(e) => handleEnderecoChange("cep", e.target.value)}
-                    placeholder="00000-000"
-                    className="border-gray-300 hover:border-black focus:border-black"
+                    onAddressFound={handleAddressFound}
+                    label="CEP"
                   />
+                  <div>
+                    <Label htmlFor="estado" className="text-gray-800">Estado</Label>
+                    <Input
+                      id="estado"
+                      value={formData.endereco?.estado || ""}
+                      onChange={(e) => handleEnderecoChange("estado", e.target.value)}
+                      placeholder="Ex: SP"
+                      maxLength={2}
+                      className="border-gray-300 hover:border-black focus:border-black"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cidade" className="text-gray-800">Cidade</Label>
+                    <Input
+                      id="cidade"
+                      value={formData.endereco?.cidade || ""}
+                      onChange={(e) => handleEnderecoChange("cidade", e.target.value)}
+                      placeholder="Ex: São Paulo"
+                      className="border-gray-300 hover:border-black focus:border-black"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="estado">Estado</Label>
-                  <Input
-                    id="estado"
-                    value={formData.endereco?.estado || ""}
-                    onChange={(e) => handleEnderecoChange("estado", e.target.value)}
-                    placeholder="UF"
-                    maxLength={2}
-                    className="border-gray-300 hover:border-black focus:border-black"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cidade">Cidade</Label>
-                  <Input
-                    id="cidade"
-                    value={formData.endereco?.cidade || ""}
-                    onChange={(e) => handleEnderecoChange("cidade", e.target.value)}
-                    placeholder="Cidade"
-                    className="border-gray-300 hover:border-black focus:border-black"
-                  />
-                </div>
-              </div>
 
-              {/* Segunda linha: Bairro, Logradouro */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <Label htmlFor="bairro">Bairro</Label>
-                  <Input
-                    id="bairro"
-                    value={formData.endereco?.bairro || ""}
-                    onChange={(e) => handleEnderecoChange("bairro", e.target.value)}
-                    placeholder="Bairro"
-                    className="border-gray-300 hover:border-black focus:border-black"
-                  />
+                {/* Segunda linha: Bairro, Logradouro */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="bairro" className="text-gray-800">Bairro</Label>
+                    <Input
+                      id="bairro"
+                      value={formData.endereco?.bairro || ""}
+                      onChange={(e) => handleEnderecoChange("bairro", e.target.value)}
+                      placeholder="Ex: Centro"
+                      className="border-gray-300 hover:border-black focus:border-black"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="logradouro" className="text-gray-800">Logradouro</Label>
+                    <Input
+                      id="logradouro"
+                      value={formData.endereco?.logradouro || ""}
+                      onChange={(e) => handleEnderecoChange("logradouro", e.target.value)}
+                      placeholder="Ex: Rua das Flores"
+                      className="border-gray-300 hover:border-black focus:border-black"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="logradouro">Logradouro</Label>
-                  <Input
-                    id="logradouro"
-                    value={formData.endereco?.logradouro || ""}
-                    onChange={(e) => handleEnderecoChange("logradouro", e.target.value)}
-                    placeholder="Rua, Avenida, etc."
-                    className="border-gray-300 hover:border-black focus:border-black"
-                  />
-                </div>
-              </div>
 
-              {/* Terceira linha: Número, Complemento */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="numero">Número</Label>
-                  <Input
-                    id="numero"
-                    value={formData.endereco?.numero || ""}
-                    onChange={(e) => handleEnderecoChange("numero", e.target.value)}
-                    placeholder="Número"
-                    className="border-gray-300 hover:border-black focus:border-black"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="complemento">Complemento</Label>
-                  <Input
-                    id="complemento"
-                    value={formData.endereco?.complemento || ""}
-                    onChange={(e) => handleEnderecoChange("complemento", e.target.value)}
-                    placeholder="Apto, Casa, etc."
-                    className="border-gray-300 hover:border-black focus:border-black"
-                  />
+                {/* Terceira linha: Número, Complemento */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="numero" className="text-gray-800">Número</Label>
+                    <Input
+                      id="numero"
+                      value={formData.endereco?.numero || ""}
+                      onChange={(e) => handleEnderecoChange("numero", e.target.value)}
+                      placeholder="Ex: 123"
+                      className="border-gray-300 hover:border-black focus:border-black"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="complemento" className="text-gray-800">Complemento</Label>
+                    <Input
+                      id="complemento"
+                      value={formData.endereco?.complemento || ""}
+                      onChange={(e) => handleEnderecoChange("complemento", e.target.value)}
+                      placeholder="Ex: Sala 101"
+                      className="border-gray-300 hover:border-black focus:border-black"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1022,7 +1040,7 @@ export const EditarClienteFornecedor: React.FC = () => {
             {/* Botões de Ação */}
             <div className="bg-white p-6 rounded-lg border">
               <div className="flex justify-end gap-4">
-                <Button type="button" variant="outline" onClick={handleVoltar}>
+                <Button type="button" variant="outline" onClick={handleVoltar} className="border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white">
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={carregando} className="bg-gray-800 hover:bg-gray-900 text-white">

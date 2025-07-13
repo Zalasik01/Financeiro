@@ -15,6 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit2, Trash2, Phone, Mail, MapPin, ArrowLeft, User, MessageCircle, FileText, Save, Edit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { FormCEPInput } from "@/components/ui/FormComponents";
+import { useViaCEP, AddressData } from "@/hooks/useViaCEP";
 
 interface FormularioLojaProps {
   loja?: Store;
@@ -66,6 +68,18 @@ export const FormularioLoja: React.FC<FormularioLojaProps> = ({
   });
   
   const [displayCNPJ, setDisplayCNPJ] = useState("");
+
+  // Hook para integração ViaCEP
+  const handleAddressFound = (address: AddressData) => {
+    setEndereco(prev => ({
+      ...prev,
+      cep: address.zipCode,
+      logradouro: address.street,
+      bairro: address.neighborhood,
+      cidade: address.city,
+      estado: address.state,
+    }));
+  };
 
   // Carregar dados da loja se estiver editando
   useEffect(() => {
@@ -559,16 +573,12 @@ export const FormularioLoja: React.FC<FormularioLojaProps> = ({
               <div className="space-y-4">
                 {/* Primeira linha: CEP, Estado, Cidade */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="cep" className="text-gray-800">CEP</Label>
-                    <Input
-                      id="cep"
-                      value={endereco.cep}
-                      onChange={(e) => handleEnderecoChange('cep', e.target.value)}
-                      placeholder="Ex: 01234-567"
-                      className="border-gray-300 hover:border-black focus:border-black"
-                    />
-                  </div>
+                  <FormCEPInput
+                    value={endereco.cep || ""}
+                    onChange={(e) => handleEnderecoChange('cep', e.target.value)}
+                    onAddressFound={handleAddressFound}
+                    label="CEP"
+                  />
                   <div>
                     <Label htmlFor="estado" className="text-gray-800">Estado</Label>
                     <Input

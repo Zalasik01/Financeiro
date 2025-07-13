@@ -19,6 +19,7 @@ import AdminLayout from "./components/AdminLayout";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { BotaoFlutuanteTransacao } from "./components/BotaoFlutuanteTransacao";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { useStores } from "./hooks/useStores";
@@ -33,6 +34,9 @@ import { GerenciarClientesFornecedoresPage } from "./pages/GerenciarClientesForn
 import GerenciarFormaPagamentoPage from "./pages/GerenciarFormaPagamentoPage";
 import GerenciarTipoMovimentacaoPage from "./pages/GerenciarTipoMovimentacaoPage";
 import GerenciarUsuarioPage from "./pages/GerenciarUsuarioPage";
+import { GestaoBasesPage } from "./pages/gestaoBases/GestaoBasesPage"; // Nova importação
+import { FormularioBase } from "./pages/gestaoBases/FormularioBase"; // Nova importação
+import { ContratoBase } from "./pages/gestaoBases/ContratoBase"; // Nova importação
 import InvitePage from "./pages/InvitePage";
 import LojaPage from "./pages/LojaPage";
 import MetaPage from "./pages/MetaPage";
@@ -60,11 +64,13 @@ const ProtectedPagesLayout = () => {
   );
 };
 const App = () => (
-  <BrowserRouter>
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  </BrowserRouter>
+  <ErrorBoundary>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </BrowserRouter>
+  </ErrorBoundary>
 );
 
 const AppContent = () => {
@@ -93,6 +99,11 @@ const AppContent = () => {
       "/gerenciar-lojas": "Gerenciar Lojas",
       "/gerenciar-lojas/novo": "Nova Loja",
       "/gerenciar-lojas/editar/:id": "Editar Loja",
+      "/admin/gestao-bases": "Gestão de Bases",
+      "/admin/gestao-bases/nova": "Nova Base",
+      "/admin/gestao-bases/editar/:id": "Editar Base",
+      "/admin/gestao-bases/contrato/:id": "Contrato da Base",
+      "/admin/gestao-bases/usuarios/:id": "Usuários da Base",
       "/login": "Login",
       "/signup": "Criar Conta",
       "*": "Página Não Encontrada",
@@ -110,6 +121,14 @@ const AppContent = () => {
         ? routeTitles["/gerenciar-lojas/novo"]
         : location.pathname.startsWith("/gerenciar-lojas/editar/")
         ? routeTitles["/gerenciar-lojas/editar/:id"]
+        : location.pathname.startsWith("/admin/gestao-bases/nova")
+        ? routeTitles["/admin/gestao-bases/nova"]
+        : location.pathname.startsWith("/admin/gestao-bases/editar/")
+        ? routeTitles["/admin/gestao-bases/editar/:id"]
+        : location.pathname.startsWith("/admin/gestao-bases/contrato/")
+        ? routeTitles["/admin/gestao-bases/contrato/:id"]
+        : location.pathname.startsWith("/admin/gestao-bases/usuarios/")
+        ? routeTitles["/admin/gestao-bases/usuarios/:id"]
         : routeTitles[location.pathname]) ||
       routeTitles["*"];
     document.title = `Financeiro App - ${pageTitle}`;
@@ -209,7 +228,10 @@ const AppContent = () => {
             >
               <Route element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
-                <Route path="gestao-bases" element={<AdminPage />} />
+                <Route path="gestao-bases" element={<GestaoBasesPage />} />
+                <Route path="gestao-bases/nova" element={<FormularioBase />} />
+                <Route path="gestao-bases/editar/:baseId" element={<FormularioBase />} />
+                <Route path="gestao-bases/contrato/:baseId" element={<ContratoBase />} />
                 <Route
                   path="gerenciar-usuarios-global"
                   element={<GerenciarUsuariosGlobalPage />}

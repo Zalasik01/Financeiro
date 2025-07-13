@@ -7,6 +7,7 @@ export interface ClientBase {
   motivo_inativo?: string | null; // Novo campo para o motivo da inativação
   cnpj?: string; // CNPJ da loja principal
   responsaveis?: Responsavel[]; // Lista de responsáveis
+  contrato?: ContratoData; // Informações do contrato
   authorizedUIDs: {
     [uid: string]: {
       displayName: string;
@@ -17,11 +18,24 @@ export interface ClientBase {
   createdBy: string; // UID do admin
 }
 
+export interface ContratoData {
+  valorMensal?: string;
+  dataInicio?: string;
+  dataVencimento?: string;
+  prazoMeses?: string;
+  observacoes?: string;
+  modalidadePagamento?: string;
+  diaVencimentoMensal?: string;
+}
+
 export interface Responsavel {
   nome: string;
   telefone: string;
+  email?: string;
+  cargo?: string;
   isFinanceiro: boolean; // Responsável financeiro
   isSistema: boolean; // Responsável pelo sistema
+  isContato?: boolean; // Contato principal
 }
 
 export interface Base {

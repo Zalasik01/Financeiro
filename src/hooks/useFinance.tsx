@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Category, Transaction, FinancialSummary } from "@/types/finance";
 import { useAuth } from "@/hooks/useAuth"; // Importar o hook de autenticação
 import { useToast } from "@/hooks/use-toast"; // Importar o hook de toast
@@ -363,31 +363,45 @@ export const useFinance = () => {
     }
   };
 
-  // Calcular o resumo financeiro
+  // Calcular o resumo financeiro com otimização
   const summary = useMemo((): FinancialSummary => {
-    const income = transactions
-      .filter((t) => t.type === "Receita") // Ajustado para "Receita"
-      .reduce((sum, t) => sum + t.amount, 0);
+    if (transactions.length === 0) {
+      return {
+        totalIncome: 0,
+        totalExpenses: 0,
+        balance: 0,
+        transactionCount: 0,
+        startDate: null,
+        endDate: null,
+      };
+    }
 
-    const expense = transactions
-      .filter((t) => t.type === "Despesa") // Ajustado para "Despesa"
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
+    let income = 0;
+    let expense = 0;
     let startDate: Date | null = null;
     let endDate: Date | null = null;
 
-    if (transactions.length > 0) {
-      // Ordena as transações por data para pegar a primeira e a última facilmente
-      const sortedTransactions = [...transactions].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
-      startDate = new Date(sortedTransactions[0].date);
-      endDate = new Date(
-        sortedTransactions[sortedTransactions.length - 1].date
-      );
-    }
+    // Uma única iteração para calcular tudo
+    transactions.forEach((transaction) => {
+      const transactionDate = new Date(transaction.date);
+      
+      // Calcular receitas e despesas
+      if (transaction.type === "Receita") {
+        income += transaction.amount;
+      } else if (transaction.type === "Despesa") {
+        expense += Math.abs(transaction.amount);
+      }
 
-    const calculatedSummary = {
+      // Calcular datas de início e fim
+      if (!startDate || transactionDate < startDate) {
+        startDate = transactionDate;
+      }
+      if (!endDate || transactionDate > endDate) {
+        endDate = transactionDate;
+      }
+    });
+
+    return {
       totalIncome: income,
       totalExpenses: expense,
       balance: income - expense,
@@ -395,8 +409,7 @@ export const useFinance = () => {
       startDate,
       endDate,
     };
-    return calculatedSummary;
-  }, [transactions]); // Dependência correta
+  }, [transactions.length, transactions]); // Otimização: inclui length para triggers mais específicos
 
   // Remover transações de uma data e loja específicas
   // Esta função será chamada após um fechamento de caixa que incluiu essas transações

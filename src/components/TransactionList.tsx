@@ -1,12 +1,14 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
 import { ClienteFornecedor } from "@/types/clienteFornecedor.tsx";
 import { Transaction } from "@/types/finance";
 import { Store } from "@/types/store";
 import { formatCurrency } from "@/utils/formatters";
 import { Pencil, Trash2 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import React from "react";
 
 // --- Novo Componente para o Item da Lista ---
 
@@ -18,13 +20,13 @@ interface TransactionListItemProps {
   onDelete: (id: string, description: string) => void;
 }
 
-const TransactionListItem = ({
+const TransactionListItem = React.memo<TransactionListItemProps>(({
   transaction,
   store,
   person,
   onEdit,
   onDelete,
-}: TransactionListItemProps) => {
+}) => {
   const isRevenue = transaction.type === "Receita";
 
   const borderColor = isRevenue ? "border-green-500" : "border-red-500";
@@ -127,7 +129,9 @@ const TransactionListItem = ({
       </div>
     </div>
   );
-};
+});
+
+TransactionListItem.displayName = 'TransactionListItem';
 
 // --- Componente Principal Refatorado ---
 
