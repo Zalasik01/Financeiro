@@ -329,12 +329,12 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
                     <div className="flex items-center justify-center gap-2">
                       <ActionButton
                         type="edit"
-                        onClick={() => navegarParaEditar(user.uid)}
+                        onClick={e => { e.stopPropagation(); navegarParaEditar(user.uid); }}
                         tooltip="Editar usuário"
                       />
                       <ActionButton
                         type="delete"
-                        onClick={() => console.log('Deletar usuário:', user.uid)}
+                        onClick={e => { e.stopPropagation(); /* aqui chama a função de exclusão real */ console.log('Deletar usuário:', user.uid); }}
                         tooltip="Deletar usuário"
                       />
                     </div>
