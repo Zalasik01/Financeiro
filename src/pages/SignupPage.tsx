@@ -75,12 +75,24 @@ export default function SignupPage() {
     const token = sessionStorage.getItem("inviteToken");
     const baseUUID = sessionStorage.getItem("inviteClientBaseUUID");
     const baseNumIdString = sessionStorage.getItem("inviteClientBaseNumberId");
+    
+    // Carregar dados do convite se existirem
+    const inviteDisplayName = sessionStorage.getItem("inviteDisplayName");
+    const inviteEmail = sessionStorage.getItem("inviteEmail");
 
     setInviteToken(token);
     setInviteClientBaseUUID(baseUUID);
     setInviteClientBaseNumberId(
       baseNumIdString ? parseInt(baseNumIdString, 10) : null
     );
+    
+    // Preencher automaticamente os campos se vieram do convite
+    if (inviteDisplayName) {
+      setDisplayName(inviteDisplayName);
+    }
+    if (inviteEmail) {
+      setEmail(inviteEmail);
+    }
   }, []);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,6 +115,8 @@ export default function SignupPage() {
         sessionStorage.removeItem("inviteToken");
         sessionStorage.removeItem("inviteClientBaseUUID");
         sessionStorage.removeItem("inviteClientBaseNumberId");
+        sessionStorage.removeItem("inviteDisplayName");
+        sessionStorage.removeItem("inviteEmail");
         navigate("/login", { replace: true });
       }
     } catch (error) {
@@ -144,14 +158,19 @@ export default function SignupPage() {
                 id="displayName"
                 type="text"
                 placeholder="Como devemos te chamar?"
-                autoFocus
+                autoFocus={!sessionStorage.getItem("inviteDisplayName")}
                 required
                 autoComplete="name"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || !!sessionStorage.getItem("inviteDisplayName")}
                 className="h-10"
               />
+              {sessionStorage.getItem("inviteDisplayName") && (
+                <p className="text-xs text-muted-foreground">
+                  Nome preenchido automaticamente pelo convite
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -163,9 +182,14 @@ export default function SignupPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || !!sessionStorage.getItem("inviteEmail")}
                 className="h-10"
               />
+              {sessionStorage.getItem("inviteEmail") && (
+                <p className="text-xs text-muted-foreground">
+                  Email preenchido automaticamente pelo convite
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
@@ -185,8 +209,7 @@ export default function SignupPage() {
                 <div className="pt-2">
                   <Progress
                     value={passwordStrength.score}
-                    className="h-2 [&>div]:transition-all [&>div]:duration-300" // Adiciona transição suave
-                    indicatorClassName={passwordStrength.color} // Propriedade para cor do indicador
+                    className={`h-2 [&>div]:transition-all [&>div]:duration-300 [&>div]:${passwordStrength.color}`} // Adiciona transição suave e cor
                   />
                   <p
                     className={`text-xs mt-1.5 text-right font-medium ${

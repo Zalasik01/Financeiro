@@ -86,7 +86,7 @@ const AppContent = () => {
       "/transacao": "Transações",
       "/categoria": "Categorias",
       "/loja": "Lojas",
-      "/loja/editar-loja/:id": "Editar Loja",
+      "/loja/editar-loja/:baseId": "Editar Loja",
       "/loja/criar-loja": "Criar loja",
       "/fechamento": "Fechamentos",
       "/dre": "DRE",
@@ -108,6 +108,7 @@ const AppContent = () => {
       "/admin/gestao-bases/editar/:id": "Editar Base",
       "/admin/gestao-bases/contrato/:id": "Contrato da Base",
       "/admin/gestao-bases/usuarios/:id": "Usuários da Base",
+      "/admin/gerenciar-usuarios-global/novo": "Novo Usuário",
       "/admin/gerenciar-usuarios-global/editar/:uid": "Editar Usuário",
       "/admin/gerenciar-usuarios-global": "Usuários",
       "/login": "Login",
@@ -127,6 +128,8 @@ const AppContent = () => {
         ? routeTitles["/gerenciar-lojas/novo"]
         : location.pathname.startsWith("/gerenciar-lojas/editar/")
         ? routeTitles["/gerenciar-lojas/editar/:id"]
+        : location.pathname.startsWith("/loja/editar-loja/")
+        ? routeTitles["/loja/editar-loja/:baseId"]
         : location.pathname.startsWith("/admin/gestao-bases/nova")
         ? routeTitles["/admin/gestao-bases/nova"]
         : location.pathname.startsWith("/admin/gestao-bases/editar/")
@@ -135,10 +138,14 @@ const AppContent = () => {
         ? routeTitles["/admin/gestao-bases/contrato/:id"]
         : location.pathname.startsWith("/admin/gestao-bases/usuarios/")
         ? routeTitles["/admin/gestao-bases/usuarios/:id"]
+        : location.pathname.startsWith("/admin/gerenciar-usuarios-global/novo")
+        ? routeTitles["/admin/gerenciar-usuarios-global/novo"]
+        : location.pathname.startsWith("/admin/gerenciar-usuarios-global/editar/")
+        ? routeTitles["/admin/gerenciar-usuarios-global/editar/:uid"]
         : routeTitles[location.pathname]) ||
       routeTitles["*"];
     document.title = `Financeiro App - ${pageTitle}`;
-  }, [location.pathname, routeTitles]); // routeTitles is now stable due to useMemo
+  }, [location.pathname, routeTitles]);
   useEffect(() => {
     if (
       currentUser &&

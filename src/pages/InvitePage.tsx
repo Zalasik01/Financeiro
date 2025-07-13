@@ -37,6 +37,15 @@ const InvitePage: React.FC = () => {
               "inviteClientBaseNumberId",
               inviteData.clientBaseNumberId
             ); // numberId da base
+            
+            // Salvar dados do usuário para preencher automaticamente
+            if (inviteData.displayName) {
+              sessionStorage.setItem("inviteDisplayName", inviteData.displayName);
+            }
+            if (inviteData.email) {
+              sessionStorage.setItem("inviteEmail", inviteData.email);
+            }
+            
             navigate("/signup", {
               replace: true,
               // Opcional: passar via state também, mas sessionStorage é mais robusto
