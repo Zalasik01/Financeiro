@@ -33,7 +33,7 @@ export const useStores = () => {
     // Buscar bases do Supabase
     const fetchBases = async () => {
       const { data, error } = await supabase
-        .from("client_bases")
+        .from("base_cliente")
         .select(
           "id, name, createdAt, numberId, ativo, createdBy, authorizedUIDs"
         );
