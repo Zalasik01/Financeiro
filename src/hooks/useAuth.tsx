@@ -1,5 +1,6 @@
-import { auth, db } from "@/firebase";
+// importação removida: use integração Supabase se necessário
 import type { ClientBase } from "@/types/store";
+import { handleError } from "@/utils/errorHandler";
 import {
   AuthError,
   User,
@@ -10,7 +11,12 @@ import {
   signOut,
   updateProfile,
 } from "firebase/auth";
-import { get as databaseGet, ref as databaseRef, set as databaseSet, update as databaseUpdate } from "firebase/database";
+import {
+  get as databaseGet,
+  ref as databaseRef,
+  set as databaseSet,
+  update as databaseUpdate,
+} from "firebase/database";
 import {
   ReactNode,
   createContext,
@@ -21,7 +27,6 @@ import {
   useState,
 } from "react";
 import { useToast } from "./use-toast";
-import { handleError } from "@/utils/errorHandler";
 // Importar utilitários do localStorage
 import {
   accessToken,
@@ -74,7 +79,9 @@ export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     // Durante o desenvolvimento com hot reload, pode haver momentos onde o contexto não está disponível
-    console.warn("⚠️ [useAuth] Contexto não encontrado - verificando se AuthProvider está configurado corretamente");
+    console.warn(
+      "⚠️ [useAuth] Contexto não encontrado - verificando se AuthProvider está configurado corretamente"
+    );
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
@@ -92,8 +99,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const { toast } = useToast();
   const hasJustLoggedInRef = useRef(false);
 
-  const getLocalStorageKeyForSelectedBase = useCallback((uid: string) =>
-    `financeiroApp_lastSelectedBaseId_${uid}`, []);
+  const getLocalStorageKeyForSelectedBase = useCallback(
+    (uid: string) => `financeiroApp_lastSelectedBaseId_${uid}`,
+    []
+  );
 
   const setSelectedBaseId = useCallback(
     async (baseId: string | null): Promise<void> => {
@@ -191,7 +200,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
       return userCredential.user;
     } catch (err) {
-      const errorInfo = handleError(err, 'useAuth.signup');
+      const errorInfo = handleError(err, "useAuth.signup");
       setError(errorInfo.message);
       toast({
         title: "Erro no cadastro",
@@ -298,30 +307,33 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Função para sincronizar UIDs do usuário nas bases autorizadas
   const syncUserUIDInBases = async (user: User) => {
     try {
-      console.log("🔄 [useAuth] Iniciando sincronização de UID para bases autorizadas:", {
-        uid: user.uid,
-        email: user.email
-      });
+      console.log(
+        "🔄 [useAuth] Iniciando sincronização de UID para bases autorizadas:",
+        {
+          uid: user.uid,
+          email: user.email,
+        }
+      );
 
       // Buscar todas as bases
-      const basesRef = databaseRef(db, 'clientBases');
+      const basesRef = databaseRef(db, "clientBases");
       const basesSnapshot = await databaseGet(basesRef);
-      
+
       if (!basesSnapshot.exists()) {
         console.log("📭 [useAuth] Nenhuma base encontrada para sincronização");
         return;
       }
 
       const bases = basesSnapshot.val();
-      
+
       for (const baseId in bases) {
         const base = bases[baseId];
         const authorizedUIDs = base.authorizedUIDs || {};
-        
+
         // Verificar se há algum UID autorizado com o mesmo email do usuário atual
         let foundMatchingEmail = false;
         let uidsToRemove: string[] = [];
-        
+
         for (const uid in authorizedUIDs) {
           const userData = authorizedUIDs[uid];
           if (userData.email === user.email) {
@@ -329,42 +341,49 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             if (uid !== user.uid) {
               // UID diferente mas mesmo email - precisa atualizar
               uidsToRemove.push(uid);
-              console.log("🔄 [useAuth] UID antigo encontrado para sincronização:", {
-                baseId,
-                baseName: base.name,
-                oldUID: uid,
-                newUID: user.uid,
-                email: user.email
-              });
+              console.log(
+                "🔄 [useAuth] UID antigo encontrado para sincronização:",
+                {
+                  baseId,
+                  baseName: base.name,
+                  oldUID: uid,
+                  newUID: user.uid,
+                  email: user.email,
+                }
+              );
             }
           }
         }
-        
+
         if (foundMatchingEmail) {
           // Remover UIDs antigos e adicionar o novo
           const updates: any = {};
-          
+
           // Remover UIDs antigos
-          uidsToRemove.forEach(oldUID => {
+          uidsToRemove.forEach((oldUID) => {
             updates[`/clientBases/${baseId}/authorizedUIDs/${oldUID}`] = null;
           });
-          
+
           // Adicionar UID atual se não existir ou foi removido
           if (uidsToRemove.length > 0 || !authorizedUIDs[user.uid]) {
             updates[`/clientBases/${baseId}/authorizedUIDs/${user.uid}`] = {
-              displayName: user.displayName || user.email?.split('@')[0] || 'Usuário',
-              email: user.email
+              displayName:
+                user.displayName || user.email?.split("@")[0] || "Usuário",
+              email: user.email,
             };
           }
-          
+
           if (Object.keys(updates).length > 0) {
             await databaseUpdate(databaseRef(db), updates);
-            console.log("✅ [useAuth] UIDs sincronizados com sucesso na base:", {
-              baseId,
-              baseName: base.name,
-              removedUIDs: uidsToRemove,
-              newUID: user.uid
-            });
+            console.log(
+              "✅ [useAuth] UIDs sincronizados com sucesso na base:",
+              {
+                baseId,
+                baseName: base.name,
+                removedUIDs: uidsToRemove,
+                newUID: user.uid,
+              }
+            );
           }
         }
       }
@@ -384,91 +403,101 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (user) {
         const userProfileRef = databaseRef(db, `users/${user.uid}/profile`);
         // Sincronizar UIDs nas bases autorizadas antes de carregar perfil
-        syncUserUIDInBases(user)
-          .finally(() => {
-            databaseGet(userProfileRef)
-              .then((snapshot) => {
-                const appUser: AppUser = {
-                  ...user,
-                  isAdmin: false,
-                  clientBaseId: null,
-                };
-                if (snapshot.exists()) {
-                  const profileData = snapshot.val();
-                  console.log("🔧 [useAuth] Dados do perfil encontrados:", {
-                    uid: user.uid,
-                    email: user.email,
-                    profileData,
-                    isAdminValue: profileData.isAdmin,
-                    isAdminCheck: profileData.isAdmin === true,
-                  });
-
-                  appUser.isAdmin = profileData.isAdmin === true;
-                  appUser.clientBaseId =
-                    typeof profileData.clientBaseId === "number"
-                      ? profileData.clientBaseId
-                      : null;
-                } else {
-                  // Usuário não encontrado na coleção users - criar perfil básico
-                  console.log("⚠️ [useAuth] Usuário não encontrado na coleção users - criando perfil básico");
-                  
-                  // Criar perfil básico para o usuário
-                  const basicProfile = {
-                    email: user.email,
-                    displayName: user.displayName || user.email?.split('@')[0] || 'Usuário',
-                    isAdmin: false,
-                    clientBaseId: null,
-                    createdAt: Date.now(),
-                  };
-
-                  const userProfileRef = databaseRef(db, `users/${user.uid}/profile`);
-                  databaseSet(userProfileRef, basicProfile)
-                    .then(() => {
-                      console.log("✅ [useAuth] Perfil básico criado com sucesso");
-                    })
-                    .catch((error) => {
-                      console.warn("⚠️ [useAuth] Erro ao criar perfil básico:", error);
-                    });
-                }
-
-                // Salvar sessão do usuário no localStorage
-                const sessionData: StoredUserSession = {
-                  email: user.email || "",
-                  uid: user.uid,
-                  isAdmin: appUser.isAdmin || false,
-                  displayName: user.displayName || undefined,
-                  photoURL: user.photoURL || undefined,
-                };
-                userSession.set(sessionData);
-
-                setCurrentUser(appUser);
-                const lastSelectedBaseId = localStorage.getItem(
-                  getLocalStorageKeyForSelectedBase(user.uid)
-                );
-                if (lastSelectedBaseId) {
-                  setSelectedBaseId(lastSelectedBaseId);
-                }
-                
-                console.log("✅ [useAuth] Usuário configurado com sucesso:", {
+        syncUserUIDInBases(user).finally(() => {
+          databaseGet(userProfileRef)
+            .then((snapshot) => {
+              const appUser: AppUser = {
+                ...user,
+                isAdmin: false,
+                clientBaseId: null,
+              };
+              if (snapshot.exists()) {
+                const profileData = snapshot.val();
+                console.log("🔧 [useAuth] Dados do perfil encontrados:", {
                   uid: user.uid,
                   email: user.email,
-                  isAdmin: appUser.isAdmin,
-                  clientBaseId: appUser.clientBaseId
+                  profileData,
+                  isAdminValue: profileData.isAdmin,
+                  isAdminCheck: profileData.isAdmin === true,
                 });
-              })
-              .catch((error) => {
-                console.error(
-                  "❌ [useAuth] Erro ao buscar perfil do usuário:",
-                  error
+
+                appUser.isAdmin = profileData.isAdmin === true;
+                appUser.clientBaseId =
+                  typeof profileData.clientBaseId === "number"
+                    ? profileData.clientBaseId
+                    : null;
+              } else {
+                // Usuário não encontrado na coleção users - criar perfil básico
+                console.log(
+                  "⚠️ [useAuth] Usuário não encontrado na coleção users - criando perfil básico"
                 );
-                // Mesmo com erro, definir o usuário com dados básicos
-                setCurrentUser({ ...user, isAdmin: false, clientBaseId: null });
-              })
-              .finally(() => {
-                console.log("🏁 [useAuth] Finalizando carregamento do usuário");
-                setLoading(false);
+
+                // Criar perfil básico para o usuário
+                const basicProfile = {
+                  email: user.email,
+                  displayName:
+                    user.displayName || user.email?.split("@")[0] || "Usuário",
+                  isAdmin: false,
+                  clientBaseId: null,
+                  createdAt: Date.now(),
+                };
+
+                const userProfileRef = databaseRef(
+                  db,
+                  `users/${user.uid}/profile`
+                );
+                databaseSet(userProfileRef, basicProfile)
+                  .then(() => {
+                    console.log(
+                      "✅ [useAuth] Perfil básico criado com sucesso"
+                    );
+                  })
+                  .catch((error) => {
+                    console.warn(
+                      "⚠️ [useAuth] Erro ao criar perfil básico:",
+                      error
+                    );
+                  });
+              }
+
+              // Salvar sessão do usuário no localStorage
+              const sessionData: StoredUserSession = {
+                email: user.email || "",
+                uid: user.uid,
+                isAdmin: appUser.isAdmin || false,
+                displayName: user.displayName || undefined,
+                photoURL: user.photoURL || undefined,
+              };
+              userSession.set(sessionData);
+
+              setCurrentUser(appUser);
+              const lastSelectedBaseId = localStorage.getItem(
+                getLocalStorageKeyForSelectedBase(user.uid)
+              );
+              if (lastSelectedBaseId) {
+                setSelectedBaseId(lastSelectedBaseId);
+              }
+
+              console.log("✅ [useAuth] Usuário configurado com sucesso:", {
+                uid: user.uid,
+                email: user.email,
+                isAdmin: appUser.isAdmin,
+                clientBaseId: appUser.clientBaseId,
               });
-          });
+            })
+            .catch((error) => {
+              console.error(
+                "❌ [useAuth] Erro ao buscar perfil do usuário:",
+                error
+              );
+              // Mesmo com erro, definir o usuário com dados básicos
+              setCurrentUser({ ...user, isAdmin: false, clientBaseId: null });
+            })
+            .finally(() => {
+              console.log("🏁 [useAuth] Finalizando carregamento do usuário");
+              setLoading(false);
+            });
+        });
       } else {
         // Limpar localStorage quando não há usuário autenticado
         console.log("🚪 [useAuth] Usuário deslogado - limpando sessão");
@@ -491,7 +520,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const uploadProfilePhotoAndUpdateURL = async (file: File) => {
     // Implementação futura para upload de foto
-    console.log("📸 [useAuth] Upload de foto não implementado ainda:", file.name);
+    console.log(
+      "📸 [useAuth] Upload de foto não implementado ainda:",
+      file.name
+    );
   };
 
   const removeProfilePhoto = async () => {
