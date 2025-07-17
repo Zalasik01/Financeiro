@@ -1,10 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { db } from "@/firebase";
+// importação do Firebase removida
 import { useToast } from "@/hooks/use-toast";
 import type { ClientBase } from "@/types/store";
-import { get, ref } from "firebase/database";
+// importação do Firebase removida
 import {
   ArrowLeft,
   Building2,

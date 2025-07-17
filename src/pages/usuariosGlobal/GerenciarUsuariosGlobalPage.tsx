@@ -169,7 +169,7 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
 
     try {
       const deleteUserAccountFunction = httpsCallable(
-        firebaseFunctions,
+        // firebaseFunctions removido
         "deleteUserAccount"
       );
       const result = await deleteUserAccountFunction({

@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { db } from "@/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import type { ClientBase } from "@/types/store";
 import {

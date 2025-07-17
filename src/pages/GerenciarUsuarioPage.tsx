@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from "react";
 import UserAccessMatrix from "@/components/UserAccessMatrix";
-import { db } from "@/firebase"; // Importar db para Realtime Database
-import { ref, onValue } from "firebase/database"; // Importar funções do Realtime Database
+import React, { useEffect, useState } from "react";
 
 // Definir uma interface para os dados do usuário que esperamos
 interface UserData {
@@ -18,7 +16,7 @@ const GerenciarUsuarioPage: React.FC = () => {
   const [errorUsers, setErrorUsers] = useState<string | null>(null);
 
   useEffect(() => {
-    const usersRef = ref(db, "users"); // Caminho para os usuários no Firebase
+    // const usersRef = ref(db, "users"); // Firebase removido
     const unsubscribe = onValue(
       usersRef,
       (snapshot) => {

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { db } from "@/firebase";
-import { ref, get } from "firebase/database";
+import { useNavigate, useParams } from "react-router-dom";
+
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -37,15 +36,18 @@ const InvitePage: React.FC = () => {
               "inviteClientBaseNumberId",
               inviteData.clientBaseNumberId
             ); // numberId da base
-            
+
             // Salvar dados do usuário para preencher automaticamente
             if (inviteData.displayName) {
-              sessionStorage.setItem("inviteDisplayName", inviteData.displayName);
+              sessionStorage.setItem(
+                "inviteDisplayName",
+                inviteData.displayName
+              );
             }
             if (inviteData.email) {
               sessionStorage.setItem("inviteEmail", inviteData.email);
             }
-            
+
             navigate("/signup", {
               replace: true,
               // Opcional: passar via state também, mas sessionStorage é mais robusto

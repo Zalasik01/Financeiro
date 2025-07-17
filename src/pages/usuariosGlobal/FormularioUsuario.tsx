@@ -19,7 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import type { ClientBase } from "@/types/store";
-import { get, onValue, push, ref, set, update } from "firebase/database";
+// importação do Firebase removida
 import {
   ArrowLeft,
   CheckCircle,

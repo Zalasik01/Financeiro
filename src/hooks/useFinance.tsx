@@ -1,22 +1,19 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
-import { Category, Transaction, FinancialSummary } from "@/types/finance";
-import { useAuth } from "@/hooks/useAuth"; // Importar o hook de autenticação
 import { useToast } from "@/hooks/use-toast"; // Importar o hook de toast
-import { db } from "@/firebase"; // Importar a instância do RTDB
+import { useAuth } from "@/hooks/useAuth"; // Importar o hook de autenticação
+import { Category, FinancialSummary, Transaction } from "@/types/finance";
+import { useEffect, useMemo, useState } from "react";
+// importação removida: use integração Supabase se necessário
 import {
-  ref,
-  onValue,
-  push,
-  set,
-  remove,
-  query,
-  orderByChild,
-  update,
-  serverTimestamp,
   get,
-  child,
-  equalTo,
-  orderByValue,
+  onValue,
+  orderByChild,
+  push,
+  query,
+  ref,
+  remove,
+  serverTimestamp,
+  set,
+  update,
 } from "firebase/database"; // Funções do RTDB
 
 export const useFinance = () => {
@@ -99,9 +96,9 @@ export const useFinance = () => {
             id: key,
             ...entry,
             type: mappedType,
-            date: new Date(entry.date), 
-            createdAt: new Date(entry.createdAt), 
-            personId: entry.personId ?? null, 
+            date: new Date(entry.date),
+            createdAt: new Date(entry.createdAt),
+            personId: entry.personId ?? null,
           };
         });
         setTransactions(transactionsList);
@@ -139,7 +136,8 @@ export const useFinance = () => {
       } as Category;
     } catch (errorUnknown: unknown) {
       const error = errorUnknown as Error;
-      const errorMessage = error.message || "Não foi possível adicionar a categoria.";
+      const errorMessage =
+        error.message || "Não foi possível adicionar a categoria.";
       console.error("Erro ao adicionar categoria: ", error);
       toast({
         title: "Erro!",
@@ -174,7 +172,8 @@ export const useFinance = () => {
       toast({ title: "Sucesso!", description: "Categoria atualizada." });
     } catch (errorUnknown: unknown) {
       const error = errorUnknown as Error;
-      const errorMessage = error.message || "Não foi possível atualizar a categoria.";
+      const errorMessage =
+        error.message || "Não foi possível atualizar a categoria.";
       console.error("Erro ao atualizar categoria: ", error);
       toast({
         title: "Erro!",
@@ -203,7 +202,8 @@ export const useFinance = () => {
       toast({ title: "Sucesso!", description: "Categoria deletada." });
     } catch (errorUnknown: unknown) {
       const error = errorUnknown as Error;
-      const errorMessage = error.message || "Não foi possível deletar a categoria.";
+      const errorMessage =
+        error.message || "Não foi possível deletar a categoria.";
       console.error("Erro ao deletar categoria: ", error);
       toast({
         title: "Erro!",
@@ -238,7 +238,7 @@ export const useFinance = () => {
         description: transactionData.description,
         amount: transactionData.amount,
         categoryId: transactionData.categoryId,
-        date: transactionData.date.toISOString(), 
+        date: transactionData.date.toISOString(),
         type: transactionData.type,
         storeId: transactionData.storeId, // Assumindo que storeId é obrigatório e validado no formulário
         createdAt: serverTimestamp(), // Usar timestamp do servidor para createdAt
@@ -265,7 +265,8 @@ export const useFinance = () => {
       } as Transaction; // Retornar com ID e data convertida
     } catch (errorUnknown: unknown) {
       const error = errorUnknown as Error;
-      const errorMessage = error.message || "Não foi possível adicionar a transação.";
+      const errorMessage =
+        error.message || "Não foi possível adicionar a transação.";
       console.error("Erro ao adicionar transação:", error);
       toast({
         title: "Erro!",
@@ -302,15 +303,22 @@ export const useFinance = () => {
       const updatesToSave: Record<string, unknown> = { ...transactionUpdates };
 
       // Explicitly type dateToUpdate to avoid implicit any if transactionUpdates.date is not strictly Date | string
-      const dateToUpdate: Date | string | undefined | null = transactionUpdates.date;
-      if (dateToUpdate && typeof dateToUpdate !== 'string' && dateToUpdate instanceof Date) {
+      const dateToUpdate: Date | string | undefined | null =
+        transactionUpdates.date;
+      if (
+        dateToUpdate &&
+        typeof dateToUpdate !== "string" &&
+        dateToUpdate instanceof Date
+      ) {
         updatesToSave.date = dateToUpdate.toISOString(); // Firebase expects string
       }
 
       // Tratar 'discount' especificamente:
       // Se 'discount' está presente em transactionUpdates e é 0 ou null, queremos remover o campo ou setar para null.
       // Se for um número > 0, o mantemos.
-      if (Object.prototype.hasOwnProperty.call(transactionUpdates, "discount")) {
+      if (
+        Object.prototype.hasOwnProperty.call(transactionUpdates, "discount")
+      ) {
         if (
           typeof transactionUpdates.discount === "number" &&
           transactionUpdates.discount > 0
@@ -324,7 +332,8 @@ export const useFinance = () => {
       await update(transactionRef, updatesToSave);
     } catch (errorUnknown: unknown) {
       const error = errorUnknown as Error;
-      const errorMessage = error.message || "Não foi possível atualizar a transação.";
+      const errorMessage =
+        error.message || "Não foi possível atualizar a transação.";
       console.error("Erro ao atualizar transação:", error);
       toast({
         title: "Erro!",
@@ -350,10 +359,15 @@ export const useFinance = () => {
         `clientBases/${selectedBaseId}/appTransactions/${id}`
       ); // Caminho atualizado
       await remove(transactionRef);
-      toast({ title: "Sucesso!", description: "Transação deletada.", variant: "success" });
+      toast({
+        title: "Sucesso!",
+        description: "Transação deletada.",
+        variant: "success",
+      });
     } catch (errorUnknown: unknown) {
       const error = errorUnknown as Error;
-      const errorMessage = error.message || "Não foi possível deletar a transação.";
+      const errorMessage =
+        error.message || "Não foi possível deletar a transação.";
       console.error("Erro ao deletar transação:", error);
       toast({
         title: "Erro!",
@@ -384,7 +398,7 @@ export const useFinance = () => {
     // Uma única iteração para calcular tudo
     transactions.forEach((transaction) => {
       const transactionDate = new Date(transaction.date);
-      
+
       // Calcular receitas e despesas
       if (transaction.type === "Receita") {
         income += transaction.amount;
@@ -463,7 +477,8 @@ export const useFinance = () => {
       }
     } catch (errorUnknown: unknown) {
       const error = errorUnknown as Error;
-      const errorMessage = error.message ||
+      const errorMessage =
+        error.message ||
         "Não foi possível remover as transações do fechamento anterior.";
       console.error("Erro ao remover transações por data e loja:", error);
       toast({

@@ -16,7 +16,7 @@ const ManageUsersPage: React.FC = () => {
   const [errorUsers, setErrorUsers] = useState<string | null>(null);
 
   useEffect(() => {
-    const usersRef = ref(db, "users"); // Caminho para os usuários no Firebase
+    // const usersRef = ref(db, "users"); // Firebase removido
     const unsubscribe = onValue(
       usersRef,
       (snapshot) => {
@@ -34,7 +34,7 @@ const ManageUsersPage: React.FC = () => {
         setErrorUsers(null);
       },
       (error) => {
-        console.error("Firebase read error (ManageUsersPage):", error);
+        // console.error("Firebase read error (ManageUsersPage):", error);
         setErrorUsers("Falha ao carregar dados dos usuários.");
         setLoadingUsers(false);
         setUsersList([]);

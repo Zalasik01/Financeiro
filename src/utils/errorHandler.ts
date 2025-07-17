@@ -29,7 +29,7 @@ export const getAuthErrorMessage = (code: string): string => {
 export const handleError = (error: unknown, context: string) => {
   console.error(`[${context}]`, error);
 
-  // Verificar se é um erro do Firebase Auth
+  // Verificar se é um erro de autenticação
 
   if (error instanceof AppError) {
     return {

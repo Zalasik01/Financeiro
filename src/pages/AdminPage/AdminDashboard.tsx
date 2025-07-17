@@ -7,8 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { db } from "@/firebase";
-import { onValue, ref } from "firebase/database";
 import {
   Activity,
   AlertTriangle,

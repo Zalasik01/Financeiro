@@ -1,4 +1,4 @@
-import { db } from "@/firebase";
+// importação removida: use integração Supabase se necessário
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -39,12 +39,12 @@ export const useStores = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log("📊 [useStores] useEffect executado:", { 
-      currentUser: !!currentUser, 
+    console.log("📊 [useStores] useEffect executado:", {
+      currentUser: !!currentUser,
       userUID: currentUser?.uid,
-      isAdmin: currentUser?.isAdmin 
+      isAdmin: currentUser?.isAdmin,
     });
-    
+
     if (!currentUser) {
       console.log("📊 [useStores] Sem usuário - limpando bases");
       setBases([]);
@@ -67,42 +67,46 @@ export const useStores = () => {
           console.log("📊 [useStores] Bases encontradas:", {
             total: allClientBases.length,
             userIsAdmin: currentUser.isAdmin,
-            userUID: currentUser.uid
+            userUID: currentUser.uid,
           });
 
           let accessibleClientBases: ClientBase[];
 
           if (currentUser.isAdmin) {
             accessibleClientBases = allClientBases;
-            console.log("📊 [useStores] Usuário admin - acesso a todas as bases");
+            console.log(
+              "📊 [useStores] Usuário admin - acesso a todas as bases"
+            );
           } else {
-            accessibleClientBases = allClientBases.filter(
-              (cb) => {
-                const hasAuthorizedUID = cb.authorizedUIDs && cb.authorizedUIDs[currentUser.uid];
-                const isCreatedByUser = cb.createdBy === currentUser.uid;
-                const hasAccess = hasAuthorizedUID || isCreatedByUser;
-                
-                console.log("📊 [useStores] Verificando acesso à base:", {
-                  baseId: cb.id,
-                  baseName: cb.name,
-                  userUID: currentUser.uid,
-                  authorizedUIDs: cb.authorizedUIDs ? Object.keys(cb.authorizedUIDs) : [],
-                  authorizedUIDsDetailed: cb.authorizedUIDs || {},
-                  hasAuthorizedUID: !!hasAuthorizedUID,
-                  isCreatedByUser,
-                  createdBy: cb.createdBy,
-                  hasAccess,
-                  uidComparison: cb.authorizedUIDs ? 
-                    Object.keys(cb.authorizedUIDs).map(uid => ({
+            accessibleClientBases = allClientBases.filter((cb) => {
+              const hasAuthorizedUID =
+                cb.authorizedUIDs && cb.authorizedUIDs[currentUser.uid];
+              const isCreatedByUser = cb.createdBy === currentUser.uid;
+              const hasAccess = hasAuthorizedUID || isCreatedByUser;
+
+              console.log("📊 [useStores] Verificando acesso à base:", {
+                baseId: cb.id,
+                baseName: cb.name,
+                userUID: currentUser.uid,
+                authorizedUIDs: cb.authorizedUIDs
+                  ? Object.keys(cb.authorizedUIDs)
+                  : [],
+                authorizedUIDsDetailed: cb.authorizedUIDs || {},
+                hasAuthorizedUID: !!hasAuthorizedUID,
+                isCreatedByUser,
+                createdBy: cb.createdBy,
+                hasAccess,
+                uidComparison: cb.authorizedUIDs
+                  ? Object.keys(cb.authorizedUIDs).map((uid) => ({
                       storedUID: uid,
                       matches: uid === currentUser.uid,
-                      userUID: currentUser.uid
-                    })) : []
-                });
-                
-                return hasAccess;
-              }
-            );
+                      userUID: currentUser.uid,
+                    }))
+                  : [],
+              });
+
+              return hasAccess;
+            });
           }
 
           const finalBases = accessibleClientBases.map(
@@ -117,7 +121,11 @@ export const useStores = () => {
 
           console.log("📊 [useStores] Bases finais configuradas:", {
             accessible: finalBases.length,
-            bases: finalBases.map(b => ({ id: b.id, name: b.name, ativo: b.ativo }))
+            bases: finalBases.map((b) => ({
+              id: b.id,
+              name: b.name,
+              ativo: b.ativo,
+            })),
           });
 
           setBases(finalBases);

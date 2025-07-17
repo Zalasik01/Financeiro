@@ -1,10 +1,19 @@
-import { useState, useEffect, useMemo } from "react";
-import { collection, onSnapshot, query, where, orderBy, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
-import { db } from "@/firebase";
-import { Store } from "@/types/store";
-import { useToast } from "@/hooks/use-toast";
-import { handleError } from "@/utils/errorHandler";
 import { APP_CONFIG } from "@/config/app";
+import { useToast } from "@/hooks/use-toast";
+import { Store } from "@/types/store";
+import { handleError } from "@/utils/errorHandler";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  updateDoc,
+  where,
+} from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
 
 export const useStoresOptimized = (userId: string) => {
   const [stores, setStores] = useState<Store[]>([]);
@@ -33,11 +42,14 @@ export const useStoresOptimized = (userId: string) => {
       storesQuery,
       (snapshot) => {
         try {
-          const storesData = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          } as Store));
-          
+          const storesData = snapshot.docs.map(
+            (doc) =>
+              ({
+                id: doc.id,
+                ...doc.data(),
+              } as Store)
+          );
+
           setStores(storesData);
           setError(null);
         } catch (err) {
@@ -68,20 +80,20 @@ export const useStoresOptimized = (userId: string) => {
   }, [storesQuery, toast]);
 
   // Stores ativas memoizadas
-  const activeStores = useMemo(() => 
-    stores.filter(store => store.ativo),
+  const activeStores = useMemo(
+    () => stores.filter((store) => store.ativo),
     [stores]
   );
 
   // Store padrão memoizada
-  const defaultStore = useMemo(() => 
-    stores.find(store => store.isDefault),
+  const defaultStore = useMemo(
+    () => stores.find((store) => store.isDefault),
     [stores]
   );
 
   // Mapa de stores para lookup rápido
-  const storesMap = useMemo(() => 
-    new Map(stores.map(store => [store.id, store])),
+  const storesMap = useMemo(
+    () => new Map(stores.map((store) => [store.id, store])),
     [stores]
   );
 
@@ -89,9 +101,11 @@ export const useStoresOptimized = (userId: string) => {
   const addStore = async (storeData: Omit<Store, "id">) => {
     try {
       if (!userId) throw new Error("Usuário não autenticado");
-      
+
       if (stores.length >= APP_CONFIG.finance.maxCategoriesPerBase) {
-        throw new Error(`Limite de ${APP_CONFIG.finance.maxCategoriesPerBase} lojas atingido`);
+        throw new Error(
+          `Limite de ${APP_CONFIG.finance.maxCategoriesPerBase} lojas atingido`
+        );
       }
 
       await addDoc(collection(db, "stores"), {
@@ -100,7 +114,7 @@ export const useStoresOptimized = (userId: string) => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      
+
       toast({
         title: "Sucesso",
         description: "Loja adicionada com sucesso!",
@@ -123,7 +137,7 @@ export const useStoresOptimized = (userId: string) => {
         ...storeData,
         updatedAt: new Date(),
       });
-      
+
       toast({
         title: "Sucesso",
         description: "Loja atualizada com sucesso!",
@@ -143,7 +157,7 @@ export const useStoresOptimized = (userId: string) => {
   const deleteStore = async (id: string) => {
     try {
       await deleteDoc(doc(db, "stores", id));
-      
+
       toast({
         title: "Sucesso",
         description: "Loja excluída com sucesso!",
@@ -163,12 +177,15 @@ export const useStoresOptimized = (userId: string) => {
   const getStoreById = (id: string) => storesMap.get(id);
 
   // Estatísticas memoizadas
-  const stats = useMemo(() => ({
-    total: stores.length,
-    active: activeStores.length,
-    inactive: stores.length - activeStores.length,
-    hasDefault: !!defaultStore,
-  }), [stores.length, activeStores.length, defaultStore]);
+  const stats = useMemo(
+    () => ({
+      total: stores.length,
+      active: activeStores.length,
+      inactive: stores.length - activeStores.length,
+      hasDefault: !!defaultStore,
+    }),
+    [stores.length, activeStores.length, defaultStore]
+  );
 
   return {
     stores,

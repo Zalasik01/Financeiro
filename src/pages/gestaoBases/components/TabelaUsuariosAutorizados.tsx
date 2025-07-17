@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { ref, onValue } from "firebase/database";
-import { db } from "@/firebase";
+// importação do Firebase removida
+// importação do Firebase removida
 import { Badge } from "@/components/ui/badge";
 
 interface UsuarioAutorizado {
@@ -44,9 +44,13 @@ export const TabelaUsuariosAutorizados: React.FC<Props> = ({ baseId }) => {
   return (
     <div>
       {loading ? (
-        <div className="text-gray-500 text-sm">Carregando usuários autorizados...</div>
+        <div className="text-gray-500 text-sm">
+          Carregando usuários autorizados...
+        </div>
       ) : usuarios.length === 0 ? (
-        <div className="text-gray-500 text-sm">Nenhum usuário autorizado para esta base.</div>
+        <div className="text-gray-500 text-sm">
+          Nenhum usuário autorizado para esta base.
+        </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm border">
@@ -63,7 +67,15 @@ export const TabelaUsuariosAutorizados: React.FC<Props> = ({ baseId }) => {
                   <td className="px-3 py-2">{user.displayName}</td>
                   <td className="px-3 py-2">{user.email}</td>
                   <td className="px-3 py-2">
-                    <Badge variant={user.situacao === "ativo" ? "secondary" : user.situacao === "inativo" ? "destructive" : "outline"}>
+                    <Badge
+                      variant={
+                        user.situacao === "ativo"
+                          ? "secondary"
+                          : user.situacao === "inativo"
+                          ? "destructive"
+                          : "outline"
+                      }
+                    >
                       {user.situacao || "pendente"}
                     </Badge>
                   </td>

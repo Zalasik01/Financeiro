@@ -34,13 +34,13 @@ import {
 } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Textarea } from "@/components/ui/textarea";
-import { db } from "@/firebase";
+// importação do Firebase removida
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useTableSort } from "@/hooks/useTableSort";
 import type { ClientBase } from "@/types/store";
 import { maskCNPJ } from "@/utils/formatters";
-import { onValue, ref, update } from "firebase/database";
+// importação do Firebase removida
 import {
   Ban,
   Download,

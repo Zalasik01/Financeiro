@@ -27,11 +27,11 @@ import {
 } from "@/components/ui/select";
 import { SortableTableHeader } from "@/components/ui/SortableTableHeader";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { db } from "@/firebase";
+// importação do Firebase removida
 import { useAuth } from "@/hooks/useAuth";
 import { useTableSort } from "@/hooks/useTableSort";
 import type { ClientBase } from "@/types/store";
-import { get, ref } from "firebase/database";
+// importação do Firebase removida
 import { Filter, Search, Users as UsersIcon } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";

@@ -26,7 +26,7 @@ CREATE TABLE basecliente (
 CREATE SEQUENCE seq_usuario START WITH 1;
 CREATE TABLE usuario (
   id INTEGER PRIMARY KEY DEFAULT nextval('seq_usuario'),
-  -- uidfirebase removido: agora usamos apenas o id sequencial do Supabase
+  -- campo uidfirebase removido, agora apenas id sequencial
   email TEXT UNIQUE NOT NULL,
   nomeexibicao TEXT,
   admin BOOLEAN DEFAULT FALSE,
@@ -442,7 +442,7 @@ CREATE TRIGGER trg_anotacaobase_updated_at
 CREATE VIEW vw_resumo_usuario_base AS
 SELECT 
   u.id,
-  u.uidfirebase,
+  -- uidfirebase removido
   u.email,
   u.nomeexibicao,
   u.admin,
