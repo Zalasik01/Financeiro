@@ -37,13 +37,10 @@ import {
 } from "@/components/ui/select";
 import { SortableTableHeader } from "@/components/ui/SortableTableHeader";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { db, functions as firebaseFunctions } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useTableSort } from "@/hooks/useTableSort";
 import type { ClientBase } from "@/types/store";
-import { onValue, ref } from "firebase/database";
-import { httpsCallable } from "firebase/functions";
 import { Filter, PlusCircle, Search } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";

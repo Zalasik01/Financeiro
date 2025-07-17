@@ -8,7 +8,6 @@ const ManagePaymentMethodsPage: React.FC = () => {
   const { toast } = useToast();
 
   // Em uma aplicação real, isso viria de um hook/context (ex: useStoreSettings ou useFinance)
-  // e seria persistido no Firebase ou outro backend.
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
   const handleAddPaymentMethod = (
@@ -20,7 +19,6 @@ const ManagePaymentMethodsPage: React.FC = () => {
       createdAt: new Date().toISOString(),
     };
     setPaymentMethods((prev) => [...prev, newMethod]);
-    // TODO: Integrar com o Firebase para salvar a forma de pagamento.
     toast({
       title: "Forma de Pagamento Adicionada",
       description: `${method.name} foi adicionada com sucesso.`,
@@ -30,7 +28,6 @@ const ManagePaymentMethodsPage: React.FC = () => {
 
   const handleDeletePaymentMethod = (id: string) => {
     setPaymentMethods((prev) => prev.filter((pm) => pm.id !== id));
-    // TODO: Integrar com o Firebase para remover a forma de pagamento.
     toast({
       title: "Forma de Pagamento Removida",
       description: `A forma de pagamento foi removida.`,

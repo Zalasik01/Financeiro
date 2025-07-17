@@ -1,5 +1,5 @@
 export interface ClientBase {
-  id: string; // Firebase push ID (UUID)
+  id: string; // Identificador único
   name: string;
   numberId: number;
   ativo: boolean;
@@ -16,7 +16,7 @@ export interface ClientBase {
       email: string;
     };
   };
-  createdAt: number; // Timestamp (Firebase serverTimestamp)
+  createdAt: number; // Timestamp
   createdBy: string; // UID do admin
 }
 
@@ -57,7 +57,7 @@ export interface Base {
   name: string;
   numberId?: number;
   ativo: boolean;
-  createdAt: number; // Usaremos timestamp do Firebase
+  createdAt: number; // Timestamp
 }
 export interface ContatoTelefone {
   id: string;

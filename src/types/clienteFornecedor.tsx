@@ -13,7 +13,7 @@ export interface ContatoEmail {
 }
 
 export interface ClienteFornecedor {
-  id: string; // Identificador único gerado pelo Firebase
+  id: string; // Identificador único
   nome: string; // Nome completo ou Razão Social
   tipoDocumento: "CPF" | "CNPJ" | "Outro"; // Tipo do documento principal
   numeroDocumento?: string; // Número do CPF, CNPJ ou outro identificador

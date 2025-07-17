@@ -1,8 +1,4 @@
 -- 🗄️ Schema SQL Completo para Supabase
--- Migração do Firebase Realtime Database
-
--- Habilitar extensões necessárias
--- Habilitar extensão para UUID (se necessário)
 DO $$ BEGIN
   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 EXCEPTION WHEN OTHERS THEN NULL;
@@ -30,7 +26,7 @@ CREATE TABLE basecliente (
 CREATE SEQUENCE seq_usuario START WITH 1;
 CREATE TABLE usuario (
   id INTEGER PRIMARY KEY DEFAULT nextval('seq_usuario'),
-  uidfirebase TEXT UNIQUE NOT NULL,
+  -- uidfirebase removido: agora usamos apenas o id sequencial do Supabase
   email TEXT UNIQUE NOT NULL,
   nomeexibicao TEXT,
   admin BOOLEAN DEFAULT FALSE,
@@ -351,7 +347,6 @@ CREATE TABLE permissaobase (
 -- ================================
 
 -- Índices para usuários
-CREATE INDEX idx_usuario_uidfirebase ON usuario(uidfirebase);
 CREATE INDEX idx_usuario_email ON usuario(email);
 CREATE INDEX idx_usuario_idbasepadrao ON usuario(idbasepadrao);
 
