@@ -17,9 +17,8 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { AuthProvider } from "./hooks/useAuth";
+import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { useStores } from "./hooks/useStores";
-import { useSupabaseAuth } from "./hooks/useSupabaseAuth";
 import AdminDashboard from "./pages/AdminPage/AdminDashboard";
 import CategoriaPage from "./pages/CategoriaPage";
 import { EditarClienteFornecedor } from "./pages/cliente/components/EditarClienteFornecedor";
@@ -81,8 +80,9 @@ const AppContent = () => {
   const {
     currentUser,
     loading: authLoading,
-    setSelectedClientBase,
-  } = useSupabaseAuth();
+    selectedBaseId,
+    setSelectedBaseId,
+  } = useAuth();
   const { bases } = useStores();
 
   const routeTitles = useMemo(
@@ -155,32 +155,32 @@ const AppContent = () => {
   useEffect(() => {
     if (
       currentUser &&
-      !currentUser.admin &&
-      currentUser.id_base_padrao !== null &&
-      currentUser.id_base_padrao !== undefined &&
+      !currentUser.isAdmin &&
+      currentUser.clientBaseId !== null &&
+      currentUser.clientBaseId !== undefined &&
       bases.length > 0
     ) {
-      const userProfileBaseNumberId = currentUser.id_base_padrao;
+      const userProfileBaseNumberId = currentUser.clientBaseId;
       const matchingBase = bases.find(
         (b) => b.numberId === userProfileBaseNumberId
       );
 
       if (matchingBase) {
-        setSelectedClientBase(matchingBase);
+        setSelectedBaseId(matchingBase.id);
       } else {
-        setSelectedClientBase(null);
+        setSelectedBaseId(null);
       }
-    } else if (currentUser && currentUser.admin) {
-      // selectedClientBase for admin is handled by modal or other actions
+    } else if (currentUser && currentUser.isAdmin) {
+      // selectedBaseId for admin is handled by modal or other actions
     } else if (
       currentUser &&
-      !currentUser.admin &&
-      (currentUser.id_base_padrao === null ||
-        currentUser.id_base_padrao === undefined)
+      !currentUser.isAdmin &&
+      (currentUser.clientBaseId === null ||
+        currentUser.clientBaseId === undefined)
     ) {
-      setSelectedClientBase(null);
+      setSelectedBaseId(null);
     }
-  }, [currentUser, bases, setSelectedClientBase]);
+  }, [currentUser, bases, setSelectedBaseId]);
 
   return (
     <QueryClientProvider client={queryClient}>

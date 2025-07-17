@@ -1,6 +1,6 @@
-// importação removida: use integração Supabase se necessário
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/supabaseClient";
 import {
   Base,
   ClientBase,
@@ -13,7 +13,6 @@ import {
   StoreMeta,
   StoreRanking,
 } from "@/types/store";
-// Firebase imports removidos - migrado para Supabase
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export const useStores = () => {
@@ -27,108 +26,54 @@ export const useStores = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log("📊 [useStores] useEffect executado:", {
-      currentUser: !!currentUser,
-      userUID: currentUser?.uid,
-      isAdmin: currentUser?.isAdmin,
-    });
-
     if (!currentUser) {
-      console.log("📊 [useStores] Sem usuário - limpando bases");
       setBases([]);
       return;
     }
-
-    const clientBasesRef = ref(db, "clientBases");
-    const unsubscribeBases = onValue(
-      clientBasesRef,
-      (snapshot) => {
-        console.log("📊 [useStores] Carregando bases do Firebase...");
-        const data = snapshot.val();
-
-        if (data) {
-          const allClientBases: ClientBase[] = Object.keys(data).map((key) => ({
-            id: key,
-            ...data[key],
-          }));
-
-          console.log("📊 [useStores] Bases encontradas:", {
-            total: allClientBases.length,
-            userIsAdmin: currentUser.isAdmin,
-            userUID: currentUser.uid,
-          });
-
-          let accessibleClientBases: ClientBase[];
-
-          if (currentUser.isAdmin) {
-            accessibleClientBases = allClientBases;
-            console.log(
-              "📊 [useStores] Usuário admin - acesso a todas as bases"
-            );
-          } else {
-            accessibleClientBases = allClientBases.filter((cb) => {
-              const hasAuthorizedUID =
-                cb.authorizedUIDs && cb.authorizedUIDs[currentUser.uid];
-              const isCreatedByUser = cb.createdBy === currentUser.uid;
-              const hasAccess = hasAuthorizedUID || isCreatedByUser;
-
-              console.log("📊 [useStores] Verificando acesso à base:", {
-                baseId: cb.id,
-                baseName: cb.name,
-                userUID: currentUser.uid,
-                authorizedUIDs: cb.authorizedUIDs
-                  ? Object.keys(cb.authorizedUIDs)
-                  : [],
-                authorizedUIDsDetailed: cb.authorizedUIDs || {},
-                hasAuthorizedUID: !!hasAuthorizedUID,
-                isCreatedByUser,
-                createdBy: cb.createdBy,
-                hasAccess,
-                uidComparison: cb.authorizedUIDs
-                  ? Object.keys(cb.authorizedUIDs).map((uid) => ({
-                      storedUID: uid,
-                      matches: uid === currentUser.uid,
-                      userUID: currentUser.uid,
-                    }))
-                  : [],
-              });
-
-              return hasAccess;
-            });
-          }
-
-          const finalBases = accessibleClientBases.map(
-            (cb: ClientBase): Base => ({
-              id: cb.id,
-              name: cb.name,
-              createdAt: cb.createdAt,
-              numberId: cb.numberId,
-              ativo: cb.ativo,
-            })
-          );
-
-          console.log("📊 [useStores] Bases finais configuradas:", {
-            accessible: finalBases.length,
-            bases: finalBases.map((b) => ({
-              id: b.id,
-              name: b.name,
-              ativo: b.ativo,
-            })),
-          });
-
-          setBases(finalBases);
-        } else {
-          console.log("📊 [useStores] Nenhuma base encontrada no Firebase");
-          setBases([]);
-        }
-      },
-      (error) => {
-        console.error("❌ [useStores] Erro ao carregar bases:", error);
+    // Buscar bases do Supabase
+    const fetchBases = async () => {
+      const { data, error } = await supabase
+        .from("client_bases")
+        .select(
+          "id, name, createdAt, numberId, ativo, createdBy, authorizedUIDs"
+        );
+      if (error) {
+        toast({
+          title: "Erro ao carregar bases",
+          description: error.message,
+          variant: "destructive",
+        });
         setBases([]);
+        return;
       }
-    );
-
-    return () => unsubscribeBases();
+      if (!data) {
+        setBases([]);
+        return;
+      }
+      let allClientBases: ClientBase[] = data;
+      let accessibleClientBases: ClientBase[];
+      if (currentUser.isAdmin) {
+        accessibleClientBases = allClientBases;
+      } else {
+        accessibleClientBases = allClientBases.filter((cb) => {
+          const hasAuthorizedUID =
+            cb.authorizedUIDs && cb.authorizedUIDs[currentUser.id];
+          const isCreatedByUser = cb.createdBy === currentUser.id;
+          return hasAuthorizedUID || isCreatedByUser;
+        });
+      }
+      const finalBases = accessibleClientBases.map(
+        (cb: ClientBase): Base => ({
+          id: cb.id,
+          name: cb.name,
+          createdAt: cb.createdAt,
+          numberId: cb.numberId,
+          ativo: cb.ativo,
+        })
+      );
+      setBases(finalBases);
+    };
+    fetchBases();
   }, [currentUser]);
 
   const fetchDataForBase = useCallback(
@@ -141,27 +86,19 @@ export const useStores = () => {
         setter([]);
         return () => {};
       }
-      const dataRef = ref(db, `clientBases/${selectedBaseId}/${path}`);
-      const dataQuery = query(dataRef, orderByChild(orderBy));
-      const unsubscribe = onValue(
-        dataQuery,
-        (snapshot) => {
-          const data = snapshot.val();
-          if (data) {
-            const list = Object.keys(data).map((key) => ({
-              id: key,
-              ...data[key],
-            }));
-            setter(list);
-          } else {
-            setter([]);
-          }
-        },
-        (error) => {
+      const fetchData = async () => {
+        const { data, error } = await supabase
+          .from(`${path}`)
+          .select("*")
+          .eq("baseId", selectedBaseId)
+          .order(orderBy, { ascending: true });
+        if (error) {
           setter([]);
+          return;
         }
-      );
-      return unsubscribe;
+        setter(data || []);
+      };
+      fetchData();
     },
     [currentUser, selectedBaseId]
   );
@@ -185,28 +122,19 @@ export const useStores = () => {
       setClosings([]);
       return;
     }
-    const closingsRef = ref(db, `clientBases/${selectedBaseId}/appClosings`);
-    const closingsQuery = query(closingsRef, orderByChild("closingDate"));
-    const unsubscribe = onValue(closingsQuery, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const list: StoreClosing[] = Object.keys(data).map((key) => ({
-          id: key,
-          ...data[key],
-          closingDate: new Date(data[key].closingDate),
-          createdAt: new Date(data[key].createdAt),
-          movements: data[key].movements
-            ? Array.isArray(data[key].movements)
-              ? data[key].movements
-              : Object.values(data[key].movements)
-            : [],
-        }));
-        setClosings(list);
-      } else {
+    const fetchClosings = async () => {
+      const { data, error } = await supabase
+        .from("appClosings")
+        .select("*")
+        .eq("baseId", selectedBaseId)
+        .order("closingDate", { ascending: true });
+      if (error) {
         setClosings([]);
+        return;
       }
-    });
-    return () => unsubscribe();
+      setClosings(data || []);
+    };
+    fetchClosings();
   }, [currentUser, selectedBaseId]);
 
   function calculateTotals(movements) {
@@ -235,19 +163,20 @@ export const useStores = () => {
       return null;
     }
     try {
-      const storesNodeRef = ref(db, `clientBases/${selectedBaseId}/appStores`);
-      const newStoreRef = push(storesNodeRef);
-      const storeToSave = {
-        ...storeData,
-        baseId: selectedBaseId,
-        createdAt: serverTimestamp(),
-      };
-      await set(newStoreRef, storeToSave);
-      return {
-        id: newStoreRef.key!,
-        ...storeToSave,
-        createdAt: new Date(),
-      } as Store;
+      const { data, error } = await supabase
+        .from("appStores")
+        .insert([
+          {
+            ...storeData,
+            baseId: selectedBaseId,
+            createdAt: new Date().toISOString(),
+          },
+        ])
+        .select();
+      if (error) {
+        throw error;
+      }
+      return data[0] as Store;
     } catch (error) {
       toast({
         title: "Erro!",
@@ -272,11 +201,13 @@ export const useStores = () => {
       return;
     }
     try {
-      const storeRef = ref(
-        db,
-        `clientBases/${storeToUpdate.baseId}/appStores/${id}`
-      );
-      await update(storeRef, storeUpdates);
+      const { error } = await supabase
+        .from("appStores")
+        .update(storeUpdates)
+        .eq("id", id);
+      if (error) {
+        throw error;
+      }
       toast({
         title: "Sucesso!",
         description: "Loja atualizada.",
@@ -302,23 +233,19 @@ export const useStores = () => {
       return;
     }
     try {
-      const { baseId } = storeToDelete;
-      await remove(ref(db, `clientBases/${baseId}/appStores/${id}`));
+      const { error } = await supabase.from("appStores").delete().eq("id", id);
+      if (error) {
+        throw error;
+      }
 
       const relatedDataPaths = ["appClosings", "appGoals"];
       relatedDataPaths.forEach((path) => {
-        const q = query(
-          ref(db, `clientBases/${baseId}/${path}`),
-          orderByChild("storeId"),
-          equalTo(id)
-        );
-        onValue(
-          q,
-          (snapshot) => {
-            snapshot.forEach((child) => remove(child.ref));
-          },
-          { onlyOnce: true }
-        );
+        supabase
+          .from(path)
+          .delete()
+          .eq("storeId", id)
+          .then(() => {})
+          .catch(() => {});
       });
 
       toast({
@@ -421,15 +348,19 @@ export const useStores = () => {
         return null;
       }
       try {
-        const nodeRef = ref(db, `clientBases/${selectedBaseId}/${path}`);
-        const newRef = push(nodeRef);
-        await set(newRef, { ...data, createdAt: serverTimestamp() });
+        const { data: insertedData, error } = await supabase
+          .from(path)
+          .insert([{ ...data, createdAt: new Date().toISOString() }])
+          .select();
+        if (error) {
+          throw error;
+        }
         toast({
           title: "Sucesso!",
           description: `${entityName} adicionado(a).`,
           variant: "success",
         });
-        return { id: newRef.key!, ...data, createdAt: new Date() } as T;
+        return { id: insertedData[0].id, ...data, createdAt: new Date() } as T;
       } catch (error) {
         toast({
           title: "Erro!",
@@ -453,8 +384,13 @@ export const useStores = () => {
         return;
       }
       try {
-        const itemRef = ref(db, `clientBases/${selectedBaseId}/${path}/${id}`);
-        await update(itemRef, updates);
+        const { error } = await supabase
+          .from(path)
+          .update(updates)
+          .eq("id", id);
+        if (error) {
+          throw error;
+        }
         toast({
           title: "Sucesso!",
           description: `${entityName} atualizado(a).`,
@@ -479,8 +415,10 @@ export const useStores = () => {
         return;
       }
       try {
-        const itemRef = ref(db, `clientBases/${selectedBaseId}/${path}/${id}`);
-        await remove(itemRef);
+        const { error } = await supabase.from(path).delete().eq("id", id);
+        if (error) {
+          throw error;
+        }
         toast({
           title: "Sucesso!",
           description: `${entityName} removido(a).`,
@@ -535,32 +473,20 @@ export const useStores = () => {
       return null;
     }
     try {
-      const closingsNodeRef = ref(
-        db,
-        `clientBases/${selectedBaseId}/appClosings`
-      );
-      const newClosingRef = push(closingsNodeRef);
-      const { totalEntradas, totalSaidas, totalOutros } = calculateTotals(
-        closingData.movements || []
-      );
-      const netResult =
-        (closingData.finalBalance || 0) - (closingData.initialBalance || 0);
-
-      const closingToSave = {
-        ...closingData,
-        closingDate: closingData.closingDate.toISOString(),
-        totalEntradas,
-        totalSaidas,
-        totalOutros,
-        netResult,
-        createdAt: serverTimestamp(),
-      };
-      await set(newClosingRef, closingToSave);
-      return {
-        ...closingToSave,
-        id: newClosingRef.key!,
-        createdAt: new Date(),
-      };
+      const { data, error } = await supabase
+        .from("appClosings")
+        .insert([
+          {
+            ...closingData,
+            closingDate: closingData.closingDate.toISOString(),
+            createdAt: new Date().toISOString(),
+          },
+        ])
+        .select();
+      if (error) {
+        throw error;
+      }
+      return data[0];
     } catch (error) {
       toast({
         title: "Erro!",
@@ -584,10 +510,6 @@ export const useStores = () => {
       return;
     }
     try {
-      const closingRef = ref(
-        db,
-        `clientBases/${selectedBaseId}/appClosings/${id}`
-      );
       const updatesToSave: Record<string, any> = { ...closingUpdates };
 
       if (closingUpdates.closingDate) {
@@ -602,8 +524,12 @@ export const useStores = () => {
         updatesToSave.totalSaidas = totalSaidas;
         updatesToSave.totalOutros = totalOutros;
 
-        const snapshot = await get(closingRef);
-        const currentClosingData = snapshot.val();
+        const snapshot = await supabase
+          .from("appClosings")
+          .select("*")
+          .eq("id", id)
+          .single();
+        const currentClosingData = snapshot.data;
 
         const finalBalance =
           closingUpdates.finalBalance !== undefined
@@ -616,7 +542,13 @@ export const useStores = () => {
         updatesToSave.netResult = finalBalance - initialBalance;
       }
 
-      await update(closingRef, updatesToSave);
+      const { error } = await supabase
+        .from("appClosings")
+        .update(updatesToSave)
+        .eq("id", id);
+      if (error) {
+        throw error;
+      }
       toast({ title: "Sucesso!", description: "Fechamento atualizado." });
     } catch (error) {
       toast({
@@ -637,11 +569,13 @@ export const useStores = () => {
       return;
     }
     try {
-      const closingRef = ref(
-        db,
-        `clientBases/${selectedBaseId}/appClosings/${id}`
-      );
-      await remove(closingRef);
+      const { error } = await supabase
+        .from("appClosings")
+        .delete()
+        .eq("id", id);
+      if (error) {
+        throw error;
+      }
     } catch (error) {
       toast({
         title: "Erro!",
@@ -661,18 +595,23 @@ export const useStores = () => {
       return null;
     }
     try {
-      const goalsNodeRef = ref(db, `clientBases/${selectedBaseId}/appGoals`);
-      const newGoalRef = push(goalsNodeRef);
-      const goalToSave = {
-        ...goalData,
-        createdAt: serverTimestamp(),
-        targetDate: goalData.targetDate
-          ? goalData.targetDate.toISOString()
-          : null,
-      };
-      await set(newGoalRef, goalToSave);
+      const { data, error } = await supabase
+        .from("appGoals")
+        .insert([
+          {
+            ...goalData,
+            createdAt: new Date().toISOString(),
+            targetDate: goalData.targetDate
+              ? goalData.targetDate.toISOString()
+              : null,
+          },
+        ])
+        .select();
+      if (error) {
+        throw error;
+      }
       toast({ title: "Sucesso!", description: "Meta adicionada." });
-      return { ...goalData, id: newGoalRef.key!, createdAt: new Date() };
+      return { ...goalData, id: data[0].id, createdAt: new Date() };
     } catch (error) {
       toast({
         title: "Erro!",
@@ -696,12 +635,17 @@ export const useStores = () => {
       return;
     }
     try {
-      const goalRef = ref(db, `clientBases/${selectedBaseId}/appGoals/${id}`);
       const updatesToSave: Record<string, any> = { ...goalUpdates };
       if (goalUpdates.targetDate) {
         updatesToSave.targetDate = goalUpdates.targetDate.toISOString();
       }
-      await update(goalRef, updatesToSave);
+      const { error } = await supabase
+        .from("appGoals")
+        .update(updatesToSave)
+        .eq("id", id);
+      if (error) {
+        throw error;
+      }
       toast({ title: "Sucesso!", description: "Meta atualizada." });
     } catch (error) {
       toast({
@@ -722,8 +666,10 @@ export const useStores = () => {
       return;
     }
     try {
-      const goalRef = ref(db, `clientBases/${selectedBaseId}/appGoals/${id}`);
-      await remove(goalRef);
+      const { error } = await supabase.from("appGoals").delete().eq("id", id);
+      if (error) {
+        throw error;
+      }
       toast({ title: "Sucesso!", description: "Meta deletada." });
     } catch (error) {
       toast({
@@ -785,26 +731,15 @@ export const useStores = () => {
   return {
     bases,
     stores,
-    closings: closingsWithDetails,
+    closings,
     paymentMethods,
     movementTypes,
     goals,
-    addStore,
-    updateStore,
-    deleteStore,
-    addPaymentMethod,
-    updatePaymentMethod,
-    deletePaymentMethod,
-    addMovementType,
-    updateMovementType,
-    deleteMovementType,
-    addStoreClosing,
-    updateClosing,
-    deleteClosing,
-    generateDRE,
-    addGoal,
-    updateGoal,
-    deleteGoal,
-    storeRankings,
+    setBases,
+    setStores,
+    setClosings,
+    setPaymentMethods,
+    setMovementTypes,
+    setGoals,
   };
 };
