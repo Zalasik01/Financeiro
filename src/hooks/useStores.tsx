@@ -13,19 +13,7 @@ import {
   StoreMeta,
   StoreRanking,
 } from "@/types/store";
-import {
-  equalTo,
-  get,
-  onValue,
-  orderByChild,
-  push,
-  query,
-  ref,
-  remove,
-  serverTimestamp,
-  set,
-  update,
-} from "firebase/database";
+// Firebase imports removidos - migrado para Supabase
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export const useStores = () => {

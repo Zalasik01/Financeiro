@@ -1,15 +1,5 @@
 import { ClienteFornecedor } from "@/types/clienteFornecedor.tsx"; // Tipo de dados definido anteriormente
-import {
-  onValue,
-  orderByChild,
-  push,
-  query,
-  ref,
-  remove,
-  serverTimestamp,
-  set,
-  update,
-} from "firebase/database"; // Funções do Realtime Database
+// Firebase imports removidos - migrado para Supabase
 import { useCallback, useEffect, useState } from "react";
 import { useToast } from "./use-toast"; // Hook para exibir notificações (toasts)
 import { useAuth } from "./useAuth"; // Hook para autenticação e dados do usuário

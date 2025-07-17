@@ -1,14 +1,14 @@
-import React, { useState } from "react";
 import { PaymentMethodManager } from "@/components/PaymentMethodManager";
-import { PaymentMethod } from "@/types/store";
 import { useToast } from "@/hooks/use-toast";
+import { PaymentMethod } from "@/types/store";
+import React, { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 const GerenciarFormaPagamentoPage: React.FC = () => {
   const { toast } = useToast();
 
   // Em uma aplicação real, isso viria de um hook/context (ex: useStoreSettings ou useFinance)
-  // e seria persistido no Firebase ou outro backend.
+  // e seria persistido no Supabase ou outro backend.
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
   const handleAddPaymentMethod = (
@@ -20,7 +20,7 @@ const GerenciarFormaPagamentoPage: React.FC = () => {
       createdAt: new Date().toISOString(),
     };
     setPaymentMethods((prev) => [...prev, newMethod]);
-    // TODO: Integrar com o Firebase para salvar a forma de pagamento.
+    // TODO: Integrar com o Supabase para salvar a forma de pagamento.
     toast({
       title: "Forma de Pagamento Adicionada",
       description: `${method.name} foi adicionada com sucesso.`,

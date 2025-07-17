@@ -218,7 +218,9 @@ export const BaseManagement: React.FC<BaseManagementProps> = ({
       ]);
     } catch (error) {
       toast.createError(
-        `${(error as Error).message} - Verifique as permissões do Firebase.`
+        `${
+          (error as Error).message
+        } - Verifique as permissões do banco de dados.`
       );
     } finally {
       setIsLoading(false);

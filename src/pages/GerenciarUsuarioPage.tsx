@@ -34,7 +34,7 @@ const GerenciarUsuarioPage: React.FC = () => {
         setErrorUsers(null);
       },
       (error) => {
-        console.error("Firebase read error (ManageUsersPage):", error);
+        console.error("Database read error (ManageUsersPage):", error);
         setErrorUsers("Falha ao carregar dados dos usuários.");
         setLoadingUsers(false);
         setUsersList([]);

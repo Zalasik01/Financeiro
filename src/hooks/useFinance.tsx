@@ -2,19 +2,7 @@ import { useToast } from "@/hooks/use-toast"; // Importar o hook de toast
 import { useAuth } from "@/hooks/useAuth"; // Importar o hook de autenticação
 import { Category, FinancialSummary, Transaction } from "@/types/finance";
 import { useEffect, useMemo, useState } from "react";
-// importação removida: use integração Supabase se necessário
-import {
-  get,
-  onValue,
-  orderByChild,
-  push,
-  query,
-  ref,
-  remove,
-  serverTimestamp,
-  set,
-  update,
-} from "firebase/database"; // Funções do RTDB
+// Firebase imports removidos - migrado para Supabase
 
 export const useFinance = () => {
   const [categories, setCategories] = useState<Category[]>([]);

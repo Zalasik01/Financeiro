@@ -13,17 +13,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/hooks/useAuth";
 import type { ClientBase } from "@/types/store";
-import {
-  DatabaseReference,
-  get,
-  onValue,
-  push,
-  ref,
-  remove,
-  serverTimestamp,
-  set,
-  update,
-} from "firebase/database";
+// Firebase imports removidos - migrado para Supabase
 import { Users, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { AdminManagement } from "./AdminPage/components/AdminManagement";

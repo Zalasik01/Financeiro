@@ -12,12 +12,12 @@ import {
   useLocation,
 } from "react-router-dom"; // Importar Navigate
 import AdminLayout from "./components/AdminLayout";
-import { AuthProvider } from "./components/AuthProvider";
 import { BotaoFlutuanteTransacao } from "./components/BotaoFlutuanteTransacao";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthProvider } from "./hooks/useAuth";
 import { useStores } from "./hooks/useStores";
 import { useSupabaseAuth } from "./hooks/useSupabaseAuth";
 import AdminDashboard from "./pages/AdminPage/AdminDashboard";

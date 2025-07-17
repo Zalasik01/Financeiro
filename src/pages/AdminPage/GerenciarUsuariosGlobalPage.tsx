@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import type { ClientBase } from "@/types/store";
-import { httpsCallable } from "firebase/functions"; // Importar httpsCallable
+// Firebase imports removidos - migrado para Supabase
 import {
   Building2,
   Edit3,

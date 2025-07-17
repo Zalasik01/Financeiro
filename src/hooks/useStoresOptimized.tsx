@@ -12,7 +12,7 @@ import {
   query,
   updateDoc,
   where,
-} from "firebase/firestore";
+// Firebase imports removidos - migrado para Supabase
 import { useEffect, useMemo, useState } from "react";
 
 export const useStoresOptimized = (userId: string) => {
