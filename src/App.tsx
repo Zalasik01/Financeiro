@@ -2,6 +2,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react"; // Adicionado useMemo
 import {
   BrowserRouter,
   Navigate,
@@ -10,51 +11,51 @@ import {
   Routes,
   useLocation,
 } from "react-router-dom"; // Importar Navigate
-import Index from "./pages/Index";
-import LoginPage from "./pages/LoginPage";
-import NotFound from "./pages/NotFound";
-import SignupPage from "./pages/SignupPage";
-import { useEffect, useMemo } from "react"; // Adicionado useMemo
 import AdminLayout from "./components/AdminLayout";
+import { AuthProvider } from "./components/AuthProvider";
+import { BotaoFlutuanteTransacao } from "./components/BotaoFlutuanteTransacao";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { ErrorBoundary } from "./components/ErrorBoundary";
-import { BotaoFlutuanteTransacao } from "./components/BotaoFlutuanteTransacao";
-import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { useStores } from "./hooks/useStores";
-import AdminPage from "./pages/AdminPage";
+import { useSupabaseAuth } from "./hooks/useSupabaseAuth";
 import AdminDashboard from "./pages/AdminPage/AdminDashboard";
-import GerenciarUsuariosGlobalPage from "./pages/usuariosGlobal/GerenciarUsuariosGlobalPage"; // Novo componente
-import { GerenciarUsuariosPage } from "./pages/gerenciarUsuarios/GerenciarUsuariosPage"; // Novo componente
 import CategoriaPage from "./pages/CategoriaPage";
+import { EditarClienteFornecedor } from "./pages/cliente/components/EditarClienteFornecedor";
 import DREPage from "./pages/DREPage";
 import EditarPerfilPage from "./pages/EditarPerfilPage";
 import FechamentoPage from "./pages/FechamentoPage";
 import { GerenciarClientesFornecedoresPage } from "./pages/GerenciarClientesFornecedoresPage"; // Importar a nova página
 import GerenciarFormaPagamentoPage from "./pages/GerenciarFormaPagamentoPage";
-import GerenciarTipoMovimentacaoPage from "./pages/GerenciarTipoMovimentacaoPage";
-import GerenciarUsuarioPage from "./pages/GerenciarUsuarioPage";
-import { GestaoBasesPage } from "./pages/gestaoBases/GestaoBasesPage"; // Nova importação
-import { FormularioBase } from "./pages/gestaoBases/FormularioBase"; // Nova importação
-import FormularioUsuario from "./pages/usuariosGlobal/FormularioUsuario";
-import { ContratoBase } from "./pages/gestaoBases/ContratoBase"; // Nova importação
-import InvitePage from "./pages/InvitePage";
-import LojaPage from "./pages/LojaPage";
-import MetaPage from "./pages/MetaPage";
-import { EditarClienteFornecedor } from "./pages/cliente/components/EditarClienteFornecedor";
+import { EditarLojaPage } from "./pages/gerenciarLojas/EditarLojaPage";
 import { GerenciarLojasPage } from "./pages/gerenciarLojas/GerenciarLojasPage";
 import { NovaLojaPage } from "./pages/gerenciarLojas/NovaLojaPage";
-import { EditarLojaPage } from "./pages/gerenciarLojas/EditarLojaPage";
+import GerenciarTipoMovimentacaoPage from "./pages/GerenciarTipoMovimentacaoPage";
+import GerenciarUsuarioPage from "./pages/GerenciarUsuarioPage";
+import { ContratoBase } from "./pages/gestaoBases/ContratoBase"; // Nova importação
+import { FormularioBase } from "./pages/gestaoBases/FormularioBase"; // Nova importação
+import { GestaoBasesPage } from "./pages/gestaoBases/GestaoBasesPage"; // Nova importação
+import Index from "./pages/Index";
+import InvitePage from "./pages/InvitePage";
+import LoginPage from "./pages/LoginPage";
+import LojaPage from "./pages/LojaPage";
+import MetaPage from "./pages/MetaPage";
+import NotFound from "./pages/NotFound";
 import SettingsPage from "./pages/SettingsPage";
+import SignupPage from "./pages/SignupPage";
 import TransacoesPage from "./pages/transacoes/TransacoesPage";
+import FormularioUsuario from "./pages/usuariosGlobal/FormularioUsuario";
+import GerenciarUsuariosGlobalPage from "./pages/usuariosGlobal/GerenciarUsuariosGlobalPage"; // Novo componente
 
 const queryClient = new QueryClient();
 
 const ProtectedPagesLayout = () => {
   const location = useLocation();
-  const showFAB = !location.pathname.startsWith("/login") && !location.pathname.startsWith("/convite");
-  
+  const showFAB =
+    !location.pathname.startsWith("/login") &&
+    !location.pathname.startsWith("/convite");
+
   return (
     <>
       <Navbar />
@@ -77,7 +78,11 @@ const App = () => (
 
 const AppContent = () => {
   const location = useLocation();
-  const { currentUser, loading: authLoading, setSelectedBaseId } = useAuth();
+  const {
+    currentUser,
+    loading: authLoading,
+    setSelectedClientBase,
+  } = useSupabaseAuth();
   const { bases } = useStores();
 
   const routeTitles = useMemo(
@@ -140,41 +145,42 @@ const AppContent = () => {
         ? routeTitles["/admin/gestao-bases/usuarios/:id"]
         : location.pathname.startsWith("/admin/gerenciar-usuarios-global/novo")
         ? routeTitles["/admin/gerenciar-usuarios-global/novo"]
-        : location.pathname.startsWith("/admin/gerenciar-usuarios-global/editar/")
+        : location.pathname.startsWith(
+            "/admin/gerenciar-usuarios-global/editar/"
+          )
         ? routeTitles["/admin/gerenciar-usuarios-global/editar/:uid"]
-        : routeTitles[location.pathname]) ||
-      routeTitles["*"];
+        : routeTitles[location.pathname]) || routeTitles["*"];
     document.title = `Financeiro App - ${pageTitle}`;
   }, [location.pathname, routeTitles]);
   useEffect(() => {
     if (
       currentUser &&
-      !currentUser.isAdmin &&
-      currentUser.clientBaseId !== null &&
-      currentUser.clientBaseId !== undefined &&
+      !currentUser.admin &&
+      currentUser.id_base_padrao !== null &&
+      currentUser.id_base_padrao !== undefined &&
       bases.length > 0
     ) {
-      const userProfileBaseNumberId = currentUser.clientBaseId;
+      const userProfileBaseNumberId = currentUser.id_base_padrao;
       const matchingBase = bases.find(
         (b) => b.numberId === userProfileBaseNumberId
       );
 
       if (matchingBase) {
-        setSelectedBaseId(matchingBase.id);
+        setSelectedClientBase(matchingBase);
       } else {
-        setSelectedBaseId(null);
+        setSelectedClientBase(null);
       }
-    } else if (currentUser && currentUser.isAdmin) {
-      // selectedBaseId for admin is handled by modal or other actions
+    } else if (currentUser && currentUser.admin) {
+      // selectedClientBase for admin is handled by modal or other actions
     } else if (
       currentUser &&
-      !currentUser.isAdmin &&
-      (currentUser.clientBaseId === null ||
-        currentUser.clientBaseId === undefined)
+      !currentUser.admin &&
+      (currentUser.id_base_padrao === null ||
+        currentUser.id_base_padrao === undefined)
     ) {
-      setSelectedBaseId(null);
+      setSelectedClientBase(null);
     }
-  }, [currentUser, bases, setSelectedBaseId]);
+  }, [currentUser, bases, setSelectedClientBase]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -190,7 +196,10 @@ const AppContent = () => {
                 <Route path="/categoria" element={<CategoriaPage />} />
                 <Route path="/loja" element={<LojaPage />} />
                 <Route path="/loja/criar-loja" element={<NovaLojaPage />} />
-                <Route path="/loja/editar-loja/:id" element={<EditarLojaPage />} />
+                <Route
+                  path="/loja/editar-loja/:id"
+                  element={<EditarLojaPage />}
+                />
                 <Route path="/fechamento" element={<FechamentoPage />} />
                 <Route path="/dre" element={<DREPage />} />
                 <Route path="/meta" element={<MetaPage />} />
@@ -243,8 +252,14 @@ const AppContent = () => {
                 <Route index element={<AdminDashboard />} />
                 <Route path="gestao-bases" element={<GestaoBasesPage />} />
                 <Route path="gestao-bases/nova" element={<FormularioBase />} />
-                <Route path="gestao-bases/editar/:baseId" element={<FormularioBase />} />
-                <Route path="gestao-bases/contrato/:baseId" element={<ContratoBase />} />
+                <Route
+                  path="gestao-bases/editar/:baseId"
+                  element={<FormularioBase />}
+                />
+                <Route
+                  path="gestao-bases/contrato/:baseId"
+                  element={<ContratoBase />}
+                />
                 <Route
                   path="gerenciar-usuarios-global"
                   element={<GerenciarUsuariosGlobalPage />}
