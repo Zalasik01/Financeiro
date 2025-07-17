@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { db } from "@/firebase";
-import { toast } from "@/lib/toast";
+import { useToast } from "@/hooks/use-toast";
 import type { ClientBase } from "@/types/store";
 import { ref, get } from "firebase/database";
 import {
@@ -22,6 +22,7 @@ import {
 export const ContratoBase: React.FC = () => {
   const { baseId } = useParams<{ baseId: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [base, setBase] = useState<ClientBase | null>(null);
   const [isLoading, setIsLoading] = useState(true);
