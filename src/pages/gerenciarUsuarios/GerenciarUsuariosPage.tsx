@@ -1,23 +1,40 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Search, Filter, Users as UsersIcon } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableHeader,
+  DataTableHeaderCell,
+  DataTableRow,
+} from "@/components/ui/data-table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ActionButton } from "@/components/ui/ActionButton";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { SortableTableHeader } from "@/components/ui/SortableTableHeader";
-import { useTableSort } from "@/hooks/useTableSort";
-import { DataTable, DataTableHeader, DataTableBody, DataTableRow, DataTableCell, DataTableHeaderCell } from "@/components/ui/data-table";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { db } from "@/firebase";
-import { toast } from "@/lib/toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useTableSort } from "@/hooks/useTableSort";
 import type { ClientBase } from "@/types/store";
-import { onValue, ref, get } from "firebase/database";
+import { get, ref } from "firebase/database";
+import { Filter, Search, Users as UsersIcon } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface UserProfile {
   uid: string;
@@ -29,27 +46,32 @@ interface UserProfile {
 }
 
 interface UserWithBaseInfo extends UserProfile {
-  associatedBases: { id: string; name: string; numberId: number; role: "authorized" | "default" }[];
+  associatedBases: {
+    id: string;
+    name: string;
+    numberId: number;
+    role: "authorized" | "default";
+  }[];
 }
 
 export const GerenciarUsuariosPage: React.FC = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  
+
   const [usuarios, setUsuarios] = useState<UserWithBaseInfo[]>([]);
   const [allClientBases, setAllClientBases] = useState<ClientBase[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [busca, setBusca] = useState("");
-  
+
   const [modalPesquisaAberto, setModalPesquisaAberto] = useState(false);
   const [filtros, setFiltros] = useState({
     status: "todos",
-    tipo: "todos"
+    tipo: "todos",
   });
   const [filtrosTemporarios, setFiltrosTemporarios] = useState({
     status: "todos",
-    tipo: "todos"
+    tipo: "todos",
   });
 
   // Carregamento dos usuários e bases
@@ -93,7 +115,7 @@ export const GerenciarUsuariosPage: React.FC = () => {
                 id: base.id,
                 name: base.name,
                 numberId: base.numberId,
-                role: "default"
+                role: "default",
               });
             }
             // Verificar se está nos usuários autorizados
@@ -102,14 +124,14 @@ export const GerenciarUsuariosPage: React.FC = () => {
                 id: base.id,
                 name: base.name,
                 numberId: base.numberId,
-                role: "authorized"
+                role: "authorized",
               });
             }
           });
 
           return {
             ...user,
-            associatedBases
+            associatedBases,
           };
         });
 
@@ -135,7 +157,7 @@ export const GerenciarUsuariosPage: React.FC = () => {
   const limparFiltros = () => {
     const filtrosLimpos = {
       status: "todos",
-      tipo: "todos"
+      tipo: "todos",
     };
     setFiltros(filtrosLimpos);
     setFiltrosTemporarios(filtrosLimpos);
@@ -144,9 +166,9 @@ export const GerenciarUsuariosPage: React.FC = () => {
   };
 
   const handleFiltroChange = (campo: string, valor: string) => {
-    setFiltrosTemporarios(prev => ({
+    setFiltrosTemporarios((prev) => ({
       ...prev,
-      [campo]: valor
+      [campo]: valor,
     }));
   };
 
@@ -155,12 +177,14 @@ export const GerenciarUsuariosPage: React.FC = () => {
       // Filtro de busca
       if (busca.trim()) {
         const termoBusca = busca.toLowerCase().trim();
-        const matchNome = usuario.displayName?.toLowerCase().includes(termoBusca);
+        const matchNome = usuario.displayName
+          ?.toLowerCase()
+          .includes(termoBusca);
         const matchEmail = usuario.email?.toLowerCase().includes(termoBusca);
-        const matchBase = usuario.associatedBases.some(base => 
+        const matchBase = usuario.associatedBases.some((base) =>
           base.name.toLowerCase().includes(termoBusca)
         );
-        
+
         if (!matchNome && !matchEmail && !matchBase) {
           return false;
         }
@@ -183,29 +207,34 @@ export const GerenciarUsuariosPage: React.FC = () => {
   }, [usuarios, busca, filtros]);
 
   // Hook para ordenação
-  const { sortedData: usuariosOrdenados, sortConfig, handleSort } = useTableSort(usuariosFiltrados, 'displayName');
+  const {
+    sortedData: usuariosOrdenados,
+    sortConfig,
+    handleSort,
+  } = useTableSort(usuariosFiltrados, "displayName");
 
-  const temFiltrosAtivos = busca.trim() || filtros.status !== "todos" || filtros.tipo !== "todos";
+  const temFiltrosAtivos =
+    busca.trim() || filtros.status !== "todos" || filtros.tipo !== "todos";
 
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString('pt-BR');
+    return new Date(timestamp).toLocaleDateString("pt-BR");
   };
 
   const getBasesText = (bases: UserWithBaseInfo["associatedBases"]) => {
     if (bases.length === 0) return "Nenhuma";
-    
-    const defaultBase = bases.find(b => b.role === "default");
-    const authorizedBases = bases.filter(b => b.role === "authorized");
-    
+
+    const defaultBase = bases.find((b) => b.role === "default");
+    const authorizedBases = bases.filter((b) => b.role === "authorized");
+
     let text = "";
     if (defaultBase) {
       text += `${defaultBase.name} (Padrão)`;
     }
     if (authorizedBases.length > 0) {
       if (text) text += ", ";
-      text += authorizedBases.map(b => b.name).join(", ");
+      text += authorizedBases.map((b) => b.name).join(", ");
     }
-    
+
     return text;
   };
 
@@ -224,16 +253,24 @@ export const GerenciarUsuariosPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <UsersIcon className="h-6 w-6" />
-              <CardTitle className="text-2xl font-bold">Gerenciar Usuários</CardTitle>
+              <CardTitle className="text-2xl font-bold">
+                Gerenciar Usuários
+              </CardTitle>
             </div>
             <div className="flex items-center gap-2">
-              <Dialog open={modalPesquisaAberto} onOpenChange={setModalPesquisaAberto}>
+              <Dialog
+                open={modalPesquisaAberto}
+                onOpenChange={setModalPesquisaAberto}
+              >
                 <DialogTrigger asChild>
                   <Button variant="outline" className="flex items-center gap-2">
                     <Filter className="h-4 w-4" />
                     Filtros
                     {temFiltrosAtivos && (
-                      <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                      <Badge
+                        variant="secondary"
+                        className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                      >
                         !
                       </Badge>
                     )}
@@ -248,7 +285,9 @@ export const GerenciarUsuariosPage: React.FC = () => {
                       <Label htmlFor="tipo">Tipo de Usuário</Label>
                       <Select
                         value={filtrosTemporarios.tipo}
-                        onValueChange={(value) => handleFiltroChange("tipo", value)}
+                        onValueChange={(value) =>
+                          handleFiltroChange("tipo", value)
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o tipo" />
@@ -264,7 +303,9 @@ export const GerenciarUsuariosPage: React.FC = () => {
                       <Label htmlFor="status">Status</Label>
                       <Select
                         value={filtrosTemporarios.status}
-                        onValueChange={(value) => handleFiltroChange("status", value)}
+                        onValueChange={(value) =>
+                          handleFiltroChange("status", value)
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o status" />
@@ -280,9 +321,7 @@ export const GerenciarUsuariosPage: React.FC = () => {
                       <Button variant="outline" onClick={limparFiltros}>
                         Limpar
                       </Button>
-                      <Button onClick={aplicarFiltros}>
-                        Aplicar Filtros
-                      </Button>
+                      <Button onClick={aplicarFiltros}>Aplicar Filtros</Button>
                     </div>
                   </div>
                 </DialogContent>
@@ -303,19 +342,41 @@ export const GerenciarUsuariosPage: React.FC = () => {
           <DataTable>
             <DataTableHeader>
               <DataTableRow>
-                <SortableTableHeader sortKey="displayName" currentSort={sortConfig} onSort={handleSort}>
+                <SortableTableHeader
+                  sortKey="displayName"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                >
                   Nome
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="email" currentSort={sortConfig} onSort={handleSort}>
+                <SortableTableHeader
+                  sortKey="email"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                >
                   Email
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="isAdmin" currentSort={sortConfig} onSort={handleSort} align="center">
+                <SortableTableHeader
+                  sortKey="isAdmin"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                  align="center"
+                >
                   Tipo
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="authDisabled" currentSort={sortConfig} onSort={handleSort} align="center">
+                <SortableTableHeader
+                  sortKey="authDisabled"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                  align="center"
+                >
                   Status
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="associatedBases.length" currentSort={sortConfig} onSort={handleSort}>
+                <SortableTableHeader
+                  sortKey="associatedBases.length"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                >
                   Bases Associadas
                 </SortableTableHeader>
                 <DataTableHeaderCell align="center">Ações</DataTableHeaderCell>
@@ -325,16 +386,22 @@ export const GerenciarUsuariosPage: React.FC = () => {
               {usuariosOrdenados.map((usuario) => (
                 <DataTableRow key={usuario.uid}>
                   <DataTableCell className="font-medium">
-                    {usuario.displayName || 'Nome não informado'}
+                    {usuario.displayName || "Nome não informado"}
                   </DataTableCell>
                   <DataTableCell>{usuario.email}</DataTableCell>
                   <DataTableCell align="center">
                     {usuario.isAdmin ? (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      <Badge
+                        variant="outline"
+                        className="bg-blue-50 text-blue-700 border-blue-200"
+                      >
                         Admin
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                      <Badge
+                        variant="outline"
+                        className="bg-gray-50 text-gray-700 border-gray-200"
+                      >
                         Usuário
                       </Badge>
                     )}
@@ -353,7 +420,7 @@ export const GerenciarUsuariosPage: React.FC = () => {
                       size="sm"
                       onClick={() => {
                         // TODO: Implementar ações para usuários
-                        console.log('Editar usuário', usuario.uid);
+                        console.log("Editar usuário", usuario.uid);
                       }}
                     >
                       Gerenciar
@@ -363,7 +430,7 @@ export const GerenciarUsuariosPage: React.FC = () => {
               ))}
             </DataTableBody>
           </DataTable>
-          
+
           <div className="mt-4 text-sm text-gray-600">
             Total: <strong>{usuariosFiltrados.length}</strong> registro(s)
             {temFiltrosAtivos && (

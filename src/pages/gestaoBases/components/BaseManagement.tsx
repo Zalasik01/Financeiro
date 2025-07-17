@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/ui/ActionButton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -5,10 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ActionButton } from "@/components/ui/ActionButton";
 import { db } from "@/firebase";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "@/lib/toast";
 import type { ClientBase } from "@/types/store";
 import { maskCNPJ, onlyNumbers } from "@/utils/formatters";
 import { push, ref, serverTimestamp, set, update } from "firebase/database";
@@ -17,7 +16,6 @@ import {
   Edit,
   Info,
   List,
-  Minus,
   Plus,
   PlusCircle,
   Power,

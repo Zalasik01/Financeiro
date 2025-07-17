@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { db } from "@/firebase";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "@/lib/toast";
 import type { ClientBase } from "@/types/store";
 import { maskCNPJ, onlyNumbers } from "@/utils/formatters";
 import { push, ref, serverTimestamp, set, update } from "firebase/database";

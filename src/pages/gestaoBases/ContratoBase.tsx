@@ -19,6 +19,21 @@ import {
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+type Responsavel = {
+  nome: string;
+  cargo?: string;
+  telefone: string;
+  email?: string;
+  isFinanceiro?: boolean;
+  isSistema?: boolean;
+  isContato?: boolean;
+};
+
+type AuthorizedUser = {
+  displayName?: string;
+  email?: string;
+};
+
 export const ContratoBase: React.FC = () => {
   const { baseId } = useParams<{ baseId: string }>();
   const navigate = useNavigate();
@@ -40,7 +55,8 @@ export const ContratoBase: React.FC = () => {
         if (snapshot.exists()) {
           setBase({ id: baseId, ...snapshot.val() });
         } else {
-          toast.error({
+          toast({
+            variant: "destructive",
             title: "Erro",
             description: "Base não encontrada.",
           });
@@ -48,7 +64,8 @@ export const ContratoBase: React.FC = () => {
         }
       })
       .catch((error) => {
-        toast.error({
+        toast({
+          variant: "destructive",
           title: "Erro ao carregar",
           description: `Erro ao carregar dados da base: ${error.message}`,
         });
@@ -57,7 +74,7 @@ export const ContratoBase: React.FC = () => {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [baseId, navigate]);
+  }, [baseId, navigate, toast]);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "N/A";
@@ -87,7 +104,8 @@ export const ContratoBase: React.FC = () => {
 
   const downloadContrato = () => {
     if (!base?.modeloContrato?.templateContent) {
-      toast.error({
+      toast({
+        variant: "destructive",
         title: "Erro",
         description: "Modelo de contrato não encontrado para esta base.",
       });
@@ -150,10 +168,10 @@ export const ContratoBase: React.FC = () => {
             </style>
           </head>
           <body>
-            <h1>${
-              base.modeloContrato.templateTitle ||
-              "Contrato de Prestação de Serviços"
-            }</h1>
+            <h1>$
+              {base.modeloContrato.templateTitle ||
+              "Contrato de Prestação de Serviços"}
+            </h1>
             <div class="content">${contratoContent}</div>
           </body>
           </html>
@@ -162,12 +180,14 @@ export const ContratoBase: React.FC = () => {
         printWindow.print();
       }
 
-      toast.success({
+      toast({
+        variant: "success",
         title: "Sucesso",
         description: "Contrato aberto para impressão/download em PDF!",
       });
     } catch (error) {
-      toast.error({
+      toast({
+        variant: "destructive",
         title: "Erro",
         description: "Erro ao gerar contrato para impressão.",
       });
@@ -296,7 +316,7 @@ export const ContratoBase: React.FC = () => {
                     </thead>
                     <tbody>
                       {base.responsaveis.map(
-                        (responsavel: any, index: number) => (
+                        (responsavel: Responsavel, index: number) => (
                           <tr
                             key={index}
                             className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
@@ -468,23 +488,25 @@ export const ContratoBase: React.FC = () => {
               Object.keys(base.authorizedUIDs).length > 0 ? (
                 <div className="space-y-2">
                   {Object.entries(base.authorizedUIDs).map(
-                    ([uid, authData]) => (
-                      <div
-                        key={uid}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-md"
-                      >
-                        <div>
-                          <div className="font-medium">
-                            {(authData as any).displayName ||
-                              "Nome Desconhecido"}
+                    ([uid, authData]) => {
+                      const user = authData as AuthorizedUser;
+                      return (
+                        <div
+                          key={uid}
+                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-md"
+                        >
+                          <div>
+                            <div className="font-medium">
+                              {user.displayName || "Nome Desconhecido"}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {user.email || "Email Desconhecido"}
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {(authData as any).email || "Email Desconhecido"}
-                          </div>
+                          <Badge variant="outline">Usuário</Badge>
                         </div>
-                        <Badge variant="outline">Usuário</Badge>
-                      </div>
-                    )
+                      );
+                    }
                   )}
                 </div>
               ) : (

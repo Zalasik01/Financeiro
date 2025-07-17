@@ -1,18 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Save, User, Shield, Plus, Trash2, Copy, CheckCircle } from "lucide-react";
 import { db } from "@/firebase";
-import { toast } from "@/lib/toast";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import type { ClientBase } from "@/types/store";
-import { ref, get, set, update, onValue, push } from "firebase/database";
+import { get, onValue, push, ref, set, update } from "firebase/database";
+import {
+  ArrowLeft,
+  CheckCircle,
+  Copy,
+  Plus,
+  Save,
+  Shield,
+  Trash2,
+  User,
+} from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
 interface UserFormData {
   displayName: string;
@@ -27,15 +48,16 @@ export const FormularioUsuario: React.FC = () => {
   const { uid } = useParams<{ uid: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { toast } = useToast();
   const isEdicao = Boolean(uid);
 
   const [formData, setFormData] = useState<UserFormData>({
-    displayName: '',
-    email: '',
+    displayName: "",
+    email: "",
     isAdmin: false,
     clientBaseId: null,
     authDisabled: false,
-    associatedBases: []
+    associatedBases: [],
   });
 
   const [clientBases, setClientBases] = useState<ClientBase[]>([]);
@@ -57,7 +79,7 @@ export const FormularioUsuario: React.FC = () => {
       const basesArray: ClientBase[] = data
         ? Object.keys(data)
             .map((key) => ({ id: key, ...data[key] }))
-            .filter(base => base.ativo) // Apenas bases ativas
+            .filter((base) => base.ativo) // Apenas bases ativas
         : [];
       setClientBases(basesArray);
     });
@@ -69,67 +91,79 @@ export const FormularioUsuario: React.FC = () => {
     if (isEdicao && uid) {
       setIsLoading(true);
       const userRef = ref(db, `users/${uid}`);
-      
-      get(userRef).then((snapshot) => {
-        if (snapshot.exists()) {
-          const userData = snapshot.val();
-          setFormData({
-            displayName: userData.profile?.displayName || userData.displayName || '',
-            email: userData.profile?.email || userData.email || '',
-            isAdmin: userData.profile?.isAdmin || false,
-            clientBaseId: userData.profile?.clientBaseId || null,
-            authDisabled: userData.profile?.authDisabled || false,
-            associatedBases: [] // Será carregado das bases
-          });
 
-          // Carregar bases associadas
-          if (clientBases.length > 0) {
-            const associatedBaseIds: string[] = [];
-            clientBases.forEach((base) => {
-              if (base.authorizedUIDs && base.authorizedUIDs[uid]) {
-                associatedBaseIds.push(base.id);
-              }
+      get(userRef)
+        .then((snapshot) => {
+          if (snapshot.exists()) {
+            const userData = snapshot.val();
+            setFormData({
+              displayName:
+                userData.profile?.displayName || userData.displayName || "",
+              email: userData.profile?.email || userData.email || "",
+              isAdmin: userData.profile?.isAdmin || false,
+              clientBaseId: userData.profile?.clientBaseId || null,
+              authDisabled: userData.profile?.authDisabled || false,
+              associatedBases: [], // Será carregado das bases
             });
-            setFormData(prev => ({ ...prev, associatedBases: associatedBaseIds }));
-          }
-        } else {
-          toast.error({
-            title: "Erro",
-            description: "Usuário não encontrado.",
-          });
-          navigate('/admin/gerenciar-usuarios-global');
-        }
-      }).catch((error) => {
-        toast.error({
-          title: "Erro ao carregar",
-          description: `Erro ao carregar dados do usuário: ${error.message}`,
-        });
-        navigate('/admin/gerenciar-usuarios-global');
-      }).finally(() => {
-        setIsLoading(false);
-      });
-    }
-  }, [isEdicao, uid, navigate, clientBases]);
 
-  const handleInputChange = (field: keyof UserFormData, value: any) => {
-    setFormData(prev => ({
+            // Carregar bases associadas
+            if (clientBases.length > 0) {
+              const associatedBaseIds: string[] = [];
+              clientBases.forEach((base) => {
+                if (base.authorizedUIDs && base.authorizedUIDs[uid]) {
+                  associatedBaseIds.push(base.id);
+                }
+              });
+              setFormData((prev) => ({
+                ...prev,
+                associatedBases: associatedBaseIds,
+              }));
+            }
+          } else {
+            toast.error({
+              title: "Erro",
+              description: "Usuário não encontrado.",
+            });
+            navigate("/admin/gerenciar-usuarios-global");
+          }
+        })
+        .catch((error) => {
+          toast({
+            variant: "destructive",
+            title: "Erro ao carregar",
+            description: `Erro ao carregar dados do usuário: ${error.message}`,
+          });
+          navigate("/admin/gerenciar-usuarios-global");
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+  }, [isEdicao, uid, navigate, clientBases, toast]);
+
+  const handleInputChange = <K extends keyof UserFormData>(
+    field: K,
+    value: UserFormData[K]
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const handleBaseToggle = (baseId: string, checked: boolean) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      associatedBases: checked 
+      associatedBases: checked
         ? [...prev.associatedBases, baseId]
-        : prev.associatedBases.filter(id => id !== baseId)
+        : prev.associatedBases.filter((id) => id !== baseId),
     }));
   };
 
   const handleVincularBase = () => {
     if (!baseParaVincular) {
-      toast.error({
+      toast({
+        variant: "destructive",
         title: "Erro",
         description: "Selecione uma base para vincular.",
       });
@@ -138,33 +172,34 @@ export const FormularioUsuario: React.FC = () => {
 
     const baseJaVinculada = formData.associatedBases.includes(baseParaVincular);
     if (baseJaVinculada) {
-      toast.error({
+      toast({
+        variant: "destructive",
         title: "Erro",
         description: "Esta base já está vinculada ao usuário.",
       });
       return;
     }
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      associatedBases: [...prev.associatedBases, baseParaVincular]
+      associatedBases: [...prev.associatedBases, baseParaVincular],
     }));
 
     setBaseParaVincular("");
     setModalVincularAberto(false);
-    
-    toast.success({
+
+    toast({
       title: "Sucesso",
       description: "Base vinculada com sucesso!",
     });
   };
 
   const handleDesvincularBase = (baseId: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      associatedBases: prev.associatedBases.filter(id => id !== baseId)
+      associatedBases: prev.associatedBases.filter((id) => id !== baseId),
     }));
-    
+
     toast.success({
       title: "Sucesso",
       description: "Base desvinculada com sucesso!",
@@ -178,15 +213,16 @@ export const FormularioUsuario: React.FC = () => {
     if (formData.associatedBases.length === 0) {
       toast.error({
         title: "Erro",
-        description: "O usuário deve estar associado a pelo menos uma base para gerar o convite.",
+        description:
+          "O usuário deve estar associado a pelo menos uma base para gerar o convite.",
       });
       return null;
     }
 
     // Usar a primeira base associada como base principal do convite
     const primeiraBaseId = formData.associatedBases[0];
-    const primeiraBase = clientBases.find(b => b.id === primeiraBaseId);
-    
+    const primeiraBase = clientBases.find((b) => b.id === primeiraBaseId);
+
     if (!primeiraBase) {
       toast.error({
         title: "Erro",
@@ -215,7 +251,7 @@ export const FormularioUsuario: React.FC = () => {
       createdBy: currentUser.uid,
       createdAt: Date.now(),
       status: "pending",
-      associatedBases: formData.associatedBases // Todas as bases associadas
+      associatedBases: formData.associatedBases, // Todas as bases associadas
     };
 
     try {
@@ -238,7 +274,8 @@ export const FormularioUsuario: React.FC = () => {
       setTimeout(() => setLinkCopiado(false), 2000);
       toast.success({
         title: "Link copiado!",
-        description: "O link de convite foi copiado para a área de transferência.",
+        description:
+          "O link de convite foi copiado para a área de transferência.",
       });
     } catch (error) {
       toast.error({
@@ -271,7 +308,8 @@ Bem-vindo ao sistema! 🚀`;
       setTimeout(() => setMensagemCopiada(false), 2000);
       toast.success({
         title: "Mensagem copiada!",
-        description: "A mensagem completa foi copiada para a área de transferência.",
+        description:
+          "A mensagem completa foi copiada para a área de transferência.",
       });
     } catch (error) {
       toast.error({
@@ -297,9 +335,10 @@ Bem-vindo ao sistema! 🚀`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.displayName.trim() || !formData.email.trim()) {
-      toast.error({
+      toast({
+        variant: "destructive",
         title: "Erro",
         description: "Nome e email são obrigatórios.",
       });
@@ -308,7 +347,8 @@ Bem-vindo ao sistema! 🚀`;
 
     // Para criação de usuário, exigir pelo menos uma base associada
     if (!isEdicao && formData.associatedBases.length === 0) {
-      toast.error({
+      toast({
+        variant: "destructive",
         title: "Erro",
         description: "O usuário deve estar associado a pelo menos uma base.",
       });
@@ -328,16 +368,19 @@ Bem-vindo ao sistema! 🚀`;
           clientBaseId: formData.clientBaseId,
           authDisabled: formData.authDisabled,
           updatedAt: Date.now(),
-          updatedBy: currentUser?.uid
+          updatedBy: currentUser?.uid,
         });
 
         // Atualizar associações com bases
         for (const base of clientBases) {
-          const baseRef = ref(db, `clientBases/${base.id}/authorizedUIDs/${uid}`);
+          const baseRef = ref(
+            db,
+            `clientBases/${base.id}/authorizedUIDs/${uid}`
+          );
           if (formData.associatedBases.includes(base.id)) {
             await set(baseRef, {
               displayName: formData.displayName,
-              email: formData.email
+              email: formData.email,
             });
           } else {
             await set(baseRef, null); // Remove a associação
@@ -350,8 +393,10 @@ Bem-vindo ao sistema! 🚀`;
         });
       } else {
         // Criar novo usuário
-        const newUserId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
+        const newUserId = `user_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+
         // Criar perfil do usuário
         const userRef = ref(db, `users/${newUserId}/profile`);
         await set(userRef, {
@@ -363,7 +408,7 @@ Bem-vindo ao sistema! 🚀`;
           createdAt: Date.now(),
           createdBy: currentUser?.uid,
           isTemporaryUser: true, // Marca como usuário temporário até fazer login real
-          needsPasswordSetup: true // Precisa definir senha
+          needsPasswordSetup: true, // Precisa definir senha
         });
 
         // Criar dados básicos do usuário
@@ -371,15 +416,18 @@ Bem-vindo ao sistema! 🚀`;
         await update(userDataRef, {
           displayName: formData.displayName,
           email: formData.email,
-          createdAt: Date.now()
+          createdAt: Date.now(),
         });
 
         // Vincular às bases associadas
         for (const baseId of formData.associatedBases) {
-          const baseRef = ref(db, `clientBases/${baseId}/authorizedUIDs/${newUserId}`);
+          const baseRef = ref(
+            db,
+            `clientBases/${baseId}/authorizedUIDs/${newUserId}`
+          );
           await set(baseRef, {
             displayName: formData.displayName,
-            email: formData.email
+            email: formData.email,
           });
         }
 
@@ -394,12 +442,12 @@ Bem-vindo ao sistema! 🚀`;
           title: "Sucesso",
           description: `Usuário "${formData.displayName}" criado com sucesso!`,
         });
-        
+
         // Não redirecionar imediatamente, deixar o modal aberto
         return;
       }
 
-      navigate('/admin/gerenciar-usuarios-global');
+      navigate("/admin/gerenciar-usuarios-global");
     } catch (error) {
       toast.error({
         title: "Erro ao salvar",
@@ -425,7 +473,7 @@ Bem-vindo ao sistema! 🚀`;
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
-              onClick={() => navigate('/admin/gerenciar-usuarios-global')}
+              onClick={() => navigate("/admin/gerenciar-usuarios-global")}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -433,7 +481,9 @@ Bem-vindo ao sistema! 🚀`;
             </Button>
             <CardTitle className="flex items-center gap-2">
               <User className="h-6 w-6" />
-              {isEdicao ? `Editar Usuário - ${formData.displayName}` : 'Novo Usuário'}
+              {isEdicao
+                ? `Editar Usuário - ${formData.displayName}`
+                : "Novo Usuário"}
             </CardTitle>
           </div>
         </CardHeader>
@@ -446,7 +496,9 @@ Bem-vindo ao sistema! 🚀`;
                 <Input
                   id="displayName"
                   value={formData.displayName}
-                  onChange={(e) => handleInputChange('displayName', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("displayName", e.target.value)
+                  }
                   placeholder="Ex: João Silva"
                   className="border-gray-300 hover:border-black focus:border-black"
                   required
@@ -458,7 +510,7 @@ Bem-vindo ao sistema! 🚀`;
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
                   placeholder="Ex: joao@empresa.com"
                   className="border-gray-300 hover:border-black focus:border-black"
                   required
@@ -472,23 +524,27 @@ Bem-vindo ao sistema! 🚀`;
                 <Shield className="h-5 w-5" />
                 Configurações de Acesso
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="isAdmin">Administrador do Sistema</Label>
                   <Switch
                     id="isAdmin"
                     checked={formData.isAdmin}
-                    onCheckedChange={(checked) => handleInputChange('isAdmin', checked)}
+                    onCheckedChange={(checked) =>
+                      handleInputChange("isAdmin", checked)
+                    }
                   />
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <Label htmlFor="authDisabled">Conta Desabilitada</Label>
                   <Switch
                     id="authDisabled"
                     checked={formData.authDisabled}
-                    onCheckedChange={(checked) => handleInputChange('authDisabled', checked)}
+                    onCheckedChange={(checked) =>
+                      handleInputChange("authDisabled", checked)
+                    }
                   />
                 </div>
               </div>
@@ -499,16 +555,23 @@ Bem-vindo ao sistema! 🚀`;
                   <Label htmlFor="clientBaseId">Base Padrão</Label>
                   <Select
                     value={formData.clientBaseId?.toString() || "nenhuma"}
-                    onValueChange={(value) => handleInputChange('clientBaseId', value === "nenhuma" ? null : parseInt(value))}
+                    onValueChange={(value) =>
+                      handleInputChange(
+                        "clientBaseId",
+                        value === "nenhuma" ? null : parseInt(value)
+                      )
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a base padrão (opcional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="nenhuma">Nenhuma base padrão</SelectItem>
+                      <SelectItem value="nenhuma">
+                        Nenhuma base padrão
+                      </SelectItem>
                       {clientBases.map((base) => (
-                        <SelectItem 
-                          key={base.id} 
+                        <SelectItem
+                          key={base.id}
                           value={base.numberId?.toString() || "0"}
                         >
                           #{base.numberId} - {base.name}
@@ -524,13 +587,15 @@ Bem-vindo ao sistema! 🚀`;
             <Card className="border-gray-200">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-semibold">Bases Associadas</CardTitle>
+                  <CardTitle className="text-lg font-semibold">
+                    Bases Associadas
+                  </CardTitle>
                   <div className="flex items-center gap-2">
                     {/* Botão para gerar convite novamente - apenas para edição */}
                     {isEdicao && formData.associatedBases.length > 0 && (
-                      <Button 
+                      <Button
                         type="button"
-                        variant="outline" 
+                        variant="outline"
                         size="sm"
                         onClick={(e) => {
                           e.preventDefault();
@@ -543,7 +608,10 @@ Bem-vindo ao sistema! 🚀`;
                         Gerar Convite
                       </Button>
                     )}
-                    <Dialog open={modalVincularAberto} onOpenChange={setModalVincularAberto}>
+                    <Dialog
+                      open={modalVincularAberto}
+                      onOpenChange={setModalVincularAberto}
+                    >
                       <DialogTrigger asChild>
                         <Button variant="outline" size="sm">
                           <Plus className="h-4 w-4 mr-2" />
@@ -556,7 +624,9 @@ Bem-vindo ao sistema! 🚀`;
                         </DialogHeader>
                         <div className="space-y-4">
                           <div>
-                            <Label htmlFor="buscaBase">Buscar Base (ID ou Nome)</Label>
+                            <Label htmlFor="buscaBase">
+                              Buscar Base (ID ou Nome)
+                            </Label>
                             <Input
                               id="buscaBase"
                               placeholder="Digite o ID ou nome da base..."
@@ -576,8 +646,13 @@ Bem-vindo ao sistema! 🚀`;
                               </SelectTrigger>
                               <SelectContent>
                                 {clientBases
-                                  .filter(base => !formData.associatedBases.includes(base.id))
-                                  .filter(base => {
+                                  .filter(
+                                    (base) =>
+                                      !formData.associatedBases.includes(
+                                        base.id
+                                      )
+                                  )
+                                  .filter((base) => {
                                     if (!buscaBase.trim()) return true;
                                     const busca = buscaBase.toLowerCase();
                                     return (
@@ -586,10 +661,10 @@ Bem-vindo ao sistema! 🚀`;
                                     );
                                   })
                                   .map((base) => (
-                                  <SelectItem key={base.id} value={base.id}>
-                                    #{base.numberId} - {base.name}
-                                  </SelectItem>
-                                ))}
+                                    <SelectItem key={base.id} value={base.id}>
+                                      #{base.numberId} - {base.name}
+                                    </SelectItem>
+                                  ))}
                               </SelectContent>
                             </Select>
                           </div>
@@ -623,11 +698,14 @@ Bem-vindo ao sistema! 🚀`;
                       <div className="col-span-2 text-center">Ações</div>
                     </div>
                     {formData.associatedBases.map((baseId) => {
-                      const base = clientBases.find(b => b.id === baseId);
+                      const base = clientBases.find((b) => b.id === baseId);
                       if (!base) return null;
-                      
+
                       return (
-                        <div key={baseId} className="grid grid-cols-12 gap-2 items-center py-2 border-b border-gray-100">
+                        <div
+                          key={baseId}
+                          className="grid grid-cols-12 gap-2 items-center py-2 border-b border-gray-100"
+                        >
                           <div className="col-span-2 text-sm font-medium">
                             #{base.numberId}
                           </div>
@@ -655,14 +733,18 @@ Bem-vindo ao sistema! 🚀`;
                   </div>
                 ) : (
                   <p className="text-sm text-gray-500 text-center py-4">
-                    Nenhuma base vinculada. Use o botão "Vincular Base" para adicionar.
+                    Nenhuma base vinculada. Use o botão "Vincular Base" para
+                    adicionar.
                   </p>
                 )}
               </CardContent>
             </Card>
 
             {/* Modal de Link de Convite */}
-            <Dialog open={modalConviteAberto} onOpenChange={setModalConviteAberto}>
+            <Dialog
+              open={modalConviteAberto}
+              onOpenChange={setModalConviteAberto}
+            >
               <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
@@ -673,11 +755,12 @@ Bem-vindo ao sistema! 🚀`;
                 <div className="space-y-4">
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                     <p className="text-sm text-green-800 mb-2">
-                      O usuário <strong>{formData.displayName}</strong> foi criado com sucesso.
-                      Envie o link abaixo para que ele possa ativar sua conta e definir uma senha.
+                      O usuário <strong>{formData.displayName}</strong> foi
+                      criado com sucesso. Envie o link abaixo para que ele possa
+                      ativar sua conta e definir uma senha.
                     </p>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="linkConvite">Link de Ativação</Label>
                     <div className="flex gap-2 mt-1">
@@ -704,10 +787,17 @@ Bem-vindo ao sistema! 🚀`;
                   </div>
 
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-medium text-blue-900 mb-2">Instruções:</h4>
+                    <h4 className="font-medium text-blue-900 mb-2">
+                      Instruções:
+                    </h4>
                     <ul className="text-sm text-blue-800 space-y-1">
-                      <li>• Envie este link para o usuário por email ou outro meio seguro</li>
-                      <li>• O usuário deve acessar o link para ativar sua conta</li>
+                      <li>
+                        • Envie este link para o usuário por email ou outro meio
+                        seguro
+                      </li>
+                      <li>
+                        • O usuário deve acessar o link para ativar sua conta
+                      </li>
                       <li>• Durante a ativação, ele irá definir sua senha</li>
                       <li>• O link é válido apenas para uma ativação</li>
                     </ul>
@@ -716,7 +806,9 @@ Bem-vindo ao sistema! 🚀`;
                   {/* Mensagem personalizada para copiar */}
                   <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-purple-900">Mensagem para o Usuário</h4>
+                      <h4 className="font-medium text-purple-900">
+                        Mensagem para o Usuário
+                      </h4>
                       <Button
                         type="button"
                         variant="outline"
@@ -770,7 +862,7 @@ Bem-vindo ao sistema! 🚀`}
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate('/admin/gerenciar-usuarios-global')}
+                onClick={() => navigate("/admin/gerenciar-usuarios-global")}
               >
                 Cancelar
               </Button>
@@ -783,7 +875,7 @@ Bem-vindo ao sistema! 🚀`}
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    {isEdicao ? 'Atualizar' : 'Criar'} Usuário
+                    {isEdicao ? "Atualizar" : "Criar"} Usuário
                   </>
                 )}
               </Button>

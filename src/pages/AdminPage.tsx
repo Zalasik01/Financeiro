@@ -13,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { db } from "@/firebase";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "@/lib/toast";
 import type { ClientBase } from "@/types/store";
 import {
   DatabaseReference,
@@ -554,15 +553,15 @@ const AdminPage: React.FC = () => {
           onOpenBasesModal={() => setModalBasesAberto(true)}
         />
       </div>
-      
+
       {modalBasesAberto && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold">Gerenciar Bases</h2>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   onClick={() => setModalBasesAberto(false)}
                   className="text-gray-500 hover:text-gray-700"
                 >

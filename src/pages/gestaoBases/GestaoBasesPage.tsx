@@ -1,28 +1,57 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Search, Filter, MoreVertical, Download, FileText, Ban } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ActionButtons } from "@/components/ui/action-buttons";
-import { BaseActionButtons } from "@/components/ui/base-action-buttons";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { ActionButton } from "@/components/ui/ActionButton";
 import { SortableTableHeader } from "@/components/ui/SortableTableHeader";
-import { DataTable, DataTableHeader, DataTableBody, DataTableRow, DataTableCell, DataTableHeaderCell } from "@/components/ui/data-table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableHeader,
+  DataTableHeaderCell,
+  DataTableRow,
+} from "@/components/ui/data-table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Textarea } from "@/components/ui/textarea";
 import { db } from "@/firebase";
-import { toast } from "@/lib/toast";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useTableSort } from "@/hooks/useTableSort";
 import type { ClientBase } from "@/types/store";
-import { onValue, ref, update } from "firebase/database";
 import { maskCNPJ } from "@/utils/formatters";
+import { onValue, ref, update } from "firebase/database";
+import {
+  Ban,
+  Download,
+  FileText,
+  Filter,
+  MoreVertical,
+  PlusCircle,
+  Search,
+} from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface AppUser {
   uid: string;
@@ -34,27 +63,31 @@ interface AppUser {
 export const GestaoBasesPage: React.FC = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  
+  const { toast } = useToast();
+
   const [clientBases, setClientBases] = useState<ClientBase[]>([]);
   const [baseCreatorsMap, setBaseCreatorsMap] = useState<{
     [uid: string]: string;
   }>({});
 
   const [busca, setBusca] = useState("");
-  
+
   const [modalPesquisaAberto, setModalPesquisaAberto] = useState(false);
   const [modalInativacaoAberto, setModalInativacaoAberto] = useState(false);
-  const [baseParaInativar, setBaseParaInativar] = useState<{id: string, nome: string} | null>(null);
+  const [baseParaInativar, setBaseParaInativar] = useState<{
+    id: string;
+    nome: string;
+  } | null>(null);
   const [motivoInativacao, setMotivoInativacao] = useState("");
   const [motivoPersonalizado, setMotivoPersonalizado] = useState("");
   const [usarMotivoPersonalizado, setUsarMotivoPersonalizado] = useState(false);
   const [filtros, setFiltros] = useState({
     status: "todos",
-    tipo: "todos"
+    tipo: "todos",
   });
   const [filtrosTemporarios, setFiltrosTemporarios] = useState({
     status: "todos",
-    tipo: "todos"
+    tipo: "todos",
   });
 
   // Carregamento das bases
@@ -97,33 +130,35 @@ export const GestaoBasesPage: React.FC = () => {
 
   const basesFiltradas = useMemo(() => {
     let resultado = clientBases;
-    
+
     const termo = busca.trim().toLowerCase();
     if (termo) {
       resultado = resultado.filter((base) => {
         return (
           (base.name && base.name.toLowerCase().includes(termo)) ||
-          (base.cnpj && base.cnpj.replace(/\D/g, "").includes(termo.replace(/\D/g, ""))) ||
+          (base.cnpj &&
+            base.cnpj.replace(/\D/g, "").includes(termo.replace(/\D/g, ""))) ||
           (base.numberId && base.numberId.toString().includes(termo))
         );
       });
     }
-    
+
     if (filtros.status !== "todos") {
       if (filtros.status === "ativo") {
-        resultado = resultado.filter(base => base.ativo);
+        resultado = resultado.filter((base) => base.ativo);
       } else if (filtros.status === "inativo") {
-        resultado = resultado.filter(base => !base.ativo);
+        resultado = resultado.filter((base) => !base.ativo);
       }
     }
-    
+
     return resultado;
   }, [busca, clientBases, filtros]);
 
-  const { sortConfig, handleSort, sortedData: basesOrdenadas } = useTableSort(
-    basesFiltradas,
-    { key: 'name', direction: 'asc' }
-  );
+  const {
+    sortConfig,
+    handleSort,
+    sortedData: basesOrdenadas,
+  } = useTableSort(basesFiltradas, { key: "name", direction: "asc" });
 
   const navegarParaNovoCadastro = () => {
     navigate("/admin/gestao-bases/nova");
@@ -151,18 +186,21 @@ export const GestaoBasesPage: React.FC = () => {
 
     let motivoFinal = "";
     if (usarMotivoPersonalizado) {
-      const motivoLimpo = motivoPersonalizado.replace(/\s/g, '');
+      const motivoLimpo = motivoPersonalizado.replace(/\s/g, "");
       if (motivoLimpo.length < 5) {
-        toast.error({
+        toast({
+          variant: "destructive",
           title: "Erro",
-          description: "O motivo personalizado deve ter no mínimo 5 caracteres (sem contar espaços).",
+          description:
+            "O motivo personalizado deve ter no mínimo 5 caracteres (sem contar espaços).",
         });
         return;
       }
       motivoFinal = motivoPersonalizado;
     } else {
       if (!motivoInativacao) {
-        toast.error({
+        toast({
+          variant: "destructive",
           title: "Erro",
           description: "Por favor, selecione um motivo para a inativação.",
         });
@@ -180,7 +218,7 @@ export const GestaoBasesPage: React.FC = () => {
         inativado_por: currentUser?.uid,
       });
 
-      toast.success({
+      toast({
         title: "Sucesso",
         description: `Base "${baseParaInativar.nome}" inativada com sucesso!`,
       });
@@ -191,7 +229,8 @@ export const GestaoBasesPage: React.FC = () => {
       setMotivoPersonalizado("");
       setUsarMotivoPersonalizado(false);
     } catch (error) {
-      toast.error({
+      toast({
+        variant: "destructive",
         title: "Erro",
         description: "Erro ao inativar a base. Tente novamente.",
       });
@@ -206,7 +245,7 @@ export const GestaoBasesPage: React.FC = () => {
   const limparFiltros = () => {
     const filtrosLimpos = {
       status: "todos",
-      tipo: "todos"
+      tipo: "todos",
     };
     setFiltros(filtrosLimpos);
     setFiltrosTemporarios(filtrosLimpos);
@@ -215,9 +254,9 @@ export const GestaoBasesPage: React.FC = () => {
   };
 
   const handleFiltroChange = (campo: string, valor: string) => {
-    setFiltrosTemporarios(prev => ({
+    setFiltrosTemporarios((prev) => ({
       ...prev,
-      [campo]: valor
+      [campo]: valor,
     }));
   };
 
@@ -226,7 +265,8 @@ export const GestaoBasesPage: React.FC = () => {
     setModalPesquisaAberto(true);
   };
 
-  const temFiltrosAtivos = filtros.status !== "todos" || filtros.tipo !== "todos";
+  const temFiltrosAtivos =
+    filtros.status !== "todos" || filtros.tipo !== "todos";
 
   const exportarCSV = () => {
     const cabecalhos = [
@@ -237,19 +277,25 @@ export const GestaoBasesPage: React.FC = () => {
       "Usuários",
       "Limite Acesso",
       "Criado Por",
-      "Data Criação"
+      "Data Criação",
     ];
 
-    const linhasCSV = basesFiltradas.map(base => {
+    const linhasCSV = basesFiltradas.map((base) => {
       return [
         `"${base.numberId || ""}"`,
         `"${base.name || ""}"`,
         `"${base.cnpj || ""}"`,
-        `"${base.ativo ? 'Ativo' : 'Inativo'}"`,
-        `"${base.authorizedUIDs ? Object.keys(base.authorizedUIDs).length : 0}"`,
-        `"${base.limite_acesso || 'Ilimitado'}"`,
+        `"${base.ativo ? "Ativo" : "Inativo"}"`,
+        `"${
+          base.authorizedUIDs ? Object.keys(base.authorizedUIDs).length : 0
+        }"`,
+        `"${base.limite_acesso || "Ilimitado"}"`,
         `"${baseCreatorsMap[base.createdBy] || base.createdBy || ""}"`,
-        `"${base.createdAt ? new Date(base.createdAt).toLocaleDateString('pt-BR') : ""}"`
+        `"${
+          base.createdAt
+            ? new Date(base.createdAt).toLocaleDateString("pt-BR")
+            : ""
+        }"`,
       ].join(",");
     });
 
@@ -259,24 +305,24 @@ export const GestaoBasesPage: React.FC = () => {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    
-    const dataAtual = new Date().toISOString().split('T')[0];
+
+    const dataAtual = new Date().toISOString().split("T")[0];
     const nomeArquivo = `bases-${dataAtual}.csv`;
     link.setAttribute("download", nomeArquivo);
-    
+
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const formatDate = (timestamp: any) => {
-    if (!timestamp) return 'N/A';
+  const formatDate = (timestamp: string | number | Date | undefined | null) => {
+    if (!timestamp) return "N/A";
     const date = new Date(timestamp);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     });
   };
 
@@ -295,7 +341,7 @@ export const GestaoBasesPage: React.FC = () => {
             <div className="flex items-center gap-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
+                  <Button
                     variant="outline"
                     size="sm"
                     className="bg-gray-800 text-white border-gray-800 hover:bg-gray-700 hover:border-gray-700"
@@ -311,8 +357,8 @@ export const GestaoBasesPage: React.FC = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <Button 
-                onClick={navegarParaNovoCadastro} 
+              <Button
+                onClick={navegarParaNovoCadastro}
                 className="bg-gray-800 hover:bg-gray-700 text-white"
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
@@ -334,12 +380,19 @@ export const GestaoBasesPage: React.FC = () => {
                 onChange={(e) => setBusca(e.target.value)}
               />
             </div>
-            
-            <Dialog open={modalPesquisaAberto} onOpenChange={setModalPesquisaAberto}>
+
+            <Dialog
+              open={modalPesquisaAberto}
+              onOpenChange={setModalPesquisaAberto}
+            >
               <DialogTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  className={`px-4 ${temFiltrosAtivos ? 'bg-gray-800 text-white border-gray-800 hover:bg-gray-700' : 'border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white'}`}
+                <Button
+                  variant="outline"
+                  className={`px-4 ${
+                    temFiltrosAtivos
+                      ? "bg-gray-800 text-white border-gray-800 hover:bg-gray-700"
+                      : "border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white"
+                  }`}
                   title="Pesquisa Avançada"
                   onClick={abrirModalPesquisa}
                 >
@@ -360,9 +413,11 @@ export const GestaoBasesPage: React.FC = () => {
                   {/* Filtro por Status */}
                   <div>
                     <Label htmlFor="filtroStatus">Status</Label>
-                    <Select 
-                      value={filtrosTemporarios.status} 
-                      onValueChange={(value) => handleFiltroChange("status", value)}
+                    <Select
+                      value={filtrosTemporarios.status}
+                      onValueChange={(value) =>
+                        handleFiltroChange("status", value)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -376,16 +431,16 @@ export const GestaoBasesPage: React.FC = () => {
                   </div>
 
                   <div className="flex gap-2 pt-4">
-                    <Button 
+                    <Button
                       type="button"
                       onClick={aplicarFiltros}
                       className="flex-1 bg-gray-800 hover:bg-gray-700 text-white"
                     >
                       Aplicar
                     </Button>
-                    <Button 
+                    <Button
                       type="button"
-                      variant="outline" 
+                      variant="outline"
                       onClick={limparFiltros}
                       className="flex-1 border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white"
                     >
@@ -411,28 +466,63 @@ export const GestaoBasesPage: React.FC = () => {
           <DataTable>
             <DataTableHeader>
               <DataTableRow>
-                <SortableTableHeader sortKey="numberId" currentSort={sortConfig} onSort={handleSort}>
+                <SortableTableHeader
+                  sortKey="numberId"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                >
                   ID
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="name" currentSort={sortConfig} onSort={handleSort}>
+                <SortableTableHeader
+                  sortKey="name"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                >
                   Nome da Base
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="cnpj" currentSort={sortConfig} onSort={handleSort}>
+                <SortableTableHeader
+                  sortKey="cnpj"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                >
                   CNPJ
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="userCount" currentSort={sortConfig} onSort={handleSort} align="center">
+                <SortableTableHeader
+                  sortKey="userCount"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                  align="center"
+                >
                   Usuários
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="userLimit" currentSort={sortConfig} onSort={handleSort} align="center">
+                <SortableTableHeader
+                  sortKey="userLimit"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                  align="center"
+                >
                   Limite
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="createdAt" currentSort={sortConfig} onSort={handleSort}>
+                <SortableTableHeader
+                  sortKey="createdAt"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                >
                   Criado em
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="createdBy" currentSort={sortConfig} onSort={handleSort}>
+                <SortableTableHeader
+                  sortKey="createdBy"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                >
                   Criado por
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="ativo" currentSort={sortConfig} onSort={handleSort} align="center">
+                <SortableTableHeader
+                  sortKey="ativo"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                  align="center"
+                >
                   Status
                 </SortableTableHeader>
                 <DataTableHeaderCell align="center">Ações</DataTableHeaderCell>
@@ -441,67 +531,88 @@ export const GestaoBasesPage: React.FC = () => {
             <DataTableBody>
               {basesOrdenadas.length === 0 && (
                 <DataTableRow>
-                  <DataTableCell className="py-8 text-gray-500" align="center" colSpan={9}>
-                    {clientBases.length === 0 ? 'Nenhuma base cadastrada ainda.' : 'Nenhuma base encontrada com os filtros aplicados.'}
+                  <DataTableCell
+                    className="py-8 text-gray-500"
+                    align="center"
+                    colSpan={9}
+                  >
+                    {clientBases.length === 0
+                      ? "Nenhuma base cadastrada ainda."
+                      : "Nenhuma base encontrada com os filtros aplicados."}
                   </DataTableCell>
                 </DataTableRow>
               )}
-              {basesOrdenadas.length > 0 && basesOrdenadas.map((base) => (
-                <DataTableRow key={base.id} onClick={() => navegarParaVisualizarBase(base.id)} className={!base.ativo ? 'opacity-60' : ''}>
-                  <DataTableCell className="font-medium">#{base.numberId || 'N/A'}</DataTableCell>
-                  <DataTableCell className="font-medium">{base.name}</DataTableCell>
-                  <DataTableCell>{base.cnpj ? maskCNPJ(base.cnpj) : 'Não informado'}</DataTableCell>
-                  <DataTableCell align="center">{getUserCount(base)}</DataTableCell>
-                  <DataTableCell align="center">
-                    {base.limite_acesso ? base.limite_acesso : 'Ilimitado'}
-                  </DataTableCell>
-                  <DataTableCell>{formatDate(base.createdAt)}</DataTableCell>
-                  <DataTableCell>
-                    <span className="truncate max-w-32">
-                      {baseCreatorsMap[base.createdBy] || base.createdBy || 'N/A'}
-                    </span>
-                  </DataTableCell>
-                  <DataTableCell align="center">
-                    <StatusBadge isActive={base.ativo} />
-                  </DataTableCell>
-                  <DataTableCell align="center">
-                    <div className="flex items-center justify-center gap-2">
-                      <ActionButton
-                        type="edit"
-                        onClick={() => navegarParaEditar(base.id)}
-                        tooltip="Editar base"
-                      />
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navegarParaContrato(base.id);
-                        }} 
-                        title="Imprimir Contrato"
-                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                      >
-                        <FileText className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          abrirModalInativacao(base.id, base.name);
-                        }} 
-                        title="Inativar base"
-                      >
-                        <Ban className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </DataTableCell>
-                </DataTableRow>
-              ))}
+              {basesOrdenadas.length > 0 &&
+                basesOrdenadas.map((base) => (
+                  <DataTableRow
+                    key={base.id}
+                    onClick={() => navegarParaVisualizarBase(base.id)}
+                    className={!base.ativo ? "opacity-60" : ""}
+                  >
+                    <DataTableCell className="font-medium">
+                      #{base.numberId || "N/A"}
+                    </DataTableCell>
+                    <DataTableCell className="font-medium">
+                      {base.name}
+                    </DataTableCell>
+                    <DataTableCell>
+                      {base.cnpj ? maskCNPJ(base.cnpj) : "Não informado"}
+                    </DataTableCell>
+                    <DataTableCell align="center">
+                      {getUserCount(base)}
+                    </DataTableCell>
+                    <DataTableCell align="center">
+                      {base.limite_acesso ? base.limite_acesso : "Ilimitado"}
+                    </DataTableCell>
+                    <DataTableCell>{formatDate(base.createdAt)}</DataTableCell>
+                    <DataTableCell>
+                      <span className="truncate max-w-32">
+                        {baseCreatorsMap[base.createdBy] ||
+                          base.createdBy ||
+                          "N/A"}
+                      </span>
+                    </DataTableCell>
+                    <DataTableCell align="center">
+                      <StatusBadge isActive={base.ativo} />
+                    </DataTableCell>
+                    <DataTableCell align="center">
+                      <div className="flex items-center justify-center gap-2">
+                        <ActionButton
+                          type="edit"
+                          onClick={() => navegarParaEditar(base.id)}
+                          tooltip="Editar base"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navegarParaContrato(base.id);
+                          }}
+                          title="Imprimir Contrato"
+                          className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            abrirModalInativacao(base.id, base.name);
+                          }}
+                          title="Inativar base"
+                        >
+                          <Ban className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </DataTableCell>
+                  </DataTableRow>
+                ))}
             </DataTableBody>
           </DataTable>
-          
+
           <div className="mt-4 text-sm text-gray-600">
             Total: <strong>{basesFiltradas.length}</strong> registro(s)
             {temFiltrosAtivos && (
@@ -514,7 +625,10 @@ export const GestaoBasesPage: React.FC = () => {
       </Card>
 
       {/* Modal de Inativação */}
-      <Dialog open={modalInativacaoAberto} onOpenChange={setModalInativacaoAberto}>
+      <Dialog
+        open={modalInativacaoAberto}
+        onOpenChange={setModalInativacaoAberto}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Inativar Base</DialogTitle>
@@ -522,24 +636,42 @@ export const GestaoBasesPage: React.FC = () => {
           <div className="space-y-4">
             <div>
               <p className="text-sm text-gray-600 mb-4">
-                Tem certeza que deseja inativar a base <strong>"{baseParaInativar?.nome}"</strong>?
+                Tem certeza que deseja inativar a base{" "}
+                <strong>"{baseParaInativar?.nome}"</strong>?
               </p>
-              
+
               {!usarMotivoPersonalizado ? (
                 <div>
                   <Label htmlFor="motivo">Motivo da inativação *</Label>
-                  <Select value={motivoInativacao} onValueChange={setMotivoInativacao}>
+                  <Select
+                    value={motivoInativacao}
+                    onValueChange={setMotivoInativacao}
+                  >
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Selecione um motivo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="inadimplencia">Inadimplência</SelectItem>
-                      <SelectItem value="solicitacao_cliente">Solicitação do cliente</SelectItem>
-                      <SelectItem value="fim_contrato">Fim de contrato</SelectItem>
-                      <SelectItem value="fusao_empresa">Fusão/Aquisição da empresa</SelectItem>
-                      <SelectItem value="falencia">Falência/Encerramento</SelectItem>
-                      <SelectItem value="migracao_sistema">Migração para outro sistema</SelectItem>
-                      <SelectItem value="descumprimento_contrato">Descumprimento de contrato</SelectItem>
+                      <SelectItem value="inadimplencia">
+                        Inadimplência
+                      </SelectItem>
+                      <SelectItem value="solicitacao_cliente">
+                        Solicitação do cliente
+                      </SelectItem>
+                      <SelectItem value="fim_contrato">
+                        Fim de contrato
+                      </SelectItem>
+                      <SelectItem value="fusao_empresa">
+                        Fusão/Aquisição da empresa
+                      </SelectItem>
+                      <SelectItem value="falencia">
+                        Falência/Encerramento
+                      </SelectItem>
+                      <SelectItem value="migracao_sistema">
+                        Migração para outro sistema
+                      </SelectItem>
+                      <SelectItem value="descumprimento_contrato">
+                        Descumprimento de contrato
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
@@ -552,7 +684,9 @@ export const GestaoBasesPage: React.FC = () => {
                 </div>
               ) : (
                 <div>
-                  <Label htmlFor="motivoPersonalizado">Motivo personalizado *</Label>
+                  <Label htmlFor="motivoPersonalizado">
+                    Motivo personalizado *
+                  </Label>
                   <Textarea
                     id="motivoPersonalizado"
                     value={motivoPersonalizado}
@@ -562,7 +696,8 @@ export const GestaoBasesPage: React.FC = () => {
                     rows={3}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Caracteres: {motivoPersonalizado.replace(/\s/g, '').length}/5 (sem contar espaços)
+                    Caracteres: {motivoPersonalizado.replace(/\s/g, "").length}
+                    /5 (sem contar espaços)
                   </p>
                   <Button
                     variant="link"
@@ -595,7 +730,8 @@ export const GestaoBasesPage: React.FC = () => {
                 variant="destructive"
                 disabled={
                   (!usarMotivoPersonalizado && !motivoInativacao) ||
-                  (usarMotivoPersonalizado && motivoPersonalizado.replace(/\s/g, '').length < 5)
+                  (usarMotivoPersonalizado &&
+                    motivoPersonalizado.replace(/\s/g, "").length < 5)
                 }
               >
                 Inativar Base

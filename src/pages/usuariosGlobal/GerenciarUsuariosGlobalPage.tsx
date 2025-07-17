@@ -1,10 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Search, Filter, Users } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ActionButton } from "@/components/ui/ActionButton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,20 +9,44 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableHeader,
+  DataTableHeaderCell,
+  DataTableRow,
+} from "@/components/ui/data-table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ActionButton } from "@/components/ui/ActionButton";
-import { StatusBadge } from "@/components/ui/status-badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { SortableTableHeader } from "@/components/ui/SortableTableHeader";
-import { useTableSort } from "@/hooks/useTableSort";
-import { DataTable, DataTableHeader, DataTableBody, DataTableRow, DataTableCell, DataTableHeaderCell } from "@/components/ui/data-table";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { db, functions as firebaseFunctions } from "@/firebase";
-import { toast } from "@/lib/toast";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useTableSort } from "@/hooks/useTableSort";
 import type { ClientBase } from "@/types/store";
 import { onValue, ref } from "firebase/database";
 import { httpsCallable } from "firebase/functions";
+import { Filter, PlusCircle, Search } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface UserProfile {
   uid: string;
@@ -41,30 +59,36 @@ interface UserProfile {
 }
 
 interface UserWithBaseInfo extends UserProfile {
-  associatedBases: { id: string; name: string; numberId: number; role: "authorized" | "default" }[];
+  associatedBases: {
+    id: string;
+    name: string;
+    numberId: number;
+    role: "authorized" | "default";
+  }[];
 }
 
 export const GerenciarUsuariosGlobalPage: React.FC = () => {
   const { currentUser } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
-  
+
   const [usuarios, setUsuarios] = useState<UserWithBaseInfo[]>([]);
   const [clientBases, setClientBases] = useState<ClientBase[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [busca, setBusca] = useState("");
-  
+
   const [modalPesquisaAberto, setModalPesquisaAberto] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
   const [filtros, setFiltros] = useState({
     status: "todos",
     tipo: "todos",
-    base: "todas"
+    base: "todas",
   });
   const [filtrosTemporarios, setFiltrosTemporarios] = useState({
     status: "todos",
     tipo: "todos",
-    base: "todas"
+    base: "todas",
   });
 
   // Carregamento das bases
@@ -96,7 +120,7 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
             clientBaseId: user.profile?.clientBaseId || null,
             authDisabled: user.profile?.authDisabled || false,
             createdAt: user.createdAt || Date.now(),
-            associatedBases: []
+            associatedBases: [],
           };
 
           // Mapear bases associadas
@@ -107,7 +131,10 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
                   id: base.id,
                   name: base.name,
                   numberId: base.numberId || 0,
-                  role: userWithBases.clientBaseId === base.numberId ? "default" : "authorized"
+                  role:
+                    userWithBases.clientBaseId === base.numberId
+                      ? "default"
+                      : "authorized",
                 });
               }
             });
@@ -125,7 +152,7 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
   }, [clientBases]);
 
   const navegarParaNovo = () => {
-    navigate('/admin/gerenciar-usuarios-global/novo');
+    navigate("/admin/gerenciar-usuarios-global/novo");
   };
 
   const navegarParaEditar = (uid: string) => {
@@ -144,8 +171,13 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
     if (!userToDelete) return;
 
     try {
-      const deleteUserAccountFunction = httpsCallable(firebaseFunctions, 'deleteUserAccount');
-      const result = await deleteUserAccountFunction({ targetUid: userToDelete.uid });
+      const deleteUserAccountFunction = httpsCallable(
+        firebaseFunctions,
+        "deleteUserAccount"
+      );
+      const result = await deleteUserAccountFunction({
+        targetUid: userToDelete.uid,
+      });
       const resultData = result.data as { success: boolean; message: string };
 
       if (resultData.success) {
@@ -153,7 +185,9 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
           title: "Sucesso!",
           description: resultData.message,
         });
-        setUsuarios(prevUsers => prevUsers.filter(u => u.uid !== userToDelete.uid));
+        setUsuarios((prevUsers) =>
+          prevUsers.filter((u) => u.uid !== userToDelete.uid)
+        );
       } else {
         toast.error({
           title: "Erro ao excluir usuário",
@@ -162,10 +196,15 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
       }
     } catch (errorUnknown: unknown) {
       const error = errorUnknown as { message?: string };
-      console.error("Erro ao chamar Cloud Function deleteUserAccount:", error.message || error);
+      console.error(
+        "Erro ao chamar Cloud Function deleteUserAccount:",
+        error.message || error
+      );
       toast.error({
         title: "Erro na Operação",
-        description: error.message || `Não foi possível excluir o usuário ${userToDelete.displayName}.`,
+        description:
+          error.message ||
+          `Não foi possível excluir o usuário ${userToDelete.displayName}.`,
       });
     } finally {
       setUserToDelete(null);
@@ -181,7 +220,7 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
     const filtrosLimpos = {
       status: "todos",
       tipo: "todos",
-      base: "todas"
+      base: "todas",
     };
     setFiltros(filtrosLimpos);
     setFiltrosTemporarios(filtrosLimpos);
@@ -190,19 +229,25 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
   };
 
   const handleFiltroChange = (campo: string, valor: string) => {
-    setFiltrosTemporarios(prev => ({
+    setFiltrosTemporarios((prev) => ({
       ...prev,
-      [campo]: valor
+      [campo]: valor,
     }));
   };
 
   const formatDate = (timestamp: number) => {
-    if (!timestamp) return 'N/A';
-    return new Date(timestamp).toLocaleDateString('pt-BR');
+    if (!timestamp) return "N/A";
+    return new Date(timestamp).toLocaleDateString("pt-BR");
   };
 
   const getStatusBadge = (user: UserWithBaseInfo) => {
-    return <StatusBadge isActive={!user.authDisabled} activeText="Ativo" inactiveText="Desabilitado" />;
+    return (
+      <StatusBadge
+        isActive={!user.authDisabled}
+        activeText="Ativo"
+        inactiveText="Desabilitado"
+      />
+    );
   };
 
   const getTipoBadge = (user: UserWithBaseInfo) => {
@@ -213,7 +258,7 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
   };
 
   const getBasesText = (user: UserWithBaseInfo) => {
-    if (user.associatedBases.length === 0) return 'Nenhuma';
+    if (user.associatedBases.length === 0) return "Nenhuma";
     if (user.associatedBases.length === 1) return user.associatedBases[0].name;
     return `${user.associatedBases.length} bases`;
   };
@@ -225,19 +270,21 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
     // Filtro por busca
     if (busca.trim()) {
       const searchLower = busca.toLowerCase();
-      filtered = filtered.filter(user =>
-        user.displayName?.toLowerCase().includes(searchLower) ||
-        user.email?.toLowerCase().includes(searchLower) ||
-        user.associatedBases.some(base => 
-          base.name.toLowerCase().includes(searchLower) ||
-          base.numberId.toString().includes(searchLower)
-        )
+      filtered = filtered.filter(
+        (user) =>
+          user.displayName?.toLowerCase().includes(searchLower) ||
+          user.email?.toLowerCase().includes(searchLower) ||
+          user.associatedBases.some(
+            (base) =>
+              base.name.toLowerCase().includes(searchLower) ||
+              base.numberId.toString().includes(searchLower)
+          )
       );
     }
 
     // Filtro por status
     if (filtros.status !== "todos") {
-      filtered = filtered.filter(user => {
+      filtered = filtered.filter((user) => {
         if (filtros.status === "ativo") return !user.authDisabled;
         if (filtros.status === "inativo") return user.authDisabled;
         return true;
@@ -246,7 +293,7 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
 
     // Filtro por tipo
     if (filtros.tipo !== "todos") {
-      filtered = filtered.filter(user => {
+      filtered = filtered.filter((user) => {
         if (filtros.tipo === "admin") return user.isAdmin;
         if (filtros.tipo === "usuario") return !user.isAdmin;
         return true;
@@ -256,8 +303,8 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
     // Filtro por base
     if (filtros.base !== "todas") {
       const baseId = filtros.base;
-      filtered = filtered.filter(user => 
-        user.associatedBases.some(base => base.id === baseId)
+      filtered = filtered.filter((user) =>
+        user.associatedBases.some((base) => base.id === baseId)
       );
     }
 
@@ -265,11 +312,16 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
   }, [usuarios, busca, filtros]);
 
   // Hook para ordenação
-  const { sortedData: usuariosOrdenados, sortConfig, handleSort } = useTableSort(usuariosFiltrados, 'displayName');
+  const {
+    sortedData: usuariosOrdenados,
+    sortConfig,
+    handleSort,
+  } = useTableSort(usuariosFiltrados, "displayName");
 
-  const temFiltrosAtivos = busca.trim() || 
-    filtros.status !== "todos" || 
-    filtros.tipo !== "todos" || 
+  const temFiltrosAtivos =
+    busca.trim() ||
+    filtros.status !== "todos" ||
+    filtros.tipo !== "todos" ||
     filtros.base !== "todas";
 
   if (loading) {
@@ -289,8 +341,8 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
               Gerenciar Usuários Globais
             </CardTitle>
             <div className="flex items-center gap-3">
-              <Button 
-                onClick={navegarParaNovo} 
+              <Button
+                onClick={navegarParaNovo}
                 className="bg-gray-800 hover:bg-gray-700 text-white"
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
@@ -312,12 +364,19 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
                 onChange={(e) => setBusca(e.target.value)}
               />
             </div>
-            
-            <Dialog open={modalPesquisaAberto} onOpenChange={setModalPesquisaAberto}>
+
+            <Dialog
+              open={modalPesquisaAberto}
+              onOpenChange={setModalPesquisaAberto}
+            >
               <DialogTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  className={`px-4 ${temFiltrosAtivos ? 'bg-gray-800 text-white border-gray-800 hover:bg-gray-700' : 'border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white'}`}
+                <Button
+                  variant="outline"
+                  className={`px-4 ${
+                    temFiltrosAtivos
+                      ? "bg-gray-800 text-white border-gray-800 hover:bg-gray-700"
+                      : "border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white"
+                  }`}
                   title="Pesquisa Avançada"
                   onClick={() => setModalPesquisaAberto(true)}
                 >
@@ -337,22 +396,48 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
           <DataTable>
             <DataTableHeader>
               <DataTableRow>
-                <SortableTableHeader sortKey="displayName" currentSort={sortConfig} onSort={handleSort}>
+                <SortableTableHeader
+                  sortKey="displayName"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                >
                   Nome
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="email" currentSort={sortConfig} onSort={handleSort}>
+                <SortableTableHeader
+                  sortKey="email"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                >
                   Email
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="isAdmin" currentSort={sortConfig} onSort={handleSort} align="center">
+                <SortableTableHeader
+                  sortKey="isAdmin"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                  align="center"
+                >
                   Tipo
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="authDisabled" currentSort={sortConfig} onSort={handleSort} align="center">
+                <SortableTableHeader
+                  sortKey="authDisabled"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                  align="center"
+                >
                   Status
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="associatedBases.length" currentSort={sortConfig} onSort={handleSort}>
+                <SortableTableHeader
+                  sortKey="associatedBases.length"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                >
                   Bases Associadas
                 </SortableTableHeader>
-                <SortableTableHeader sortKey="createdAt" currentSort={sortConfig} onSort={handleSort}>
+                <SortableTableHeader
+                  sortKey="createdAt"
+                  currentSort={sortConfig}
+                  onSort={handleSort}
+                >
                   Criado em
                 </SortableTableHeader>
                 <DataTableHeaderCell align="center">Ações</DataTableHeaderCell>
@@ -360,11 +445,14 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
             </DataTableHeader>
             <DataTableBody>
               {usuariosOrdenados.map((user) => (
-                <DataTableRow key={user.uid} onClick={() => navegarParaEditar(user.uid)}>
+                <DataTableRow
+                  key={user.uid}
+                  onClick={() => navegarParaEditar(user.uid)}
+                >
                   <DataTableCell className="font-medium">
-                    {user.displayName || 'Sem nome'}
+                    {user.displayName || "Sem nome"}
                   </DataTableCell>
-                  <DataTableCell>{user.email || 'Sem email'}</DataTableCell>
+                  <DataTableCell>{user.email || "Sem email"}</DataTableCell>
                   <DataTableCell align="center">
                     {getTipoBadge(user)}
                   </DataTableCell>
@@ -372,9 +460,14 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
                     {getStatusBadge(user)}
                   </DataTableCell>
                   <DataTableCell>{getBasesText(user)}</DataTableCell>
-                  <DataTableCell>{formatDate(user.createdAt || 0)}</DataTableCell>
+                  <DataTableCell>
+                    {formatDate(user.createdAt || 0)}
+                  </DataTableCell>
                   <DataTableCell align="center">
-                    <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className="flex items-center justify-center gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <ActionButton
                         type="edit"
                         onClick={() => navegarParaEditar(user.uid)}
@@ -391,7 +484,7 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
               ))}
             </DataTableBody>
           </DataTable>
-          
+
           <div className="mt-4 text-sm text-gray-600">
             Total: <strong>{usuariosOrdenados.length}</strong> registro(s)
             {temFiltrosAtivos && (
@@ -468,9 +561,7 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
               <Button variant="outline" onClick={limparFiltros}>
                 Limpar
               </Button>
-              <Button onClick={aplicarFiltros}>
-                Aplicar Filtros
-              </Button>
+              <Button onClick={aplicarFiltros}>Aplicar Filtros</Button>
             </div>
           </div>
         </DialogContent>
@@ -478,18 +569,28 @@ export const GerenciarUsuariosGlobalPage: React.FC = () => {
 
       {/* Modal de Confirmação de Exclusão */}
       {userToDelete && (
-        <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialog
+          open={!!userToDelete}
+          onOpenChange={(open) => !open && setUserToDelete(null)}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
               <AlertDialogDescription>
-                Tem certeza que deseja excluir o usuário "{userToDelete.displayName || userToDelete.uid}" (UID: {userToDelete.uid})?
-                Esta ação não pode ser desfeita e removerá permanentemente todos os dados do usuário.
+                Tem certeza que deseja excluir o usuário "
+                {userToDelete.displayName || userToDelete.uid}" (UID:{" "}
+                {userToDelete.uid})? Esta ação não pode ser desfeita e removerá
+                permanentemente todos os dados do usuário.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setUserToDelete(null)}>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDeleteUser} className="bg-red-600 hover:bg-red-700">
+              <AlertDialogCancel onClick={() => setUserToDelete(null)}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDeleteUser}
+                className="bg-red-600 hover:bg-red-700"
+              >
                 Excluir Usuário
               </AlertDialogAction>
             </AlertDialogFooter>
