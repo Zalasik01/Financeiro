@@ -149,34 +149,67 @@ const InvitePage: React.FC = () => {
         throw new Error("Token do convite não encontrado");
       }
 
-      const redirectUrl = `${
-        window.location.origin
-      }/reset-password?from=invite&token=${token}&email=${encodeURIComponent(
-        inviteData.email
-      )}&name=${encodeURIComponent(formData.nome)}`;
-      console.log("[InvitePage] Enviando resetPasswordForEmail", {
-        email: inviteData.email,
-        redirectUrl,
-      });
+      // 1. Tentar login direto
+      const { data: signInData, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email: inviteData.email,
+          password: formData.senha,
+        });
 
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-        inviteData.email,
-        { redirectTo: redirectUrl }
-      );
+      if (!signInError && signInData?.user) {
+        // Login funcionou, ativar no banco
+        await ativarConta(
+          signInData.user.id,
+          formData.nome,
+          inviteData.email,
+          token
+        );
+        console.log("[InvitePage] Conta ativada com sucesso via login!");
+        navigate("/");
+        return;
+      }
 
-      if (resetError) {
-        console.error("[InvitePage] Erro ao enviar reset:", resetError, {
+      // 2. Se login falhar por senha inválida, enviar reset
+      if (
+        signInError &&
+        signInError.message &&
+        signInError.message.toLowerCase().includes("invalid login credentials")
+      ) {
+        const redirectUrl = `${
+          window.location.origin
+        }/reset-password?from=invite&token=${token}&email=${encodeURIComponent(
+          inviteData.email
+        )}&name=${encodeURIComponent(formData.nome)}`;
+        console.log("[InvitePage] Enviando resetPasswordForEmail", {
           email: inviteData.email,
           redirectUrl,
         });
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+          inviteData.email,
+          { redirectTo: redirectUrl }
+        );
+        if (resetError) {
+          console.error("[InvitePage] Erro ao enviar reset:", resetError, {
+            email: inviteData.email,
+            redirectUrl,
+          });
+          throw new Error(
+            "Erro ao enviar email de configuração de senha. Tente novamente ou use 'Esqueci minha senha'."
+          );
+        }
+        setError(
+          "Foi enviado um link de configuração de senha para seu email. Clique no link para completar a ativação da sua conta."
+        );
+        setIsLoading(false);
+        return;
+      }
 
-        // Se o reset falhar, pode ser que o usuário não exista ainda
-        // Tentar criar o usuário primeiro
-        console.log("[InvitePage] Reset falhou, tentando criar usuário...", {
-          email: inviteData.email,
-          formData,
-        });
-
+      // 3. Se usuário não existe, criar
+      if (
+        signInError &&
+        signInError.message &&
+        signInError.message.toLowerCase().includes("user not found")
+      ) {
         const { data: signUpData, error: signUpError } =
           await supabase.auth.signUp({
             email: inviteData.email,
@@ -188,41 +221,10 @@ const InvitePage: React.FC = () => {
               },
             },
           });
-
         if (signUpError) {
           console.error("[InvitePage] signUpError", signUpError);
-          if (signUpError.message.includes("User already registered")) {
-            // Usuário existe mas não conseguiu fazer reset
-            // Tentar login direto
-            const { data: signInData, error: signInError } =
-              await supabase.auth.signInWithPassword({
-                email: inviteData.email,
-                password: formData.senha,
-              });
-
-            if (signInError) {
-              console.error("[InvitePage] signInError", signInError);
-              throw new Error(
-                "Usuário existe mas a senha não confere. Use 'Esqueci minha senha' na tela de login."
-              );
-            }
-
-            // Login deu certo, continuar com ativação
-            await ativarConta(
-              signInData.user.id,
-              formData.nome,
-              inviteData.email,
-              token
-            );
-            console.log("[InvitePage] Conta ativada com sucesso via login!");
-            navigate("/");
-            return;
-          } else {
-            throw signUpError;
-          }
+          throw signUpError;
         }
-
-        // SignUp deu certo
         await ativarConta(
           signUpData.user?.id || "",
           formData.nome,
@@ -234,15 +236,11 @@ const InvitePage: React.FC = () => {
         return;
       }
 
-      // Reset de senha enviado com sucesso
-      console.log("[InvitePage] Reset de senha enviado com sucesso", {
-        email: inviteData.email,
-        redirectUrl,
-      });
-      setError(
-        "Foi enviado um link de configuração de senha para seu email. Clique no link para completar a ativação da sua conta."
-      );
-      setIsLoading(false);
+      // Outro erro
+      if (signInError) {
+        console.error("[InvitePage] signInError", signInError);
+        throw signInError;
+      }
     } catch (error: unknown) {
       console.error("[InvitePage] Erro ao ativar conta:", error, {
         inviteData,
