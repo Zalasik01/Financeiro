@@ -10,7 +10,8 @@ import {
   Route,
   Routes,
   useLocation,
-} from "react-router-dom"; // Importar Navigate
+  useNavigate,
+} from "react-router-dom"; // Importar Navigate e useNavigate
 import AdminLayout from "./components/AdminLayout";
 import { BotaoFlutuanteTransacao } from "./components/BotaoFlutuanteTransacao";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -77,6 +78,7 @@ const App = () => (
 
 const AppContent = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const {
     currentUser,
     loading: authLoading,
@@ -98,7 +100,20 @@ const AppContent = () => {
         return;
       }
     }
-  }, [location.pathname, location.hash]);
+  }, [location]);
+
+  // Redireciona para convite se usuário logado precisa definir senha
+  useEffect(() => {
+    if (
+      currentUser &&
+      !authLoading &&
+      currentUser.needsPasswordSetup &&
+      !location.pathname.startsWith("/invite") &&
+      !location.pathname.startsWith("/convite")
+    ) {
+      window.location.href = "/invite";
+    }
+  }, [currentUser, authLoading, location.pathname]);
 
   const routeTitles = useMemo(
     (): Record<string, string> => ({
@@ -297,7 +312,7 @@ const AppContent = () => {
             </Route>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
-            <Route path="/convite/:inviteToken" element={<InvitePage />} />
+            <Route path="/invite" element={<InvitePage />} />
             <Route path="/invite" element={<InvitePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

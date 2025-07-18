@@ -60,77 +60,100 @@ export const useStores = () => {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [movementTypes, setMovementTypes] = useState<MovementType[]>([]);
   const [goals, setGoals] = useState<StoreMeta[]>([]);
+  const [basesLoaded, setBasesLoaded] = useState(false);
   const { currentUser, selectedBaseId } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     if (!currentUser) {
       setBases([]);
+      setBasesLoaded(true);
       return;
     }
+
+    // Só executa uma vez por usuário
+    if (basesLoaded) return;
+
     // Garante que o usuário autenticado tenha registro na tabela 'usuario'
     ensureUsuarioRecord(currentUser, toast);
+
     // Buscar bases do Supabase
     const fetchBases = async () => {
-      const { data, error } = await supabase
-        .from("base_cliente")
-        .select(
-          "id, nome, criado_em, ativa, limite_acesso, id_criador, motivo_inativa"
+      try {
+        const { data, error } = await supabase
+          .from("base_cliente")
+          .select(
+            "id, nome, criado_em, ativa, limite_acesso, id_criador, motivo_inativa"
+          );
+
+        if (error) {
+          toast({
+            title: "Erro ao carregar bases",
+            description: error.message,
+            variant: "destructive",
+          });
+          setBases([]);
+          setBasesLoaded(true);
+          return;
+        }
+
+        if (!data) {
+          setBases([]);
+          setBasesLoaded(true);
+          return;
+        }
+
+        // Ajusta para o tipo correto, já que nome do campo mudou
+        let allClientBases: ClientBase[] =
+          data?.map((b: any) => ({
+            id: b.id,
+            name: b.nome,
+            nome: b.nome,
+            createdAt: b.criado_em,
+            criado_em: b.criado_em,
+            ativo: b.ativa,
+            ativa: b.ativa,
+            numberId: b.id, // Usando id como numberId já que não há campo numberId separado
+            createdBy: b.id_criador,
+            id_criador: b.id_criador,
+            authorizedUIDs: {}, // Campo não existe na tabela atual, usando objeto vazio
+            limite_acesso: b.limite_acesso,
+            motivo_inativa: b.motivo_inativa,
+          })) ?? [];
+
+        let accessibleClientBases: ClientBase[];
+        if (currentUser.isAdmin) {
+          accessibleClientBases = allClientBases;
+        } else {
+          accessibleClientBases = allClientBases.filter((cb) => {
+            const hasAuthorizedUID =
+              cb.authorizedUIDs && cb.authorizedUIDs[currentUser.id];
+            const isCreatedByUser = cb.createdBy === currentUser.id;
+            return hasAuthorizedUID || isCreatedByUser;
+          });
+        }
+
+        const finalBases = accessibleClientBases.map(
+          (cb: ClientBase): Base => ({
+            id: cb.id,
+            name: cb.name,
+            createdAt: cb.createdAt,
+            numberId: cb.numberId,
+            ativo: cb.ativo,
+          })
         );
-      if (error) {
-        toast({
-          title: "Erro ao carregar bases",
-          description: error.message,
-          variant: "destructive",
-        });
+
+        setBases(finalBases);
+        setBasesLoaded(true);
+      } catch (err) {
+        console.error("Erro ao buscar bases:", err);
         setBases([]);
-        return;
+        setBasesLoaded(true);
       }
-      if (!data) {
-        setBases([]);
-        return;
-      }
-      // Ajusta para o tipo correto, já que nome do campo mudou
-      let allClientBases: ClientBase[] =
-        data?.map((b: any) => ({
-          id: b.id,
-          name: b.nome,
-          nome: b.nome,
-          createdAt: b.criado_em,
-          criado_em: b.criado_em,
-          ativo: b.ativa,
-          ativa: b.ativa,
-          numberId: b.id, // Usando id como numberId já que não há campo numberId separado
-          createdBy: b.id_criador,
-          id_criador: b.id_criador,
-          authorizedUIDs: {}, // Campo não existe na tabela atual, usando objeto vazio
-          limite_acesso: b.limite_acesso,
-          motivo_inativa: b.motivo_inativa,
-        })) ?? [];
-      let accessibleClientBases: ClientBase[];
-      if (currentUser.isAdmin) {
-        accessibleClientBases = allClientBases;
-      } else {
-        accessibleClientBases = allClientBases.filter((cb) => {
-          const hasAuthorizedUID =
-            cb.authorizedUIDs && cb.authorizedUIDs[currentUser.id];
-          const isCreatedByUser = cb.createdBy === currentUser.id;
-          return hasAuthorizedUID || isCreatedByUser;
-        });
-      }
-      const finalBases = accessibleClientBases.map(
-        (cb: ClientBase): Base => ({
-          id: cb.id,
-          name: cb.name,
-          createdAt: cb.createdAt,
-          numberId: cb.numberId,
-          ativo: cb.ativo,
-        })
-      );
-      setBases(finalBases);
     };
+
     fetchBases();
-  }, [currentUser]);
+  }, [currentUser, basesLoaded]);
 
   const fetchDataForBase = useCallback(
     (

@@ -27,6 +27,7 @@ interface AppUser {
   photoURL?: string;
   isAdmin?: boolean;
   clientBaseId?: number | null;
+  needsPasswordSetup?: boolean; // Indica se precisa definir senha
 }
 
 interface AuthContextType {
@@ -191,14 +192,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (error) throw error;
 
       if (data.user) {
-        // Criar perfil do usuário
+        // Criar perfil do usuário usando os campos corretos da tabela
         const { error: profileError } = await supabase.from("usuario").insert({
-          uuid: data.user.id,
           email: data.user.email,
-          nome: displayName,
-          senha: "BEMVINDO",
-          isAdmin: isAdminOverride || false,
-          clientBaseId: inviteClientBaseNumberId,
+          nomeexibicao: displayName,
+          admin: isAdminOverride || false,
+          idbasepadrao: inviteClientBaseNumberId,
         });
 
         if (profileError) {
@@ -348,14 +347,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (session?.user) {
         console.log("👤 [useAuth] Processando usuário:", session.user.id);
 
-        // Buscar perfil do usuário
+        // Buscar perfil do usuário - usando email já que não há campo uuid na tabela
         let profileData = null;
         let profileError = null;
         try {
           const { data, error, status } = await supabase
             .from("usuario")
             .select("*")
-            .eq("uuid", session.user.id)
+            .eq("email", session.user.email)
             .single();
           profileData = data;
           profileError = error;
@@ -385,17 +384,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         ) {
           console.log(
             "🔧 [useAuth] Criando perfil de usuário para:",
-            session.user.id
+            session.user.email
           );
           const { error: insertError } = await supabase.from("usuario").insert({
             email: session.user.email,
-            nome:
+            nomeexibicao:
               session.user.user_metadata?.nome ||
               session.user.user_metadata?.display_name ||
-              session.user.email,
-            senha: "BEMVINDO",
-            status: "PENDENTE",
-            uuid: session.user.id,
+              session.user.email?.split("@")[0],
             admin: false,
           });
 
@@ -405,7 +401,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             const { data } = await supabase
               .from("usuario")
               .select("*")
-              .eq("uuid", session.user.id)
+              .eq("email", session.user.email)
               .single();
             profileData = data;
           } else if (
@@ -419,7 +415,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             const { data } = await supabase
               .from("usuario")
               .select("*")
-              .eq("uuid", session.user.id)
+              .eq("email", session.user.email)
               .single();
             profileData = data;
           } else {
@@ -430,9 +426,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const appUser: AppUser = {
           id: session.user.id,
           email: session.user.email || undefined,
-          displayName: session.user.user_metadata?.nome || profileData?.nome,
-          isAdmin: profileData?.isAdmin || false,
-          clientBaseId: profileData?.clientBaseId || null,
+          displayName:
+            session.user.user_metadata?.nome ||
+            session.user.user_metadata?.display_name ||
+            profileData?.nomeexibicao,
+          isAdmin: profileData?.admin || false,
+          clientBaseId: profileData?.idbasepadrao || null,
+          needsPasswordSetup:
+            session.user.user_metadata?.needs_password_setup === true,
         };
 
         // Salvar sessão do usuário no localStorage

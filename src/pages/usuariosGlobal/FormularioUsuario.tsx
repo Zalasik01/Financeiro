@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useInvites } from "@/hooks/useInvites";
 import type { ClientBase } from "@/types/store";
 // importação do Firebase removida
 import {
@@ -46,6 +47,7 @@ export const FormularioUsuario: React.FC = () => {
   const { uid } = useParams<{ uid: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { createInvite } = useInvites();
   const { toast } = useToast();
   const isEdicao = Boolean(uid);
 
@@ -207,59 +209,21 @@ export const FormularioUsuario: React.FC = () => {
   const gerarLinkConvite = async (userId: string) => {
     if (!currentUser) return null;
 
-    // Se não há bases associadas, não podemos criar convite (formato atual requer base)
-    if (formData.associatedBases.length === 0) {
-      toast.error({
-        title: "Erro",
-        description:
-          "O usuário deve estar associado a pelo menos uma base para gerar o convite.",
-      });
-      return null;
-    }
-
-    // Usar a primeira base associada como base principal do convite
-    const primeiraBaseId = formData.associatedBases[0];
-    const primeiraBase = clientBases.find((b) => b.id === primeiraBaseId);
-
-    if (!primeiraBase) {
-      toast.error({
-        title: "Erro",
-        description: "Base não encontrada para gerar o convite.",
-      });
-      return null;
-    }
-
-    const newInviteRef = push(ref(db, "invites"));
-    const inviteToken = newInviteRef.key;
-
-    if (!inviteToken) {
-      toast.error({
-        title: "Erro",
-        description: "Não foi possível gerar o token do convite.",
-      });
-      return null;
-    }
-
-    const inviteData = {
-      clientBaseId: primeiraBase.id, // UUID da base (formato esperado)
-      clientBaseNumberId: primeiraBase.numberId, // numberId da base
-      userId: userId, // ID do usuário criado
-      email: formData.email,
-      displayName: formData.displayName,
-      createdBy: currentUser.uid,
-      createdAt: Date.now(),
-      status: "pending",
-      associatedBases: formData.associatedBases, // Todas as bases associadas
-    };
-
     try {
-      await set(newInviteRef, inviteData);
-      const inviteLink = `${window.location.origin}/convite/${inviteToken}`;
+      const inviteLink = await createInvite({
+        email: formData.email,
+        nomeexibicao: formData.displayName,
+        admin: formData.isAdmin,
+        idusuario: userId,
+        idbasepadrao: formData.clientBaseId || null
+      });
+
       return inviteLink;
     } catch (error) {
+      console.error('Erro ao criar convite:', error);
       toast.error({
         title: "Erro",
-        description: "Não foi possível salvar o convite.",
+        description: "Não foi possível gerar o convite.",
       });
       return null;
     }
