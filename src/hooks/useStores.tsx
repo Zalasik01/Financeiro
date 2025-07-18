@@ -18,11 +18,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 // Função utilitária para garantir que o usuário autenticado tenha registro na tabela 'usuario'
 async function ensureUsuarioRecord(user: any, toast: any) {
   if (!user) return;
-  // Verifica se já existe registro na tabela 'usuario' com o mesmo id do usuário autenticado
+  // Verifica se já existe registro na tabela 'usuario' com o mesmo uuid do usuário autenticado
   const { data, error } = await supabase
     .from("usuario")
-    .select("id")
-    .eq("id", user.id)
+    .select("uuid")
+    .eq("uuid", user.id)
     .single();
   if (error && error.code !== "PGRST116") {
     // PGRST116 = no rows found
@@ -37,10 +37,10 @@ async function ensureUsuarioRecord(user: any, toast: any) {
     // Cria registro mínimo na tabela usuario
     const { error: insertError } = await supabase.from("usuario").insert([
       {
-        id: user.id,
+        uuid: user.id,
         email: user.email,
         nome: user.user_metadata?.name || user.email,
-        created_at: new Date().toISOString(),
+        criado_em: new Date().toISOString(),
       },
     ]);
     if (insertError) {
@@ -75,7 +75,7 @@ export const useStores = () => {
       const { data, error } = await supabase
         .from("base_cliente")
         .select(
-          "id, name, createdAt, numberId, ativo, createdBy, authorizedUIDs"
+          "id, nome, criado_em, ativa, limite_acesso, id_criador, motivo_inativa"
         );
       if (error) {
         toast({
@@ -90,7 +90,23 @@ export const useStores = () => {
         setBases([]);
         return;
       }
-      let allClientBases: ClientBase[] = data;
+      // Ajusta para o tipo correto, já que nome do campo mudou
+      let allClientBases: ClientBase[] =
+        data?.map((b: any) => ({
+          id: b.id,
+          name: b.nome,
+          nome: b.nome,
+          createdAt: b.criado_em,
+          criado_em: b.criado_em,
+          ativo: b.ativa,
+          ativa: b.ativa,
+          numberId: b.id, // Usando id como numberId já que não há campo numberId separado
+          createdBy: b.id_criador,
+          id_criador: b.id_criador,
+          authorizedUIDs: {}, // Campo não existe na tabela atual, usando objeto vazio
+          limite_acesso: b.limite_acesso,
+          motivo_inativa: b.motivo_inativa,
+        })) ?? [];
       let accessibleClientBases: ClientBase[];
       if (currentUser.isAdmin) {
         accessibleClientBases = allClientBases;

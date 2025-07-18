@@ -106,11 +106,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       try {
         // Buscar base no Supabase
-        const { data: baseData, error } = await supabase
-          .from("base_cliente")
-          .select("*")
-          .eq("id", baseId)
-          .single();
+        // baseId pode ser string (UUID) ou inteiro, mas o campo correto é id (int)
+        let query = supabase.from("base_cliente").select("*");
+        if (typeof baseId === "string" && baseId.length === 36) {
+          // UUID
+          query = query.eq("id", baseId);
+        } else {
+          // Inteiro
+          query = query.eq("numberId", baseId);
+        }
+        const { data: baseData, error } = await query.single();
 
         if (error || !baseData) {
           toast({
@@ -188,9 +193,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (data.user) {
         // Criar perfil do usuário
         const { error: profileError } = await supabase.from("usuario").insert({
-          id: data.user.id,
+          uuid: data.user.id,
           email: data.user.email,
           nome: displayName,
+          senha: "BEMVINDO",
           isAdmin: isAdminOverride || false,
           clientBaseId: inviteClientBaseNumberId,
         });
@@ -340,12 +346,86 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
 
       if (session?.user) {
+        console.log("👤 [useAuth] Processando usuário:", session.user.id);
+
         // Buscar perfil do usuário
-        const { data: profileData } = await supabase
-          .from("usuario")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
+        let profileData = null;
+        let profileError = null;
+        try {
+          const { data, error, status } = await supabase
+            .from("usuario")
+            .select("*")
+            .eq("uuid", session.user.id)
+            .single();
+          profileData = data;
+          profileError = error;
+
+          if (profileError) {
+            console.log("⚠️ [useAuth] Erro ao buscar perfil:", {
+              code: profileError.code,
+              status,
+              message: profileError.message,
+            });
+          } else {
+            console.log("✅ [useAuth] Perfil encontrado:", profileData?.email);
+          }
+        } catch (err: unknown) {
+          console.error("❌ [useAuth] Erro na consulta:", err);
+          profileError = err as {
+            code?: string;
+            status?: number;
+            message?: string;
+          };
+        }
+
+        // Se não existir, cria o registro mínimo
+        if (
+          profileError &&
+          (profileError.code === "PGRST116" || profileError.status === 406)
+        ) {
+          console.log(
+            "🔧 [useAuth] Criando perfil de usuário para:",
+            session.user.id
+          );
+          const { error: insertError } = await supabase.from("usuario").insert({
+            email: session.user.email,
+            nome:
+              session.user.user_metadata?.nome ||
+              session.user.user_metadata?.display_name ||
+              session.user.email,
+            senha: "BEMVINDO",
+            status: "PENDENTE",
+            uuid: session.user.id,
+            admin: false,
+          });
+
+          if (!insertError) {
+            console.log("✅ [useAuth] Perfil criado com sucesso");
+            // Buscar novamente
+            const { data } = await supabase
+              .from("usuario")
+              .select("*")
+              .eq("uuid", session.user.id)
+              .single();
+            profileData = data;
+          } else if (
+            insertError.code === "23505" ||
+            insertError.code === "409"
+          ) {
+            console.log(
+              "⚠️ [useAuth] Usuário já existe, buscando perfil existente"
+            );
+            // Registro já existe, buscar novamente
+            const { data } = await supabase
+              .from("usuario")
+              .select("*")
+              .eq("uuid", session.user.id)
+              .single();
+            profileData = data;
+          } else {
+            console.error("❌ [useAuth] Erro ao criar perfil:", insertError);
+          }
+        }
 
         const appUser: AppUser = {
           id: session.user.id,
