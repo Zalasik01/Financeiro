@@ -212,15 +212,15 @@ export const FormularioUsuario: React.FC = () => {
     try {
       const inviteLink = await createInvite({
         email: formData.email,
-        nomeexibicao: formData.displayName,
+        nome: formData.displayName,
         admin: formData.isAdmin,
         idusuario: userId,
-        idbasepadrao: formData.clientBaseId || null
+        idbasepadrao: formData.clientBaseId || null,
       });
 
       return inviteLink;
     } catch (error) {
-      console.error('Erro ao criar convite:', error);
+      console.error("Erro ao criar convite:", error);
       toast.error({
         title: "Erro",
         description: "Não foi possível gerar o convite.",

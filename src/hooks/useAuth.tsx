@@ -195,7 +195,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // Criar perfil do usuário usando os campos corretos da tabela
         const { error: profileError } = await supabase.from("usuario").insert({
           email: data.user.email,
-          nomeexibicao: displayName,
+          nome: displayName,
           admin: isAdminOverride || false,
           idbasepadrao: inviteClientBaseNumberId,
         });
@@ -388,7 +388,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           );
           const { error: insertError } = await supabase.from("usuario").insert({
             email: session.user.email,
-            nomeexibicao:
+            nome:
               session.user.user_metadata?.nome ||
               session.user.user_metadata?.display_name ||
               session.user.email?.split("@")[0],
@@ -429,7 +429,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           displayName:
             session.user.user_metadata?.nome ||
             session.user.user_metadata?.display_name ||
-            profileData?.nomeexibicao,
+            profileData?.nome,
           isAdmin: profileData?.admin || false,
           clientBaseId: profileData?.idbasepadrao || null,
           needsPasswordSetup:

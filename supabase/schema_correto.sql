@@ -28,7 +28,7 @@ CREATE TABLE usuario (
   id INTEGER PRIMARY KEY DEFAULT nextval('seq_usuario'),
   -- campo uidfirebase removido, agora apenas id sequencial
   email TEXT UNIQUE NOT NULL,
-  nomeexibicao TEXT,
+  nome TEXT,
   admin BOOLEAN DEFAULT FALSE,
   idbasepadrao INTEGER REFERENCES basecliente(id),
   criado_em TIMESTAMPTZ DEFAULT NOW(),
@@ -60,7 +60,7 @@ CREATE TABLE acessousuariobase (
   id INTEGER PRIMARY KEY DEFAULT nextval('seq_acessousuariobase'),
   idusuario INTEGER REFERENCES usuario(id) ON DELETE CASCADE,
   idbasecliente INTEGER REFERENCES basecliente(id) ON DELETE CASCADE,
-  nomeexibicao TEXT,
+  nome TEXT,
   email TEXT,
   status TEXT DEFAULT 'ativo',
   criado_em TIMESTAMPTZ DEFAULT NOW(),
@@ -444,7 +444,7 @@ SELECT
   u.id,
   -- uidfirebase removido
   u.email,
-  u.nomeexibicao,
+  u.nome,
   u.admin,
   cb.id as id_base_padrao,
   cb.nome as nome_base_padrao,
