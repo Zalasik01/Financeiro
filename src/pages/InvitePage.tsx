@@ -112,26 +112,32 @@ const InvitePage: React.FC = () => {
         authError?.message
       );
 
-      // 1.1. Se o usuário foi criado mas precisa de confirmação, confirmar automaticamente
-      if (authData?.user && !authData.user.email_confirmed_at) {
-        console.log("[InvitePage] Confirmando email automaticamente...");
-        // Para usuários criados via convite, podemos confirmar diretamente
-        // Isso requer RLS ou função do servidor, mas vamos tentar fazer login direto
-      }
-
       // 2. Se o usuário já existe, tentar login direto
       if (
         authError &&
         authError.message &&
         authError.message.includes("User already registered")
       ) {
-        // Fazer login automático
+        console.log("[InvitePage] Usuário já existe, fazendo login...");
         const { data: signInData, error: signInError } =
           await supabase.auth.signInWithPassword({
             email: inviteData.email,
             password: formData.senha,
           });
         if (signInError) {
+          // Se a senha estiver errada, mostrar mensagem amigável
+          if (
+            signInError.message &&
+            signInError.message
+              .toLowerCase()
+              .includes("invalid login credentials")
+          ) {
+            setError(
+              "Usuário já possui cadastro. Caso tenha esquecido a senha, recupere pelo link de login."
+            );
+            setIsLoading(false);
+            return;
+          }
           throw signInError;
         }
         uid = signInData?.user?.id;
@@ -175,9 +181,11 @@ const InvitePage: React.FC = () => {
       // 6. Usuario já está autenticado, redirecionar para o dashboard
       console.log("[InvitePage] Conta ativada com sucesso! Redirecionando...");
       navigate("/");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao ativar conta:", error);
-      setError(error.message || "Erro ao ativar conta");
+      const errorMessage =
+        error instanceof Error ? error.message : "Erro ao ativar conta";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
