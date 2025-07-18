@@ -114,14 +114,23 @@ export const useInvites = () => {
         .from("convite")
         .select("*")
         .eq("token", token)
-        .eq("status", "PENDENTE")
         .single();
 
       if (error || !data) {
         return null;
       }
 
-      // Verificar se não expirou
+      // Se já foi usado, retornar dados mas com status ATIVO
+      if (data.status === "ATIVO") {
+        return data;
+      }
+
+      // Se não está pendente e não está ativo, é inválido
+      if (data.status !== "PENDENTE") {
+        return null;
+      }
+
+      // Verificar se não expirou (apenas para convites pendentes)
       if (data.expira_em && new Date(data.expira_em) < new Date()) {
         // Marcar como expirado
         await supabase

@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react"; // Adicionado useMemo
 import {
-  BrowserRouter,
   Navigate,
   Outlet,
   Route,
@@ -68,11 +67,9 @@ const ProtectedPagesLayout = () => {
 };
 const App = () => (
   <ErrorBoundary>
-    <BrowserRouter>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </BrowserRouter>
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   </ErrorBoundary>
 );
 

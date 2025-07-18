@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useInvites } from "@/hooks/useInvites";
 import { supabase } from "@/supabaseClient";
 import { Loader2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -18,11 +17,21 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 const InvitePage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { validateInvite, markInviteAsUsed } = useInvites();
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [inviteData, setInviteData] = useState<any>(null);
+  const [inviteData, setInviteData] = useState<{
+    id?: number;
+    token: string;
+    email: string;
+    nome?: string;
+    admin?: boolean;
+    id_usuario?: number;
+    status: string;
+    criado_em?: string;
+    usado_em?: string;
+    expira_em?: string;
+  } | null>(null);
 
   const [formData, setFormData] = useState({
     senha: "",
@@ -41,16 +50,41 @@ const InvitePage: React.FC = () => {
 
     const validateToken = async () => {
       try {
-        const invite = await validateInvite(token);
-        if (invite) {
-          setInviteData(invite);
-          setFormData((prev) => ({
-            ...prev,
-            nome: invite.nome || "",
-          }));
-        } else {
+        // Fazer a validação diretamente aqui para evitar dependência do hook
+        const { data, error } = await supabase
+          .from("convite")
+          .select("*")
+          .eq("token", token)
+          .single();
+
+        if (error || !data) {
           setError("Convite inválido ou expirado");
+          return;
         }
+
+        // Verificar se o convite já foi usado
+        if (data.status === "ATIVO") {
+          setError("Este convite já foi utilizado");
+          return;
+        }
+
+        // Se não está pendente, é inválido
+        if (data.status !== "PENDENTE") {
+          setError("Convite inválido ou expirado");
+          return;
+        }
+
+        // Verificar se não expirou
+        if (data.expira_em && new Date(data.expira_em) < new Date()) {
+          setError("Convite expirado");
+          return;
+        }
+
+        setInviteData(data);
+        setFormData((prev) => ({
+          ...prev,
+          nome: data.nome || "",
+        }));
       } catch (error) {
         console.error("Erro ao validar convite:", error);
         setError("Erro ao validar convite");
@@ -60,7 +94,7 @@ const InvitePage: React.FC = () => {
     };
 
     validateToken();
-  }, [token]);
+  }, [token]); // Removida a dependência validateInvite
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -92,102 +126,175 @@ const InvitePage: React.FC = () => {
     setError(null);
 
     try {
-      // 1. Criar conta no Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: inviteData.email,
-        password: formData.senha,
-        options: {
-          data: {
-            needs_password_setup: false,
-            display_name: formData.nome,
-          },
-        },
+      console.log("[InvitePage] handleSubmit START", {
+        inviteData,
+        token,
+        formData,
+        url: window.location.href,
       });
 
-      let uid = authData?.user?.id;
-      console.log(
-        "[InvitePage] signUp result - uid:",
-        uid,
-        "error:",
-        authError?.message
+      if (!inviteData) {
+        console.error("[InvitePage] Dados do convite não encontrados", {
+          token,
+          formData,
+        });
+        throw new Error("Dados do convite não encontrados");
+      }
+
+      if (!token) {
+        console.error("[InvitePage] Token do convite não encontrado", {
+          inviteData,
+          formData,
+        });
+        throw new Error("Token do convite não encontrado");
+      }
+
+      const redirectUrl = `${
+        window.location.origin
+      }/reset-password?from=invite&token=${token}&email=${encodeURIComponent(
+        inviteData.email
+      )}&name=${encodeURIComponent(formData.nome)}`;
+      console.log("[InvitePage] Enviando resetPasswordForEmail", {
+        email: inviteData.email,
+        redirectUrl,
+      });
+
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        inviteData.email,
+        { redirectTo: redirectUrl }
       );
 
-      // 2. Se o usuário já existe, tentar login direto
-      if (
-        authError &&
-        authError.message &&
-        authError.message.includes("User already registered")
-      ) {
-        console.log("[InvitePage] Usuário já existe, fazendo login...");
-        const { data: signInData, error: signInError } =
-          await supabase.auth.signInWithPassword({
+      if (resetError) {
+        console.error("[InvitePage] Erro ao enviar reset:", resetError, {
+          email: inviteData.email,
+          redirectUrl,
+        });
+
+        // Se o reset falhar, pode ser que o usuário não exista ainda
+        // Tentar criar o usuário primeiro
+        console.log("[InvitePage] Reset falhou, tentando criar usuário...", {
+          email: inviteData.email,
+          formData,
+        });
+
+        const { data: signUpData, error: signUpError } =
+          await supabase.auth.signUp({
             email: inviteData.email,
             password: formData.senha,
+            options: {
+              data: {
+                display_name: formData.nome,
+                from_invite: true,
+              },
+            },
           });
-        if (signInError) {
-          // Se a senha estiver errada, mostrar mensagem amigável
-          if (
-            signInError.message &&
-            signInError.message
-              .toLowerCase()
-              .includes("invalid login credentials")
-          ) {
-            setError(
-              "Usuário já possui cadastro. Caso tenha esquecido a senha, recupere pelo link de login."
+
+        if (signUpError) {
+          console.error("[InvitePage] signUpError", signUpError);
+          if (signUpError.message.includes("User already registered")) {
+            // Usuário existe mas não conseguiu fazer reset
+            // Tentar login direto
+            const { data: signInData, error: signInError } =
+              await supabase.auth.signInWithPassword({
+                email: inviteData.email,
+                password: formData.senha,
+              });
+
+            if (signInError) {
+              console.error("[InvitePage] signInError", signInError);
+              throw new Error(
+                "Usuário existe mas a senha não confere. Use 'Esqueci minha senha' na tela de login."
+              );
+            }
+
+            // Login deu certo, continuar com ativação
+            await ativarConta(
+              signInData.user.id,
+              formData.nome,
+              inviteData.email,
+              token
             );
-            setIsLoading(false);
+            console.log("[InvitePage] Conta ativada com sucesso via login!");
+            navigate("/");
             return;
+          } else {
+            throw signUpError;
           }
-          throw signInError;
         }
-        uid = signInData?.user?.id;
-        console.log("[InvitePage] signIn result - uid:", uid);
-      } else if (authError) {
-        throw authError;
+
+        // SignUp deu certo
+        await ativarConta(
+          signUpData.user?.id || "",
+          formData.nome,
+          inviteData.email,
+          token
+        );
+        console.log("[InvitePage] Conta criada e ativada com sucesso!");
+        navigate("/");
+        return;
       }
 
-      // 3. Buscar UID do usuário autenticado, se não veio do signUp/signIn
-      if (!uid) {
-        const { data: userData, error: userError } =
-          await supabase.auth.getUser();
-        if (userError || !userData?.user?.id) {
-          // Se ainda não conseguiu o UID, gerar um novo UUID como fallback
-          uid = crypto.randomUUID();
-          console.log("[InvitePage] Gerou novo UUID:", uid);
-        } else {
-          uid = userData.user.id;
-          console.log("[InvitePage] getUser result - uid:", uid);
-        }
-      }
-
-      // 4. Sempre atualizar uuid, nome e status para ATIVO (não tentar inserir)
-      const { error: updateError } = await supabase
-        .from("usuario")
-        .update({
-          uuid: uid,
-          nome: formData.nome,
-          status: "ATIVO",
-        })
-        .eq("email", inviteData.email);
-      if (updateError) {
-        throw updateError;
-      }
-      // Log para conferência
-      console.log("[InvitePage] uuid salvo no banco:", uid);
-
-      // 5. Marcar convite como usado
-      await markInviteAsUsed(token!);
-
-      // 6. Usuario já está autenticado, redirecionar para o dashboard
-      console.log("[InvitePage] Conta ativada com sucesso! Redirecionando...");
-      navigate("/");
+      // Reset de senha enviado com sucesso
+      console.log("[InvitePage] Reset de senha enviado com sucesso", {
+        email: inviteData.email,
+        redirectUrl,
+      });
+      setError(
+        "Foi enviado um link de configuração de senha para seu email. Clique no link para completar a ativação da sua conta."
+      );
+      setIsLoading(false);
     } catch (error: unknown) {
-      console.error("Erro ao ativar conta:", error);
+      console.error("[InvitePage] Erro ao ativar conta:", error, {
+        inviteData,
+        token,
+        formData,
+        url: window.location.href,
+      });
       const errorMessage =
         error instanceof Error ? error.message : "Erro ao ativar conta";
       setError(errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Função auxiliar para ativar conta
+  const ativarConta = async (
+    authUserId: string,
+    nome: string,
+    email: string,
+    token: string
+  ) => {
+    // Atualizar o usuário na tabela usuario
+    const { error: updateError } = await supabase
+      .from("usuario")
+      .update({
+        uuid: authUserId,
+        nome: nome,
+        status: "ATIVO",
+      })
+      .eq("email", email)
+      .eq("status", "PENDENTE");
+
+    if (updateError) {
+      console.error("[InvitePage] Erro ao atualizar usuário:", updateError);
+      throw updateError;
+    }
+
+    // Marcar convite como usado
+    const { error: inviteUpdateError } = await supabase
+      .from("convite")
+      .update({
+        status: "ATIVO",
+        usado_em: new Date().toISOString(),
+      })
+      .eq("token", token);
+
+    if (inviteUpdateError) {
+      console.warn(
+        "[InvitePage] Falha ao marcar convite como usado:",
+        inviteUpdateError
+      );
     }
   };
 
