@@ -15,6 +15,44 @@ import {
 } from "@/types/store";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+// Função utilitária para garantir que o usuário autenticado tenha registro na tabela 'usuario'
+async function ensureUsuarioRecord(user: any, toast: any) {
+  if (!user) return;
+  // Verifica se já existe registro na tabela 'usuario' com o mesmo id do usuário autenticado
+  const { data, error } = await supabase
+    .from("usuario")
+    .select("id")
+    .eq("id", user.id)
+    .single();
+  if (error && error.code !== "PGRST116") {
+    // PGRST116 = no rows found
+    toast({
+      title: "Erro ao verificar usuário",
+      description: error.message,
+      variant: "destructive",
+    });
+    return;
+  }
+  if (!data) {
+    // Cria registro mínimo na tabela usuario
+    const { error: insertError } = await supabase.from("usuario").insert([
+      {
+        id: user.id,
+        email: user.email,
+        nome: user.user_metadata?.name || user.email,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+    if (insertError) {
+      toast({
+        title: "Erro ao criar registro de usuário",
+        description: insertError.message,
+        variant: "destructive",
+      });
+    }
+  }
+}
+
 export const useStores = () => {
   const [bases, setBases] = useState<Base[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
@@ -30,6 +68,8 @@ export const useStores = () => {
       setBases([]);
       return;
     }
+    // Garante que o usuário autenticado tenha registro na tabela 'usuario'
+    ensureUsuarioRecord(currentUser, toast);
     // Buscar bases do Supabase
     const fetchBases = async () => {
       const { data, error } = await supabase

@@ -85,6 +85,21 @@ const AppContent = () => {
   } = useAuth();
   const { bases } = useStores();
 
+  // Redireciona para /invite se houver hash de convite/recovery em qualquer rota (exceto já estando em /invite)
+  useEffect(() => {
+    if (!location.pathname.startsWith("/invite") && location.hash) {
+      const hashParams = new URLSearchParams(location.hash.substring(1));
+      const accessToken = hashParams.get("access_token");
+      const type = hashParams.get("type");
+      const error = hashParams.get("error");
+
+      if ((accessToken && type === "recovery") || error) {
+        window.location.replace(`/invite${location.hash}`);
+        return;
+      }
+    }
+  }, [location.pathname, location.hash]);
+
   const routeTitles = useMemo(
     (): Record<string, string> => ({
       "/": "Visão Geral",
@@ -283,6 +298,7 @@ const AppContent = () => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/convite/:inviteToken" element={<InvitePage />} />
+            <Route path="/invite" element={<InvitePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           {!location.pathname.startsWith("/admin") && <Footer />}

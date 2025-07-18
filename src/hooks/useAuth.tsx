@@ -107,7 +107,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       try {
         // Buscar base no Supabase
         const { data: baseData, error } = await supabase
-          .from("client_bases")
+          .from("base_cliente")
           .select("*")
           .eq("id", baseId)
           .single();
@@ -187,15 +187,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (data.user) {
         // Criar perfil do usuário
-        const { error: profileError } = await supabase
-          .from("user_profiles")
-          .insert({
-            user_id: data.user.id,
-            email: data.user.email,
-            display_name: displayName,
-            is_admin: isAdminOverride || false,
-            client_base_id: inviteClientBaseNumberId,
-          });
+        const { error: profileError } = await supabase.from("usuario").insert({
+          id: data.user.id,
+          email: data.user.email,
+          nome: displayName,
+          isAdmin: isAdminOverride || false,
+          clientBaseId: inviteClientBaseNumberId,
+        });
 
         if (profileError) {
           console.warn("Erro ao criar perfil do usuário:", profileError);
@@ -344,19 +342,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (session?.user) {
         // Buscar perfil do usuário
         const { data: profileData } = await supabase
-          .from("user_profiles")
+          .from("usuario")
           .select("*")
-          .eq("user_id", session.user.id)
+          .eq("id", session.user.id)
           .single();
 
         const appUser: AppUser = {
           id: session.user.id,
           email: session.user.email || undefined,
-          displayName:
-            session.user.user_metadata?.display_name ||
-            profileData?.display_name,
-          isAdmin: profileData?.is_admin || false,
-          clientBaseId: profileData?.client_base_id || null,
+          displayName: session.user.user_metadata?.nome || profileData?.nome,
+          isAdmin: profileData?.isAdmin || false,
+          clientBaseId: profileData?.clientBaseId || null,
         };
 
         // Salvar sessão do usuário no localStorage
