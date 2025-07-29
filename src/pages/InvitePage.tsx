@@ -149,6 +149,28 @@ const InvitePage: React.FC = () => {
         throw new Error("Token do convite não encontrado");
       }
 
+      // Checar status do usuário na tabela usuario
+      const { data: usuarioData, error: usuarioError } = await supabase
+        .from("usuario")
+        .select("status")
+        .eq("email", inviteData.email)
+        .single();
+      if (usuarioError || !usuarioData) {
+        throw new Error("Usuário não encontrado na base de dados.");
+      }
+      if (usuarioData.status === "ATIVO") {
+        setError(
+          "Este usuário já está ativo. Use a tela de login ou recuperação de senha."
+        );
+        setIsLoading(false);
+        return;
+      }
+      if (usuarioData.status !== "PENDENTE") {
+        setError("Status do usuário inválido para ativação.");
+        setIsLoading(false);
+        return;
+      }
+
       // 1. Tentar login direto
       const { data: signInData, error: signInError } =
         await supabase.auth.signInWithPassword({
@@ -169,46 +191,18 @@ const InvitePage: React.FC = () => {
         return;
       }
 
-      // 2. Se login falhar por senha inválida, enviar reset
-      if (
-        signInError &&
-        signInError.message &&
-        signInError.message.toLowerCase().includes("invalid login credentials")
-      ) {
-        const redirectUrl = `${
-          window.location.origin
-        }/reset-password?from=invite&token=${token}&email=${encodeURIComponent(
-          inviteData.email
-        )}&name=${encodeURIComponent(formData.nome)}`;
-        console.log("[InvitePage] Enviando resetPasswordForEmail", {
-          email: inviteData.email,
-          redirectUrl,
-        });
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-          inviteData.email,
-          { redirectTo: redirectUrl }
-        );
-        if (resetError) {
-          console.error("[InvitePage] Erro ao enviar reset:", resetError, {
-            email: inviteData.email,
-            redirectUrl,
-          });
-          throw new Error(
-            "Erro ao enviar email de configuração de senha. Tente novamente ou use 'Esqueci minha senha'."
-          );
-        }
-        setError(
-          "Foi enviado um link de configuração de senha para seu email. Clique no link para completar a ativação da sua conta."
-        );
-        setIsLoading(false);
-        return;
-      }
+      // 2. Se login falhar por senha inválida, tentar criar o usuário no Auth e ativar direto
+      // (Removido: bloco duplicado de erro 'invalid login credentials')
 
       // 3. Se usuário não existe, criar
       if (
         signInError &&
         signInError.message &&
-        signInError.message.toLowerCase().includes("user not found")
+        (signInError.message.toLowerCase().includes("user not found") ||
+          signInError.message
+            .toLowerCase()
+            .includes("invalid login credentials") ||
+          signInError.status === 400)
       ) {
         const { data: signUpData, error: signUpError } =
           await supabase.auth.signUp({
