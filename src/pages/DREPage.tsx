@@ -1,8 +1,8 @@
-import React from "react";
-import { useStores } from "@/hooks/useStores";
-import { useFinance } from "@/hooks/useFinance";
 import { DREReport } from "@/components/DREReport";
 import { ExportReports } from "@/components/ExportReports";
+import { useFinance } from "@/hooks/useFinance";
+import { useStores } from "@/hooks/useStores.simple";
+import React from "react";
 
 const DREPage: React.FC = () => {
   const { stores, generateDRE } = useStores();

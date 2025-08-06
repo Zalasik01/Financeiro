@@ -3,41 +3,110 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/supabaseClient";
+import { ArrowLeft } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 
 const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { resetPassword } = useAuth();
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
-  const accessToken = searchParams.get("access_token");
-  const refreshToken = searchParams.get("refresh_token");
-  const type = searchParams.get("type");
-  const fromInvite = searchParams.get("from") === "invite";
-  const inviteToken = searchParams.get("token");
-  const email = searchParams.get("email");
-  const nameParam = searchParams.get("name");
+  // Extrair parâmetros tanto da query string quanto do hash
+  const getParam = (key: string) => {
+    // Primeiro tenta da query string
+    const queryParam = searchParams.get(key);
+    if (queryParam) return queryParam;
+
+    // Se não encontrou, tenta do hash
+    if (location.hash) {
+      const hashParams = new URLSearchParams(location.hash.substring(1));
+      return hashParams.get(key);
+    }
+    return null;
+  };
+
+  const accessToken = getParam("access_token");
+  const refreshToken = getParam("refresh_token");
+  const type = getParam("type");
+  const fromInvite = getParam("from") === "invite";
+  const inviteToken = getParam("token");
+  const emailParam = getParam("email");
+  const nameParam = getParam("name");
 
   useEffect(() => {
+    // Debug: log da URL completa e parâmetros
+    console.log("[ResetPassword] URL completa:", window.location.href);
+    console.log("[ResetPassword] pathname:", location.pathname);
+    console.log("[ResetPassword] search:", location.search);
+    console.log("[ResetPassword] hash:", location.hash);
+    console.log("[ResetPassword] accessToken:", accessToken);
+    console.log("[ResetPassword] inviteToken:", inviteToken);
+    console.log("[ResetPassword] type:", type);
+
+    // Aguardar um momento para garantir que os parâmetros foram carregados
+    const timer = setTimeout(() => {
+      // Verificar se temos um token válido de recuperação
+      if (!accessToken && !inviteToken) {
+        console.log(
+          "[ResetPassword] Nenhum token encontrado, redirecionando..."
+        );
+        setError(
+          "Token de recuperação não encontrado ou expirado. Solicite uma nova recuperação de senha."
+        );
+        // Redirecionar para forgot-password após 3 segundos
+        setTimeout(() => {
+          navigate("/forgot-password", { replace: true });
+        }, 3000);
+        return;
+      }
+    }, 100); // Aguardar 100ms para garantir que o hash foi processado
+
+    return () => clearTimeout(timer);
+
     if (nameParam) {
       setNome(decodeURIComponent(nameParam));
     }
 
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+
     // Se temos tokens, configurar a sessão
-    if (accessToken && refreshToken) {
+    if (accessToken && refreshToken && type === "recovery") {
       supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken,
       });
     }
-  }, [accessToken, refreshToken, nameParam]);
+  }, [
+    accessToken,
+    refreshToken,
+    nameParam,
+    emailParam,
+    inviteToken,
+    type,
+    navigate,
+    location.hash,
+    location.pathname,
+    location.search,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,6 +293,18 @@ const ResetPassword: React.FC = () => {
                     : "Redefinir Senha"}
                 </Button>
               </form>
+            )}
+
+            {error && error.includes("Token de recuperação não encontrado") && (
+              <div className="mt-4 text-center">
+                <Link
+                  to="/forgot-password"
+                  className="flex items-center justify-center space-x-2 text-blue-600 hover:text-blue-500"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>Solicitar nova recuperação</span>
+                </Link>
+              </div>
             )}
           </CardContent>
         </Card>

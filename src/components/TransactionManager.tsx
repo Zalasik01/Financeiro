@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Transaction, Category } from "@/types/finance";
+import { useStores } from "@/hooks/useStores.simple"; // Importar useStores
+import { ClienteFornecedor } from "@/types/clienteFornecedor.tsx"; // Importar tipo
+import { Category, Transaction } from "@/types/finance";
+import { useState } from "react";
 import { TransactionForm } from "./TransactionForm";
 import { TransactionList } from "./TransactionList";
-import { ClienteFornecedor } from "@/types/clienteFornecedor.tsx"; // Importar tipo
-import { useStores } from "@/hooks/useStores"; // Importar useStores
 
 interface TransactionManagerProps {
   transactions: Transaction[];
@@ -77,7 +77,11 @@ export const TransactionManager = ({
           onAddTransaction={handleAddTransaction}
           onUpdateTransaction={handleUpdateTransaction}
           editingTransaction={editingTransaction}
-          lastUsedFields={tipoInicial ? { ...lastUsedFields, type: tipoInicial } : lastUsedFields}
+          lastUsedFields={
+            tipoInicial
+              ? { ...lastUsedFields, type: tipoInicial }
+              : lastUsedFields
+          }
           clientesFornecedores={clientesFornecedores}
           carregandoCF={carregandoCF}
         />

@@ -4,7 +4,7 @@
 
 // Chaves do localStorage
 export const STORAGE_KEYS = {
-  ACCESS_TOKEN: "finance_app_access_token",
+  ACCESS_TOKEN: "access_token",
   USER_EMAIL: "finance_app_user_email",
   SELECTED_BASE: "finance_app_selected_base",
   USER_SESSION: "finance_app_user_session",

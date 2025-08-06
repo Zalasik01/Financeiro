@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react"; // Adicionado useRef
 import { Button } from "@/components/ui/button";
+import { ClienteFornecedorCombobox } from "@/components/ui/ClienteFornecedorCombobox"; // Importar o seletor de cliente
+import { HelpTooltip } from "@/components/ui/HelpToolTip"; // Importar o componente de dica
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -9,14 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Transaction, Category } from "@/types/finance";
 import { useToast } from "@/hooks/use-toast";
-import { CurrencyInput } from "./CurrencyInput";
 import { useAuth } from "@/hooks/useAuth"; // Adicionar useAuth
-import { useStores } from "@/hooks/useStores"; // Importar o hook de lojas
-import { HelpTooltip } from "@/components/ui/HelpToolTip"; // Importar o componente de dica
-import { ClienteFornecedorCombobox } from "@/components/ui/ClienteFornecedorCombobox"; // Importar o seletor de cliente
+import { useStores } from "@/hooks/useStores.simple"; // Importar o hook de lojas
 import { ClienteFornecedor } from "@/types/clienteFornecedor.tsx"; // Importar o tipo ClienteFornecedor
+import { Category, Transaction } from "@/types/finance";
+import { useEffect, useRef, useState } from "react"; // Adicionado useRef
+import { CurrencyInput } from "./CurrencyInput";
 
 interface TransactionFormProps {
   categories: Category[];
@@ -29,7 +29,8 @@ interface TransactionFormProps {
     transaction: Partial<Transaction> | null
   ) => void;
   editingTransaction?: Transaction | null;
-  lastUsedFields?: { // Prop para campos da última transação
+  lastUsedFields?: {
+    // Prop para campos da última transação
     type?: "Receita" | "Despesa"; // Ajustado para consistência
     storeId?: string;
     categoryId?: string;
@@ -92,17 +93,18 @@ export const TransactionForm = ({
       // usando lastUsedFields se disponível, ou os padrões.
       const defaultStore = stores.find((s) => s.isDefault);
       let initialStoreId = defaultStore?.id;
-      if (!initialStoreId && stores.length === 1) { // Se não há default e só uma loja, usa ela
+      if (!initialStoreId && stores.length === 1) {
+        // Se não há default e só uma loja, usa ela
         initialStoreId = stores[0].id;
       }
 
       setNewTransaction({
         description: "", // Limpa descrição
-        amount: 0,       // Limpa valor
-        discount: 0,     // Limpa desconto
+        amount: 0, // Limpa valor
+        discount: 0, // Limpa desconto
         categoryId: lastUsedFields?.categoryId || "", // Usa último usado ou vazio
         date: new Date().toISOString().split("T")[0], // Reseta data
-        type: lastUsedFields?.type || "Despesa",     // Usa último usado ou padrão
+        type: lastUsedFields?.type || "Despesa", // Usa último usado ou padrão
         storeId: lastUsedFields?.storeId || initialStoreId, // Usa último usado ou inicial
         personId: null, // Limpa personId para novo
       });
@@ -157,7 +159,7 @@ export const TransactionForm = ({
       storeId: newTransaction.storeId, // Incluir storeId nos dados da transação
       personId: newTransaction.personId, // Incluir personId
     };
-    
+
     if (editingTransaction && onUpdateTransaction) {
       const updatedTransactionData: Partial<Transaction> = {
         ...baseTransactionData,
@@ -249,7 +251,7 @@ export const TransactionForm = ({
               // Ao pressionar Enter na Loja, o próximo campo focável (Descrição) deve receber o foco.
               // A navegação para o ClienteFornecedorCombobox com Enter é mais complexa de implementar
               // diretamente aqui, pois o trigger do combobox é interno. O usuário pode usar Tab.
-              onKeyDown={(e) => handleKeyDown(e, descriptionRef)} 
+              onKeyDown={(e) => handleKeyDown(e, descriptionRef)}
             >
               <SelectValue placeholder="Selecione a loja..." />
             </SelectTrigger>
@@ -267,12 +269,14 @@ export const TransactionForm = ({
         <div>
           <div className="flex items-center">
             <Label htmlFor="personId">Cliente/Fornecedor</Label>
-            <HelpTooltip dicaKey="transacaoClienteFornecedor" /> 
+            <HelpTooltip dicaKey="transacaoClienteFornecedor" />
           </div>
           <ClienteFornecedorCombobox
             clientesFornecedores={clientesFornecedores}
             value={newTransaction.personId}
-            onChange={(value) => setNewTransaction(prev => ({ ...prev, personId: value }))}
+            onChange={(value) =>
+              setNewTransaction((prev) => ({ ...prev, personId: value }))
+            }
             placeholder="Selecione ou busque..."
             disabled={carregandoCF}
           />
@@ -312,7 +316,9 @@ export const TransactionForm = ({
           <Select
             value={newTransaction.type}
             required
-            onValueChange={(value: "Receita" | "Despesa") => // Ajustado
+            onValueChange={(
+              value: "Receita" | "Despesa" // Ajustado
+            ) =>
               setNewTransaction((prev) => ({
                 ...prev,
                 type: value,
@@ -381,31 +387,32 @@ export const TransactionForm = ({
           />
         </div>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Grid para Valor e Desconto */}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {" "}
+        {/* Grid para Valor e Desconto */}
         {/* 6. Valor */}
         <div>
           <CurrencyInput
             label="Valor (R$)"
             id="amount"
-            ref={amountInputRef} 
+            ref={amountInputRef}
             value={newTransaction.amount}
             onChange={(value) =>
               setNewTransaction((prev) => ({ ...prev, amount: value }))
             }
             placeholder="R$ 0,00"
             required
-            helpTooltipDicaKey="transacaoValor" 
+            helpTooltipDicaKey="transacaoValor"
             onKeyDown={(e) => handleKeyDown(e, discountInputRef)} // Próximo: Desconto
           />
         </div>
-
         {/* 7. Desconto (agora na mesma linha de Valor e Data) */}
         <div>
           <CurrencyInput
-            label="Desconto (R$)" 
+            label="Desconto (R$)"
             id="discount"
-            ref={discountInputRef} 
+            ref={discountInputRef}
             value={newTransaction.discount}
             onChange={(value) =>
               setNewTransaction((prev) => ({ ...prev, discount: value }))
@@ -416,7 +423,6 @@ export const TransactionForm = ({
             // onKeyDown={(e) => handleKeyDown(e, submitButtonRef)}
           />
         </div>
-
         {/* Conditional rendering for discount display */}
         {newTransaction.amount > 0 &&
           newTransaction.discount > 0 &&
@@ -434,7 +440,6 @@ export const TransactionForm = ({
             </div>
           )}
       </div>
-
 
       {/* Botões de Ação */}
       {editingTransaction && onUpdateTransaction ? (
@@ -459,12 +464,20 @@ export const TransactionForm = ({
           >
             Cancelar
           </Button>
-          <Button ref={submitButtonRef} type="submit" className="w-full bg-gray-800 hover:bg-gray-900 text-white">
+          <Button
+            ref={submitButtonRef}
+            type="submit"
+            className="w-full bg-gray-800 hover:bg-gray-900 text-white"
+          >
             Atualizar Transação
           </Button>
         </div>
       ) : (
-        <Button ref={submitButtonRef} type="submit" className="w-full bg-gray-800 hover:bg-gray-900 text-white">
+        <Button
+          ref={submitButtonRef}
+          type="submit"
+          className="w-full bg-gray-800 hover:bg-gray-900 text-white"
+        >
           Adicionar Transação
         </Button>
       )}

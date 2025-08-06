@@ -62,9 +62,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      // Se chegou aqui, login foi bem-sucedido
-      // O useEffect acima vai redirecionar quando currentUser for atualizado
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError("E-mail ou senha inválidos. Verifique suas credenciais.");
     } finally {
       setIsLoading(false);
@@ -109,7 +107,7 @@ export default function LoginPage() {
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Senha</Label>
                 <Link
-                  to="/esqueceu-senha"
+                  to="/forgot-password"
                   className="text-xs font-medium text-primary hover:underline"
                 >
                   Esqueceu a senha?

@@ -1,6 +1,6 @@
-import React from "react";
-import { useStores } from "@/hooks/useStores";
 import { StoreClosingManager } from "@/components/StoreClosingManager";
+import { useStores } from "@/hooks/useStores.simple";
+import React from "react";
 
 const FechamentoPage: React.FC = () => {
   const {

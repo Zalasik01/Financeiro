@@ -1,9 +1,9 @@
-import { useFinance } from "@/hooks/useFinance";
-import { useStores } from "@/hooks/useStores";
-import { FinancialSummaryCards } from "@/components/FinancialSummaryCards";
 import { FinancialCharts } from "@/components/FinancialCharts";
-import { StoreRanking } from "@/components/StoreRanking";
 import { FinancialInsights } from "@/components/FinancialInsights";
+import { FinancialSummaryCards } from "@/components/FinancialSummaryCards";
+import { StoreRanking } from "@/components/StoreRanking";
+import { useFinance } from "@/hooks/useFinance";
+import { useStores } from "@/hooks/useStores.simple.v2";
 
 const Index = () => {
   const { categories, transactions, summary } = useFinance();

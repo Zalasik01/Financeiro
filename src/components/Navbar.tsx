@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"; // Para desktop
 import { useAuth } from "@/hooks/useAuth";
-import { useStores } from "@/hooks/useStores"; // Adicionar useStores
+import { useStores } from "@/hooks/useStores.simple.v2"; // Adicionar useStores
 import { cn } from "@/lib/utils";
 import {
   Archive,

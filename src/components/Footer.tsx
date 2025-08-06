@@ -1,6 +1,6 @@
-import React from "react";
 import { useFinance } from "@/hooks/useFinance";
-import { useStores } from "@/hooks/useStores";
+import { useStores } from "@/hooks/useStores.simple.v2";
+import React from "react";
 
 const Footer: React.FC = () => {
   const { summary } = useFinance();
@@ -15,8 +15,9 @@ const Footer: React.FC = () => {
         <div className="text-center text-gray-600 dark:text-gray-400">
           <p>Sistema completo de gestão financeira</p>
           <p className="text-sm mt-2">
-            <strong>{summary.transactionCount}</strong> Transações • <strong>{stores.length}</strong>{" "}
-            Lojas cadastradas • <strong>{closings.length}</strong> Fechamentos registrados
+            <strong>{summary.transactionCount}</strong> Transações •{" "}
+            <strong>{stores.length}</strong> Lojas cadastradas •{" "}
+            <strong>{closings.length}</strong> Fechamentos registrados
           </p>
           <p className="text-xs mt-4">Versão: {buildTimestamp}</p>
         </div>

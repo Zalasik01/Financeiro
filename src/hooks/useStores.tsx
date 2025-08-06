@@ -61,7 +61,7 @@ export const useStores = () => {
   const [movementTypes, setMovementTypes] = useState<MovementType[]>([]);
   const [goals, setGoals] = useState<StoreMeta[]>([]);
   const [basesLoaded, setBasesLoaded] = useState(false);
-  const { currentUser, selectedBaseId } = useAuth();
+  const { currentUser } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -80,6 +80,7 @@ export const useStores = () => {
     // Buscar bases do Supabase
     const fetchBases = async () => {
       try {
+        console.log("🏪 Carregando bases...");
         const { data, error } = await supabase
           .from("base_cliente")
           .select(
@@ -87,6 +88,7 @@ export const useStores = () => {
           );
 
         if (error) {
+          console.error("❌ Erro ao carregar bases:", error);
           toast({
             title: "Erro ao carregar bases",
             description: error.message,
@@ -98,10 +100,13 @@ export const useStores = () => {
         }
 
         if (!data) {
+          console.log("📭 Nenhuma base encontrada");
           setBases([]);
           setBasesLoaded(true);
           return;
         }
+
+        console.log("✅ Bases carregadas:", data.length, data);
 
         // Ajusta para o tipo correto, já que nome do campo mudou
         let allClientBases: ClientBase[] =
@@ -122,13 +127,13 @@ export const useStores = () => {
           })) ?? [];
 
         let accessibleClientBases: ClientBase[];
-        if (currentUser.isAdmin) {
+        if (currentUser?.admin) {
           accessibleClientBases = allClientBases;
         } else {
           accessibleClientBases = allClientBases.filter((cb) => {
             const hasAuthorizedUID =
-              cb.authorizedUIDs && cb.authorizedUIDs[currentUser.id];
-            const isCreatedByUser = cb.createdBy === currentUser.id;
+              cb.authorizedUIDs && cb.authorizedUIDs[currentUser?.id || ""];
+            const isCreatedByUser = cb.createdBy === currentUser?.id;
             return hasAuthorizedUID || isCreatedByUser;
           });
         }

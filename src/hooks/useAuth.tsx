@@ -1,4 +1,5 @@
-import { supabase } from "@/supabaseClient";
+import { supabase, withRetry } from "@/supabaseClient";
+import { accessToken as storageAccessToken } from "@/utils/storage";
 import {
   ReactNode,
   createContext,
@@ -18,6 +19,7 @@ interface AppUser {
 interface AuthContextType {
   currentUser: AppUser | null;
   loading: boolean;
+  accessToken: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -36,6 +38,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Verificar sessão atual na inicialização
@@ -46,6 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           data: { session },
         } = await supabase.auth.getSession();
         if (session?.user) {
+          setAccessToken(session.access_token);
           await loadUserData(session.user.id, session.user.email!);
         }
       } catch (error) {
@@ -62,9 +66,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
+        setAccessToken(session.access_token);
         await loadUserData(session.user.id, session.user.email!);
       } else {
         setCurrentUser(null);
+        setAccessToken(null);
       }
       setLoading(false);
     });
@@ -103,15 +109,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Usar retry para operações de rede
+      const result = await withRetry(async () => {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+        return data;
       });
 
-      if (error) throw error;
-
-      if (data.user) {
-        await loadUserData(data.user.id, data.user.email!);
+      if (result.user) {
+        await loadUserData(result.user.id, result.user.email!);
       }
 
       toast({
@@ -119,11 +129,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: "Bem-vindo de volta!",
         variant: "default",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro no login:", error);
+
+      let errorMessage = "Erro no login";
+      let errorDescription = "Credenciais inválidas";
+
+      if (error instanceof Error) {
+        if (
+          error.message?.includes("503") ||
+          error.message?.includes("Service Unavailable")
+        ) {
+          errorMessage = "Serviço temporariamente indisponível";
+          errorDescription = "Tente novamente em alguns instantes";
+        } else if (error.message?.includes("fetch")) {
+          errorMessage = "Erro de conexão";
+          errorDescription = "Verifique sua conexão com a internet";
+        } else if (error.message?.includes("Invalid login credentials")) {
+          errorDescription = "Email ou senha incorretos";
+        } else {
+          errorDescription = error.message || "Erro desconhecido";
+        }
+      }
+
       toast({
-        title: "Erro no login",
-        description: error.message || "Credenciais inválidas",
+        title: errorMessage,
+        description: errorDescription,
         variant: "destructive",
       });
       throw error;
@@ -136,16 +167,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await supabase.auth.signOut();
       setCurrentUser(null);
+      setAccessToken(null);
+
+      // Remover access token do localStorage
+      storageAccessToken.remove();
+
       toast({
         title: "Logout realizado",
         description: "Até logo!",
         variant: "default",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro no logout:", error);
       toast({
         title: "Erro no logout",
-        description: error.message,
+        description:
+          error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive",
       });
     }
@@ -153,22 +190,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const resetPassword = async (email: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const result = await withRetry(async () => {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
       });
 
-      if (error) throw error;
-
       toast({
-        title: "Email enviado",
-        description: "Verifique sua caixa de entrada para redefinir a senha",
+        title: "Email de recuperação enviado",
+        description: "Verifique sua caixa de entrada e spam",
         variant: "default",
       });
-    } catch (error: any) {
-      console.error("Erro ao enviar reset:", error);
+    } catch (error: unknown) {
+      console.error("Erro ao enviar email de recuperação:", error);
+
+      let errorDescription = "Erro ao enviar email";
+      if (error instanceof Error) {
+        if (error.message?.includes("Email rate limit exceeded")) {
+          errorDescription =
+            "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.";
+        } else if (
+          error.message?.includes("503") ||
+          error.message?.includes("Service Unavailable")
+        ) {
+          errorDescription =
+            "Serviço temporariamente indisponível, tente novamente";
+        } else if (error.message?.includes("fetch")) {
+          errorDescription = "Erro de conexão, verifique sua internet";
+        } else {
+          errorDescription = error.message || "Erro desconhecido";
+        }
+      }
+
       toast({
-        title: "Erro ao enviar email",
-        description: error.message,
+        title: "Erro na recuperação",
+        description: errorDescription,
         variant: "destructive",
       });
       throw error;
@@ -180,6 +237,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         currentUser,
         loading,
+        accessToken,
         login,
         logout,
         resetPassword,

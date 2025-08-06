@@ -7,9 +7,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
-  // 'loading' (renomeado para authLoading) cobre o estado inicial de verificação do currentUser.
-  // selectedBaseId é carregado de forma síncrona do localStorage no hook useAuth.
-  const { currentUser, loading: authLoading, selectedBaseId } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const location = useLocation();
 
   if (authLoading) {
@@ -29,7 +27,7 @@ const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
   // Se há roles específicas exigidas, verificar se o usuário tem acesso
   if (allowedRoles && allowedRoles.length > 0) {
     const hasRequiredRole = allowedRoles.some((role) => {
-      if (role === "admin") return currentUser.isAdmin;
+      if (role === "admin") return currentUser.admin;
       // Aqui você pode adicionar outros roles conforme necessário
       return false;
     });
@@ -38,20 +36,10 @@ const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
       // Usuário não tem permissão, redireciona para página inicial
       return <Navigate to="/" replace />;
     }
-
-    // Para rotas de admin, não exige selectedBaseId
-    if (allowedRoles.includes("admin")) {
-      return <Outlet />;
-    }
   }
 
-  // Usuário logado, mas precisa selecionar uma base (para rotas normais)
-  if (!selectedBaseId) {
-    // Redireciona para /login, onde o modal de seleção de base deve aparecer.
-    return <Navigate to="/login" replace />;
-  }
-
-  // Usuário logado E com base selecionada, permite acesso à rota protegida.
+  // Usuário logado, permite acesso à rota protegida
+  // A seleção de base é gerenciada pelo modal no App.tsx
   return <Outlet />;
 };
 
